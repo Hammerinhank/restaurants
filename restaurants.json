@@ -1,0 +1,13 @@
+{
+  "restaurants": [
+    {
+      "id": "r_msayhuod_twu7zi",
+      "lat": 48.833887076322156,
+      "lon": 2.29562629951743,
+      "name": "Nouveau restaurant",
+      "address": "7 Rue Robert Lindet, 75015 Paris",
+      "maj": "2026-08-01T22:41:57.401Z"
+    }
+  ],
+  "maj": "2026-08-01T22:47:20.814Z"
+}
