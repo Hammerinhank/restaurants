@@ -349,7 +349,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V5";
+  const VERSION = "V6";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -650,15 +650,16 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  async function rechercherRestaurantsProches(lat, lon, limite){
-    const rayon = 200; // mètres
-    const requete = `[out:json][timeout:15];(node["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});way["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});relation["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon}););out center tags;`;
-    const res = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      body: "data=" + encodeURIComponent(requete)
-    });
-    if(!res.ok) throw new Error("Overpass HTTP " + res.status);
-    const data = await res.json();
+  // Plusieurs miroirs publics de l'API Overpass : le serveur overpass-api.de est en fait
+  // une fédération de machines, dont certaines ne renvoient pas toujours d'en-tête CORS
+  // (Access-Control-Allow-Origin). On tente donc plusieurs miroirs dans l'ordre.
+  const OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.openstreetmap.ru/api/interpreter"
+  ];
+
+  function extraireRestaurants(data, lat, lon, limite){
     const candidats = (data.elements || []).map(el=>{
       const la = el.lat !== undefined ? el.lat : (el.center ? el.center.lat : null);
       const lo = el.lon !== undefined ? el.lon : (el.center ? el.center.lon : null);
@@ -674,6 +675,27 @@
       };
     }).filter(Boolean).sort((a,b)=> a.distance - b.distance);
     return candidats.slice(0, limite);
+  }
+
+  async function rechercherRestaurantsProches(lat, lon, limite){
+    const rayon = 200; // mètres
+    const requete = `[out:json][timeout:15];(node["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});way["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});relation["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon}););out center tags;`;
+    let dernierEchec = null;
+    for(const endpoint of OVERPASS_ENDPOINTS){
+      try{
+        const res = await fetch(endpoint, {
+          method: "POST",
+          body: "data=" + encodeURIComponent(requete)
+        });
+        if(!res.ok) throw new Error("HTTP " + res.status + " (" + endpoint + ")");
+        const data = await res.json();
+        return extraireRestaurants(data, lat, lon, limite);
+      }catch(e){
+        dernierEchec = e;
+        console.warn("Miroir Overpass indisponible, tentative suivante :", endpoint, e);
+      }
+    }
+    throw dernierEchec || new Error("Tous les miroirs Overpass ont échoué");
   }
 
   // ---------- Boîte de dialogue de confirmation ----------
@@ -753,7 +775,7 @@
         : "Aucun restaurant nommé trouvé dans OpenStreetMap à moins de 200 m de ce point.";
     }else{
       const msg = (resProches.reason && resProches.reason.message) ? resProches.reason.message : "erreur inconnue";
-      indice = `La recherche de restaurants à proximité a échoué (réseau ou blocage) : ${msg}.`;
+      indice = `La recherche de restaurants à proximité a échoué sur tous les serveurs Overpass essayés : ${msg}.`;
       console.error("Overpass:", resProches.reason);
     }
     if(precision != null){
