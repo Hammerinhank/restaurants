@@ -277,6 +277,19 @@
     font:inherit;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;
   }
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
+  .modal-actions-centre{justify-content:center;margin-top:14px;}
+
+  .modal-box-attente{max-width:260px;text-align:center;}
+  #attenteTexte{font-size:14px;color:var(--ink);}
+  .spinner{
+    width:32px;height:32px;
+    border:3px solid var(--line);
+    border-top-color:var(--accent);
+    border-radius:50%;
+    margin:0 auto 12px;
+    animation:tourner .8s linear infinite;
+  }
+  @keyframes tourner{ to{ transform:rotate(360deg); } }
 </style>
 </head>
 <body>
@@ -324,6 +337,16 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="attenteOverlay">
+  <div class="modal-box modal-box-attente">
+    <div class="spinner" aria-hidden="true"></div>
+    <div id="attenteTexte">Recherche en cours…</div>
+    <div class="modal-actions modal-actions-centre">
+      <button class="btn-ghost btn-small" id="attenteAnnuler">Annuler</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal-box">
     <h3>Confirmer le restaurant</h3>
@@ -349,7 +372,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V6";
+  const VERSION = "V7";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -362,6 +385,8 @@
   let markers = {};                   // id -> L.marker
   let dernierSha = null;              // sha du fichier GitHub connu
   let selectedId = null;              // id du restaurant sélectionné (déplaçable)
+  let deplacementTimer = null;        // délai avant de lancer la recherche après un déplacement
+  let attenteControleur = null;       // AbortController de la recherche en cours (annulable)
 
   // ---------- Persistance locale ----------
   function chargerLocal(){
@@ -479,9 +504,11 @@
     rafraichirListe();
   }
 
-  // Appelé après un glisser-déposer de l'icône : met à jour les coordonnées
-  // puis propose une identification du restaurant le plus proche à confirmer.
-  async function gererDeplacement(id){
+  // Appelé à chaque relâchement de l'icône : met à jour les coordonnées immédiatement,
+  // puis planifie l'identification du restaurant après 2 s d'inactivité (le déplacement
+  // peut se faire en plusieurs fois : chaque nouveau relâchement réinitialise le délai
+  // et annule une recherche déjà en cours).
+  function gererDeplacement(id){
     const r = restaurants.find(x=>x.id===id);
     const m = markers[id];
     if(!r || !m) return;
@@ -492,7 +519,14 @@
     sauverLocal();
     rafraichirListe();
     pousserVersGithubDifféré();
-    await identifierEtConfirmer(r);
+
+    if(deplacementTimer) clearTimeout(deplacementTimer);
+    if(attenteControleur){ attenteControleur.abort(); fermerAttente(); }
+    deplacementTimer = setTimeout(()=>{
+      deplacementTimer = null;
+      const rActuel = restaurants.find(x=>x.id===id);
+      if(rActuel) identifierEtConfirmer(rActuel);
+    }, 2000);
   }
 
   function supprimerMarqueur(id){
@@ -609,9 +643,9 @@
   }
 
   // ---------- Reverse geocoding (Nominatim) ----------
-  async function reverseGeocode(lat, lon){
+  async function reverseGeocode(lat, lon, signal){
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&namedetails=1&accept-language=fr`;
-    const res = await fetch(url, { headers: { "Accept": "application/json" } });
+    const res = await fetch(url, { headers: { "Accept": "application/json" }, signal });
     if(!res.ok) throw new Error("Nominatim HTTP " + res.status);
     const data = await res.json();
 
@@ -677,20 +711,23 @@
     return candidats.slice(0, limite);
   }
 
-  async function rechercherRestaurantsProches(lat, lon, limite){
+  async function rechercherRestaurantsProches(lat, lon, limite, signal){
     const rayon = 200; // mètres
     const requete = `[out:json][timeout:15];(node["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});way["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});relation["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon}););out center tags;`;
     let dernierEchec = null;
     for(const endpoint of OVERPASS_ENDPOINTS){
+      if(signal && signal.aborted) throw new DOMException("Recherche annulée", "AbortError");
       try{
         const res = await fetch(endpoint, {
           method: "POST",
-          body: "data=" + encodeURIComponent(requete)
+          body: "data=" + encodeURIComponent(requete),
+          signal
         });
         if(!res.ok) throw new Error("HTTP " + res.status + " (" + endpoint + ")");
         const data = await res.json();
         return extraireRestaurants(data, lat, lon, limite);
       }catch(e){
+        if(e && e.name === "AbortError") throw e; // annulation : on arrête net, pas d'autre miroir
         dernierEchec = e;
         console.warn("Miroir Overpass indisponible, tentative suivante :", endpoint, e);
       }
@@ -752,15 +789,42 @@
     });
   }
 
+  // ---------- Fenêtre d'attente annulable ----------
+  function ouvrirAttente(message){
+    const overlay = document.getElementById("attenteOverlay");
+    const texte = document.getElementById("attenteTexte");
+    const btnAnnuler = document.getElementById("attenteAnnuler");
+    texte.textContent = message || "Recherche en cours…";
+    overlay.classList.add("open");
+    const controller = new AbortController();
+    attenteControleur = controller;
+    btnAnnuler.onclick = () => controller.abort();
+    return controller;
+  }
+
+  function fermerAttente(){
+    document.getElementById("attenteOverlay").classList.remove("open");
+    document.getElementById("attenteAnnuler").onclick = null;
+    attenteControleur = null;
+  }
+
   // Cherche les restaurants les plus proches (nommés, via Overpass) + l'adresse (via Nominatim),
-  // puis demande confirmation dans une boîte de dialogue.
+  // puis demande confirmation dans une boîte de dialogue. Annulable via la fenêtre d'attente.
   async function identifierEtConfirmer(r, options){
     const precision = options && options.precision;
-    statut("Recherche des restaurants à proximité…");
+    const controller = ouvrirAttente("Recherche du restaurant à proximité…");
+
     const [resProches, resAdresse] = await Promise.allSettled([
-      rechercherRestaurantsProches(r.lat, r.lon, 5),
-      reverseGeocode(r.lat, r.lon)
+      rechercherRestaurantsProches(r.lat, r.lon, 5, controller.signal),
+      reverseGeocode(r.lat, r.lon, controller.signal)
     ]);
+
+    const annule = controller.signal.aborted;
+    fermerAttente();
+    if(annule){
+      statut("Recherche annulée. Vous pouvez saisir le nom et l'adresse manuellement (double-clic).", "");
+      return;
+    }
 
     let principal = null;
     let alternatives = [];
@@ -784,8 +848,6 @@
 
     const adresseNominatim = (resAdresse.status === "fulfilled" && resAdresse.value) ? resAdresse.value.adresse : "";
     const adresseTrouvee = adresseNominatim || (principal ? principal.adresse : "") || r.address;
-
-    statut("");
 
     const choix = await ouvrirModalIdentification({
       nom: principal ? principal.nom : r.name,
