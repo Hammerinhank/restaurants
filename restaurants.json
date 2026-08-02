@@ -2,12 +2,12 @@
   "restaurants": [
     {
       "id": "r_msayhuod_twu7zi",
-      "lat": 48.833887076322156,
-      "lon": 2.29562629951743,
+      "lat": 48.835233067526964,
+      "lon": 2.2994899749755864,
       "name": "Nouveau restaurant",
-      "address": "7 Rue Robert Lindet, 75015 Paris",
-      "maj": "2026-08-01T22:41:57.401Z"
+      "address": "4 Rue Jobbé-Duval, 75015 Paris",
+      "maj": "2026-08-02T06:38:25.748Z"
     }
   ],
-  "maj": "2026-08-01T22:47:20.814Z"
+  "maj": "2026-08-02T06:38:26.949Z"
 }
