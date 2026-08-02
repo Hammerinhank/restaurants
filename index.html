@@ -374,7 +374,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V8";
+  const VERSION = "V9";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -707,10 +707,13 @@
 
   // Plusieurs miroirs publics de l'API Overpass : le serveur overpass-api.de est en fait
   // une fédération de machines, dont certaines ne renvoient pas toujours d'en-tête CORS
-  // (Access-Control-Allow-Origin). On tente donc plusieurs miroirs dans l'ordre.
+  // (Access-Control-Allow-Origin). On tente donc plusieurs miroirs en parallèle.
+  // Note : overpass.private.coffee est le nom actuel du service précédemment connu sous
+  // overpass.kumi.systems (renommage officiel d'après le wiki OpenStreetMap) — l'ancien
+  // nom peut être beaucoup plus lent selon la route réseau empruntée.
   const OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
     "https://overpass.openstreetmap.ru/api/interpreter"
   ];
 
