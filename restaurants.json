@@ -2,11 +2,11 @@
   "restaurants": [
     {
       "id": "r_msayhuod_twu7zi",
-      "lat": 48.83636304601292,
-      "lon": 2.3031806945800786,
+      "lat": 48.83692759220898,
+      "lon": 2.3116779327392583,
       "name": "Test",
-      "address": "Rue Corbon, 75015 Paris",
-      "maj": "2026-08-02T07:00:41.576Z"
+      "address": "14 Rue Georges Leclanché, 75015 Paris",
+      "maj": "2026-08-02T07:00:47.661Z"
     },
     {
       "id": "r_msbfjjbb_bqgxtv",
@@ -17,5 +17,5 @@
       "maj": "2026-08-02T06:39:09.394Z"
     }
   ],
-  "maj": "2026-08-02T07:00:43.322Z"
+  "maj": "2026-08-02T07:00:48.862Z"
 }
