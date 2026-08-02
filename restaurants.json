@@ -2,12 +2,12 @@
   "restaurants": [
     {
       "id": "r_msayhuod_twu7zi",
-      "lat": 48.835233067526964,
-      "lon": 2.2994899749755864,
-      "name": "Nouveau restaurant",
-      "address": "4 Rue Jobbé-Duval, 75015 Paris",
-      "maj": "2026-08-02T06:38:25.748Z"
+      "lat": 48.834611349397576,
+      "lon": 2.2959709167480473,
+      "name": "Cordonnerie clés",
+      "address": "Rue Olivier de Serres, 75015 Paris",
+      "maj": "2026-08-02T06:38:28.371Z"
     }
   ],
-  "maj": "2026-08-02T06:38:26.949Z"
+  "maj": "2026-08-02T06:38:29.573Z"
 }
