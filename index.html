@@ -292,6 +292,25 @@
   }
   @keyframes tourner{ to{ transform:rotate(360deg); } }
 </style>
+
+<!-- ===== Bloc TEST/DIAGNOSTIC (ajouté, n'affecte pas le reste de l'application) ===== -->
+<style>
+  .modal-box-diag{max-width:640px;width:96vw;}
+  .diag-report{
+    background:#faf8f3;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11.5px;
+    line-height:1.5;
+    white-space:pre-wrap;
+    word-break:break-word;
+    max-height:55vh;
+    overflow-y:auto;
+    margin:8px 0 4px;
+  }
+</style>
 </head>
 <body>
 
@@ -300,6 +319,7 @@
   <span class="badge" id="versionBadge" title="Historique des versions">V1</span>
   <div class="spacer"></div>
   <button class="btn-ghost" id="btnSettings">⚙️ GitHub</button>
+  <button class="btn-ghost" id="btnDiagTest" title="Diagnostic réseau détaillé (Overpass, géolocalisation, etc.)">🔧 Test</button>
   <button class="btn-primary" id="btnNouveau">📍 Nouveau restaurant</button>
 </header>
 
@@ -365,6 +385,21 @@
     <div class="modal-actions">
       <button class="btn-ghost btn-small" id="modalAnnuler">Ignorer</button>
       <button class="btn-primary btn-small" id="modalValider">Valider</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Bloc TEST/DIAGNOSTIC : modale de rapport (ajoutée) ===== -->
+<div class="modal-overlay" id="diagOverlay">
+  <div class="modal-box modal-box-diag">
+    <h3>🔧 Diagnostic réseau</h3>
+    <div class="modal-hint" id="diagStatus">Prêt.</div>
+    <pre id="diagReportText" class="diag-report">Cliquez sur « Relancer » pour lancer le diagnostic.</pre>
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="diagCopier">📋 Copier</button>
+      <button class="btn-ghost btn-small" id="diagTelecharger">💾 Télécharger (.txt)</button>
+      <button class="btn-ghost btn-small" id="diagRelancer">🔄 Relancer</button>
+      <button class="btn-primary btn-small" id="diagFermer">Fermer</button>
     </div>
   </div>
 </div>
@@ -1116,6 +1151,301 @@
     );
   }
   if(cfgComplete()) chargerDepuisGithub(false);
+
+})();
+</script>
+
+<!-- ===================================================================== -->
+<!-- ===== Bloc TEST/DIAGNOSTIC (ajouté) — script totalement séparé,   ==== -->
+<!-- ===== indépendant du script principal ci-dessus, qu'il ne modifie ==== -->
+<!-- ===== ni ne relit. Sert uniquement à investiguer et comparer      ==== -->
+<!-- ===== pourquoi la recherche Overpass réussit ou échoue selon      ==== -->
+<!-- ===== l'appareil / le réseau utilisé.                             ==== -->
+<!-- ===================================================================== -->
+<script>
+(function(){
+  "use strict";
+
+  // Mêmes miroirs Overpass que l'application, pour un test représentatif.
+  const DIAG_OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://overpass.openstreetmap.ru/api/interpreter"
+  ];
+  // Coordonnées neutres (Paris) : seule la connectivité nous intéresse ici, pas le résultat.
+  const DIAG_LAT = 48.8566, DIAG_LON = 2.3522;
+  const DIAG_NOMINATIM_URL = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${DIAG_LAT}&lon=${DIAG_LON}&zoom=18`;
+  const DIAG_REFERENCE_URL = "https://www.openstreetmap.org/favicon.ico";
+
+  const btn = document.getElementById("btnDiagTest");
+  const overlay = document.getElementById("diagOverlay");
+  const pre = document.getElementById("diagReportText");
+  const btnRelancer = document.getElementById("diagRelancer");
+  const btnCopier = document.getElementById("diagCopier");
+  const btnTelecharger = document.getElementById("diagTelecharger");
+  const btnFermer = document.getElementById("diagFermer");
+  const statusEl = document.getElementById("diagStatus");
+
+  if(!btn || !overlay || !pre) return; // sécurité : si la modale n'existe pas, on ne fait rien.
+
+  function fmtMs(ms){ return Math.round(ms) + " ms"; }
+
+  function diagAvecTimeout(promesse, ms){
+    return Promise.race([
+      promesse,
+      new Promise((_, rej) => setTimeout(()=> rej(new Error("Timeout dépassé (" + ms + " ms)")), ms))
+    ]);
+  }
+
+  // Test "normal" : identique à ce que fait l'application (fetch classique, lecture de la réponse).
+  async function diagFetchNormal(url, options, timeoutMs){
+    const t0 = performance.now();
+    try{
+      const res = await diagAvecTimeout(fetch(url, options), timeoutMs);
+      return { ok:true, status:res.status, duree: performance.now()-t0, erreur:null };
+    }catch(e){
+      return { ok:false, status:null, duree: performance.now()-t0, erreur:(e && e.message) || String(e) };
+    }
+  }
+
+  // Test "no-cors" : on n'a pas le droit de LIRE la réponse, mais si la requête part quand
+  // même et revient (même de façon opaque), cela prouve que le réseau/l'appareil laisse
+  // passer la connexion — un échec ici, contrairement au test normal, pointe vers un blocage
+  // local (extension, DNS, pare-feu) plutôt qu'un simple souci d'en-têtes CORS côté serveur.
+  async function diagFetchNoCors(url, timeoutMs){
+    const t0 = performance.now();
+    try{
+      await diagAvecTimeout(fetch(url, {mode:"no-cors", cache:"no-store"}), timeoutMs);
+      return { ok:true, duree: performance.now()-t0, erreur:null };
+    }catch(e){
+      return { ok:false, duree: performance.now()-t0, erreur:(e && e.message) || String(e) };
+    }
+  }
+
+  // Test de connectivité générique via une image (contourne les restrictions fetch/CORS).
+  function diagTestImage(url, timeoutMs){
+    return new Promise((resolve)=>{
+      const t0 = performance.now();
+      const img = new Image();
+      let fini = false;
+      const conclure = (ok, info)=>{
+        if(fini) return;
+        fini = true;
+        resolve({ ok, duree: performance.now()-t0, info });
+      };
+      const minuteur = setTimeout(()=> conclure(false, "aucune réponse avant le délai"), timeoutMs);
+      img.onload = ()=>{ clearTimeout(minuteur); conclure(true, "chargée avec succès"); };
+      img.onerror = ()=>{ clearTimeout(minuteur); conclure(false, "erreur de chargement (réponse d'erreur reçue, ou bloqué)"); };
+      img.src = url + (url.includes("?") ? "&" : "?") + "diagcachebuster=" + Date.now();
+    });
+  }
+
+  async function diagTestGeoloc(){
+    if(!navigator.geolocation){
+      return { ok:false, erreur:"API de géolocalisation non disponible sur ce navigateur." };
+    }
+    const t0 = performance.now();
+    return new Promise((resolve)=>{
+      navigator.geolocation.getCurrentPosition(
+        (pos)=> resolve({
+          ok:true, duree: performance.now()-t0,
+          lat: pos.coords.latitude, lon: pos.coords.longitude,
+          precision: pos.coords.accuracy
+        }),
+        (err)=> resolve({ ok:false, duree: performance.now()-t0, erreur: err.message, code: err.code }),
+        {enableHighAccuracy:true, timeout:12000, maximumAge:0}
+      );
+    });
+  }
+
+  function diagInfoEnvironnement(){
+    const nav = navigator;
+    const conn = nav.connection || nav.mozConnection || nav.webkitConnection;
+    return {
+      userAgent: nav.userAgent,
+      plateforme: nav.platform || "(inconnue)",
+      enLigne: nav.onLine,
+      tactile: ("ontouchstart" in window) || (nav.maxTouchPoints > 0),
+      cookiesActives: nav.cookieEnabled,
+      protocole: location.protocol,
+      largeurEcran: window.innerWidth + "x" + window.innerHeight,
+      connexion: conn ? {
+        type: conn.effectiveType,
+        debit: conn.downlink + " Mbps",
+        rtt: conn.rtt + " ms",
+        economieDonnees: conn.saveData
+      } : null
+    };
+  }
+
+  function diagLigne(ok, texte){ return (ok ? "✅ " : "❌ ") + texte; }
+
+  async function diagLancer(){
+    btnRelancer.disabled = true;
+    btn.disabled = true;
+    statusEl.textContent = "Diagnostic en cours… (jusqu'à ~30 secondes selon le réseau)";
+
+    const R = [];
+    const maj = () => { pre.textContent = R.join("\n"); pre.scrollTop = pre.scrollHeight; };
+
+    R.push("═══════════════════════════════════════════");
+    R.push(" DIAGNOSTIC RÉSEAU — Application Restaurants");
+    R.push("═══════════════════════════════════════════");
+    R.push("Date : " + new Date().toLocaleString("fr-FR"));
+    R.push("");
+
+    // ---- 1. Environnement ----
+    R.push("── 1. Environnement ──────────────────────");
+    const env = diagInfoEnvironnement();
+    R.push("Navigateur (userAgent) : " + env.userAgent);
+    R.push("Plateforme déclarée    : " + env.plateforme);
+    R.push("Écran                  : " + env.largeurEcran + (env.tactile ? " (tactile)" : " (non tactile)"));
+    R.push("En ligne (navigator.onLine) : " + (env.enLigne ? "oui" : "NON ⚠️ le navigateur se pense hors-ligne"));
+    R.push("Chargé via              : " + env.protocole + (env.protocole === "file:" ? "  ⚠️ fichier local — certains navigateurs appliquent des règles réseau différentes en file://" : ""));
+    if(env.connexion){
+      R.push("Type de connexion       : " + env.connexion.type);
+      R.push("Débit estimé            : " + env.connexion.debit);
+      R.push("Latence estimée (RTT)   : " + env.connexion.rtt);
+      R.push("Économie de données     : " + (env.connexion.economieDonnees ? "activée ⚠️ (peut limiter certaines requêtes)" : "désactivée"));
+    }else{
+      R.push("Connexion réseau        : API Network Information non disponible (normal sur Safari/iOS)");
+    }
+    maj();
+
+    // ---- 2. Géolocalisation ----
+    R.push("");
+    R.push("── 2. Géolocalisation ────────────────────");
+    const geo = await diagTestGeoloc();
+    if(geo.ok){
+      R.push(diagLigne(true, "Position obtenue en " + fmtMs(geo.duree)));
+      R.push("  Coordonnées        : " + geo.lat.toFixed(6) + ", " + geo.lon.toFixed(6));
+      R.push("  Précision annoncée : " + Math.round(geo.precision) + " m");
+    }else{
+      R.push(diagLigne(false, "Échec (" + fmtMs(geo.duree||0) + ") : " + geo.erreur));
+    }
+    maj();
+
+    // ---- 3. Référence qui fonctionne côté appli : Nominatim ----
+    R.push("");
+    R.push("── 3. Test Nominatim (reverse-geocoding — sert de référence \"ça marche\") ──");
+    const nomTest = await diagFetchNormal(DIAG_NOMINATIM_URL, {headers:{"Accept":"application/json"}}, 8000);
+    R.push(nomTest.ok
+      ? diagLigne(true, "Réponse HTTP " + nomTest.status + " en " + fmtMs(nomTest.duree))
+      : diagLigne(false, "Échec (" + fmtMs(nomTest.duree) + ") : " + nomTest.erreur));
+    maj();
+
+    // ---- 4. Référence générique hors-Overpass ----
+    R.push("");
+    R.push("── 4. Test de référence générique (openstreetmap.org, hors Overpass) ──");
+    const refImg = await diagTestImage(DIAG_REFERENCE_URL, 6000);
+    R.push(diagLigne(refImg.ok, refImg.info + " (" + fmtMs(refImg.duree) + ")"));
+    maj();
+
+    // ---- 5. Chaque miroir Overpass, sous 3 angles ----
+    R.push("");
+    R.push("── 5. Serveurs Overpass (recherche des restaurants) ──");
+    const requeteTest = `[out:json][timeout:10];node(around:50,${DIAG_LAT},${DIAG_LON});out 1;`;
+    const synthese = [];
+
+    for(const endpoint of DIAG_OVERPASS_ENDPOINTS){
+      R.push("");
+      R.push("▸ " + endpoint);
+
+      const rNormal = await diagFetchNormal(endpoint, {
+        method: "POST",
+        body: "data=" + encodeURIComponent(requeteTest)
+      }, 8000);
+      R.push("  a) Requête normale (comme l'appli)      : " +
+        (rNormal.ok ? diagLigne(true, "OK — HTTP " + rNormal.status + " en " + fmtMs(rNormal.duree))
+                    : diagLigne(false, "ÉCHEC en " + fmtMs(rNormal.duree) + " — " + rNormal.erreur)));
+      maj();
+
+      const rNoCors = await diagFetchNoCors(endpoint, 8000);
+      R.push("  b) Requête sans lecture réponse (no-cors) : " +
+        (rNoCors.ok ? diagLigne(true, "la requête atteint le serveur (" + fmtMs(rNoCors.duree) + ")")
+                    : diagLigne(false, "n'atteint même pas le serveur (" + fmtMs(rNoCors.duree) + ") — " + rNoCors.erreur)));
+      maj();
+
+      if(!rNormal.ok && rNormal.duree < 200){
+        R.push("  ⚠️ Échec quasi instantané (<200 ms) : typique d'un blocage LOCAL avant même l'envoi réseau (extension anti-pub/traqueurs, filtre DNS de la box/routeur, pare-feu). Un vrai souci serveur/réseau met généralement plus longtemps à échouer.");
+      }else if(!rNormal.ok){
+        R.push("  ℹ️ Échec après un délai notable : compatible avec un vrai souci réseau/serveur plutôt qu'un blocage local instantané.");
+      }
+
+      let verdict;
+      if(rNormal.ok){
+        verdict = "OK";
+      }else if(rNoCors.ok){
+        verdict = "Probable souci CORS côté serveur Overpass (il répond mais sans en-tête Access-Control-Allow-Origin correct) — pas un blocage de cet appareil";
+      }else{
+        verdict = "Probable blocage LOCAL (extension navigateur, filtre DNS réseau, pare-feu ou VPN) — la requête ne semble pas sortir";
+      }
+      R.push("  ➜ Verdict : " + verdict);
+      synthese.push({endpoint, ok: rNormal.ok, verdict});
+      maj();
+    }
+
+    // ---- 6. Synthèse ----
+    R.push("");
+    R.push("── 6. Synthèse et pistes ─────────────────");
+    const nbOk = synthese.filter(s=>s.ok).length;
+    const nbBloqueLocal = synthese.filter(s=>s.verdict.startsWith("Probable blocage LOCAL")).length;
+    const nbCorsServeur = synthese.filter(s=>s.verdict.startsWith("Probable souci CORS")).length;
+
+    R.push(nbOk + " / " + DIAG_OVERPASS_ENDPOINTS.length + " serveurs Overpass joignables normalement sur cet appareil, à cet instant.");
+    if(nomTest.ok && nbOk < DIAG_OVERPASS_ENDPOINTS.length){
+      R.push("Nominatim fonctionne mais pas (tous) les serveurs Overpass : la connectivité générale de cet appareil est bonne — le blocage cible spécifiquement les domaines Overpass.");
+    }
+    if(nbBloqueLocal === DIAG_OVERPASS_ENDPOINTS.length){
+      R.push("→ Les 3 serveurs échouent y compris en no-cors : tout pointe vers un blocage LOCAL (cet appareil ou ce réseau), pas un souci des serveurs Overpass eux-mêmes.");
+      R.push("  Pistes à tester dans l'ordre :");
+      R.push("  1. Désactiver temporairement les extensions de blocage de pub/traqueurs (uBlock Origin, AdGuard, Privacy Badger, 1Blocker…), puis relancer ce test.");
+      R.push("  2. Tester en navigation privée (désactive la plupart des extensions).");
+      R.push("  3. Basculer du Wi-Fi vers le partage de connexion d'un téléphone (permet d'isoler un filtrage DNS de la box/routeur : Pi-hole, AdGuard Home, contrôle parental, proxy d'entreprise).");
+      R.push("  4. Vérifier un pare-feu applicatif (Little Snitch, Lulu, pare-feu macOS) qui bloquerait le navigateur vers ces domaines.");
+      R.push("  5. Vérifier qu'aucun VPN ni Relais Privé iCloud n'est actif et ne filtre ce trafic.");
+    }else if(nbCorsServeur > 0){
+      R.push("→ Au moins un serveur répond en no-cors mais pas en requête normale : problème d'en-têtes CORS côté serveur Overpass (les miroirs publics sont connus pour être instables), pas un blocage de votre appareil.");
+    }else if(nbOk === DIAG_OVERPASS_ENDPOINTS.length){
+      R.push("→ Tout fonctionne correctement sur cet appareil au moment du test.");
+    }
+    R.push("");
+    R.push("Pour comparer avec un autre appareil : lancez ce même diagnostic dessus (bouton 🔧 Test), puis comparez les lignes ✅/❌ des deux rapports (utilisez Copier ou Télécharger pour les mettre côte à côte).");
+
+    maj();
+    statusEl.textContent = "Diagnostic terminé — " + new Date().toLocaleTimeString("fr-FR");
+    btnRelancer.disabled = false;
+    btn.disabled = false;
+  }
+
+  btn.addEventListener("click", ()=>{
+    overlay.classList.add("open");
+    diagLancer();
+  });
+  btnRelancer.addEventListener("click", diagLancer);
+  btnFermer.addEventListener("click", ()=> overlay.classList.remove("open"));
+  overlay.addEventListener("keydown", (ev)=>{ if(ev.key === "Escape") overlay.classList.remove("open"); });
+
+  btnCopier.addEventListener("click", async ()=>{
+    try{
+      await navigator.clipboard.writeText(pre.textContent);
+      statusEl.textContent = "Rapport copié dans le presse-papiers.";
+    }catch(e){
+      statusEl.textContent = "Copie automatique impossible — sélectionnez le texte manuellement.";
+    }
+  });
+
+  btnTelecharger.addEventListener("click", ()=>{
+    const blob = new Blob([pre.textContent], {type:"text/plain;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "diagnostic-restaurants-" + new Date().toISOString().replace(/[:.]/g,"-") + ".txt";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 2000);
+  });
 
 })();
 </script>
