@@ -273,8 +273,8 @@
     font-size:12px;color:var(--muted);
     margin-bottom:10px;
   }
-  .modal-box input{
-    font:inherit;padding:8px 9px;border:1px solid var(--line);border-radius:7px;
+  .modal-box input, .modal-box select{
+    font:inherit;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;
   }
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
 </style>
@@ -331,6 +331,9 @@
     <label>Nom
       <input type="text" id="modalNom" autocomplete="off">
     </label>
+    <label id="modalAlternativesChamp">Autres restaurants à proximité
+      <select id="modalAlternatives"></select>
+    </label>
     <label>Adresse
       <input type="text" id="modalAdresse" autocomplete="off">
     </label>
@@ -346,7 +349,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V3";
+  const VERSION = "V4";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -647,9 +650,9 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
-  async function rechercherRestaurantProche(lat, lon){
-    const rayon = 60; // mètres
-    const requete = `[out:json][timeout:15];(node["amenity"="restaurant"](around:${rayon},${lat},${lon});way["amenity"="restaurant"](around:${rayon},${lat},${lon});relation["amenity"="restaurant"](around:${rayon},${lat},${lon}););out center tags;`;
+  async function rechercherRestaurantsProches(lat, lon, limite){
+    const rayon = 200; // mètres
+    const requete = `[out:json][timeout:15];(node["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});way["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});relation["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon}););out center tags;`;
     const res = await fetch("https://overpass-api.de/api/interpreter", {
       method: "POST",
       body: "data=" + encodeURIComponent(requete)
@@ -659,91 +662,103 @@
     const candidats = (data.elements || []).map(el=>{
       const la = el.lat !== undefined ? el.lat : (el.center ? el.center.lat : null);
       const lo = el.lon !== undefined ? el.lon : (el.center ? el.center.lon : null);
-      if(la == null || lo == null) return null;
-      return {tags: el.tags || {}, distance: distanceMetres(lat, lon, la, lo)};
+      const nom = el.tags && el.tags.name;
+      if(la == null || lo == null || !nom) return null;
+      const t = el.tags;
+      const numRue = [t["addr:housenumber"], t["addr:street"]].filter(Boolean).join(" ");
+      const ville = [t["addr:postcode"], t["addr:city"]].filter(Boolean).join(" ");
+      return {
+        nom,
+        adresse: [numRue, ville].filter(Boolean).join(", "),
+        distance: Math.round(distanceMetres(lat, lon, la, lo))
+      };
     }).filter(Boolean).sort((a,b)=> a.distance - b.distance);
-
-    if(!candidats.length) return null;
-    const t = candidats[0].tags;
-    const numRue = [t["addr:housenumber"], t["addr:street"]].filter(Boolean).join(" ");
-    const ville = [t["addr:postcode"], t["addr:city"]].filter(Boolean).join(" ");
-    return {
-      nom: t.name || "",
-      adresse: [numRue, ville].filter(Boolean).join(", "),
-      distance: Math.round(candidats[0].distance)
-    };
+    return candidats.slice(0, limite);
   }
 
   // ---------- Boîte de dialogue de confirmation ----------
-  function ouvrirModalIdentification(nomPropose, adressePropose, indice){
+  function ouvrirModalIdentification({nom, adresse, indice, alternatives}){
     return new Promise((resolve)=>{
       const overlay = document.getElementById("modalOverlay");
       const inputNom = document.getElementById("modalNom");
       const inputAdr = document.getElementById("modalAdresse");
       const hint = document.getElementById("modalHint");
+      const champAlt = document.getElementById("modalAlternativesChamp");
+      const selectAlt = document.getElementById("modalAlternatives");
       const btnValider = document.getElementById("modalValider");
       const btnAnnuler = document.getElementById("modalAnnuler");
 
-      inputNom.value = nomPropose || "";
-      inputAdr.value = adressePropose || "";
+      const listeAlt = alternatives || [];
+      inputNom.value = nom || "";
+      inputAdr.value = adresse || "";
       hint.textContent = indice || "";
+      selectAlt.innerHTML = '<option value="">— choisir une autre suggestion —</option>' +
+        listeAlt.map((a,i)=> `<option value="${i}">${escHtml(a.nom)} (${a.distance} m)</option>`).join("");
+      champAlt.style.display = listeAlt.length ? "flex" : "none";
+      selectAlt.value = "";
+
       overlay.classList.add("open");
       setTimeout(()=> inputNom.focus(), 60);
 
+      const onChangeAlt = () => {
+        const idx = selectAlt.value;
+        // Choisir une suggestion alternative ne remplace que le nom, jamais l'adresse.
+        if(idx !== "" && listeAlt[idx]) inputNom.value = listeAlt[idx].nom;
+      };
       const nettoyer = () => {
         overlay.classList.remove("open");
         btnValider.removeEventListener("click", onValider);
         btnAnnuler.removeEventListener("click", onAnnuler);
         overlay.removeEventListener("keydown", onKey);
+        selectAlt.removeEventListener("change", onChangeAlt);
       };
       const onValider = () => {
-        const nom = inputNom.value.trim();
-        const adresse = inputAdr.value.trim();
+        const nv = inputNom.value.trim();
+        const av = inputAdr.value.trim();
         nettoyer();
-        resolve({ok:true, nom, adresse});
+        resolve({ok:true, nom:nv, adresse:av});
       };
       const onAnnuler = () => { nettoyer(); resolve({ok:false}); };
       const onKey = (ev) => {
-        if(ev.key === "Enter") onValider();
+        if(ev.key === "Enter" && ev.target !== selectAlt) onValider();
         if(ev.key === "Escape") onAnnuler();
       };
+      selectAlt.addEventListener("change", onChangeAlt);
       btnValider.addEventListener("click", onValider);
       btnAnnuler.addEventListener("click", onAnnuler);
       overlay.addEventListener("keydown", onKey);
     });
   }
 
-  // Cherche le restaurant le plus proche + l'adresse, puis demande confirmation.
+  // Cherche les restaurants les plus proches (nommés, via Overpass) + l'adresse (via Nominatim),
+  // puis demande confirmation dans une boîte de dialogue.
   async function identifierEtConfirmer(r){
-    statut("Recherche du restaurant le plus proche…");
-    const [resProche, resAdresse] = await Promise.allSettled([
-      rechercherRestaurantProche(r.lat, r.lon),
+    statut("Recherche des restaurants à proximité…");
+    const [resProches, resAdresse] = await Promise.allSettled([
+      rechercherRestaurantsProches(r.lat, r.lon, 5),
       reverseGeocode(r.lat, r.lon)
     ]);
 
-    let nomTrouve = "";
-    let adresseTrouvee = "";
-    let indice = "";
+    const proches = (resProches.status === "fulfilled" && resProches.value) ? resProches.value : [];
+    const principal = proches[0] || null;
+    const alternatives = proches.slice(1, 5);
 
-    if(resProche.status === "fulfilled" && resProche.value){
-      nomTrouve = resProche.value.nom;
-      if(resProche.value.adresse) adresseTrouvee = resProche.value.adresse;
-      indice = nomTrouve
-        ? `Trouvé à environ ${resProche.value.distance} m : vérifiez avant de valider.`
-        : `Un restaurant a été repéré à environ ${resProche.value.distance} m, mais sans nom renseigné dans OpenStreetMap.`;
-    }
-    if(resAdresse.status === "fulfilled" && resAdresse.value){
-      if(!adresseTrouvee && resAdresse.value.adresse) adresseTrouvee = resAdresse.value.adresse;
-      if(!nomTrouve && resAdresse.value.nom) nomTrouve = resAdresse.value.nom;
-    }
-    if(!indice){
-      indice = nomTrouve || adresseTrouvee
-        ? "Aucun restaurant identifié à proximité ; adresse estimée depuis les coordonnées."
-        : "Rien trouvé automatiquement : merci de compléter vous-même.";
-    }
+    const adresseNominatim = (resAdresse.status === "fulfilled" && resAdresse.value) ? resAdresse.value.adresse : "";
+    const adresseTrouvee = adresseNominatim || (principal ? principal.adresse : "") || r.address;
+
+    const indice = principal
+      ? `Restaurant le plus proche : ${principal.nom} (${principal.distance} m).`
+      : "Aucun restaurant identifié à proximité ; adresse estimée depuis les coordonnées.";
+
     statut("");
 
-    const choix = await ouvrirModalIdentification(nomTrouve || r.name, adresseTrouvee || r.address, indice);
+    const choix = await ouvrirModalIdentification({
+      nom: principal ? principal.nom : r.name,
+      adresse: adresseTrouvee,
+      indice,
+      alternatives
+    });
+
     if(choix.ok){
       r.name = choix.nom || "Nouveau restaurant";
       r.address = choix.adresse || "";
