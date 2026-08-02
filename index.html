@@ -281,6 +281,7 @@
 
   .modal-box-attente{max-width:260px;text-align:center;}
   #attenteTexte{font-size:14px;color:var(--ink);}
+  #attenteChrono{font-size:12px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums;}
   .spinner{
     width:32px;height:32px;
     border:3px solid var(--line);
@@ -341,6 +342,7 @@
   <div class="modal-box modal-box-attente">
     <div class="spinner" aria-hidden="true"></div>
     <div id="attenteTexte">Recherche en cours…</div>
+    <div id="attenteChrono">0 s</div>
     <div class="modal-actions modal-actions-centre">
       <button class="btn-ghost btn-small" id="attenteAnnuler">Annuler</button>
     </div>
@@ -372,7 +374,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V7";
+  const VERSION = "V8";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -387,6 +389,7 @@
   let selectedId = null;              // id du restaurant sélectionné (déplaçable)
   let deplacementTimer = null;        // délai avant de lancer la recherche après un déplacement
   let attenteControleur = null;       // AbortController de la recherche en cours (annulable)
+  let attenteIntervalId = null;       // intervalle du chronomètre affiché dans la fenêtre d'attente
 
   // ---------- Persistance locale ----------
   function chargerLocal(){
@@ -645,7 +648,7 @@
   // ---------- Reverse geocoding (Nominatim) ----------
   async function reverseGeocode(lat, lon, signal){
     const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&namedetails=1&accept-language=fr`;
-    const res = await fetch(url, { headers: { "Accept": "application/json" }, signal });
+    const res = await fetchAvecDelai(url, { headers: { "Accept": "application/json" } }, 8000, signal);
     if(!res.ok) throw new Error("Nominatim HTTP " + res.status);
     const data = await res.json();
 
@@ -684,6 +687,24 @@
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
+  // fetch avec un délai maximal propre (au lieu de dépendre du délai par défaut,
+  // parfois très long, du système/navigateur), tout en restant annulable via signalExterne.
+  async function fetchAvecDelai(url, options, delaiMs, signalExterne){
+    const controllerLocal = new AbortController();
+    const timeoutId = setTimeout(()=> controllerLocal.abort(), delaiMs);
+    const onExterneAbort = () => controllerLocal.abort();
+    if(signalExterne){
+      if(signalExterne.aborted) controllerLocal.abort();
+      else signalExterne.addEventListener("abort", onExterneAbort, {once:true});
+    }
+    try{
+      return await fetch(url, Object.assign({}, options, {signal: controllerLocal.signal}));
+    }finally{
+      clearTimeout(timeoutId);
+      if(signalExterne) signalExterne.removeEventListener("abort", onExterneAbort);
+    }
+  }
+
   // Plusieurs miroirs publics de l'API Overpass : le serveur overpass-api.de est en fait
   // une fédération de machines, dont certaines ne renvoient pas toujours d'en-tête CORS
   // (Access-Control-Allow-Origin). On tente donc plusieurs miroirs dans l'ordre.
@@ -711,28 +732,34 @@
     return candidats.slice(0, limite);
   }
 
+  async function interrogerMiroir(endpoint, requete, signal){
+    const res = await fetchAvecDelai(endpoint, {
+      method: "POST",
+      body: "data=" + encodeURIComponent(requete)
+    }, 8000, signal);
+    if(!res.ok) throw new Error("HTTP " + res.status + " (" + endpoint + ")");
+    return res.json();
+  }
+
   async function rechercherRestaurantsProches(lat, lon, limite, signal){
     const rayon = 200; // mètres
     const requete = `[out:json][timeout:15];(node["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});way["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon});relation["amenity"="restaurant"]["name"](around:${rayon},${lat},${lon}););out center tags;`;
-    let dernierEchec = null;
-    for(const endpoint of OVERPASS_ENDPOINTS){
+    if(signal && signal.aborted) throw new DOMException("Recherche annulée", "AbortError");
+    try{
+      // Les miroirs sont interrogés EN PARALLÈLE (pas l'un après l'autre) : on garde le
+      // premier qui répond correctement, avec un délai maximal de 8 s chacun — au lieu
+      // d'attendre le délai par défaut (parfois ~20 s) de chaque miroir en séquence.
+      const data = await Promise.any(
+        OVERPASS_ENDPOINTS.map(endpoint => interrogerMiroir(endpoint, requete, signal))
+      );
+      return extraireRestaurants(data, lat, lon, limite);
+    }catch(err){
       if(signal && signal.aborted) throw new DOMException("Recherche annulée", "AbortError");
-      try{
-        const res = await fetch(endpoint, {
-          method: "POST",
-          body: "data=" + encodeURIComponent(requete),
-          signal
-        });
-        if(!res.ok) throw new Error("HTTP " + res.status + " (" + endpoint + ")");
-        const data = await res.json();
-        return extraireRestaurants(data, lat, lon, limite);
-      }catch(e){
-        if(e && e.name === "AbortError") throw e; // annulation : on arrête net, pas d'autre miroir
-        dernierEchec = e;
-        console.warn("Miroir Overpass indisponible, tentative suivante :", endpoint, e);
+      if(err && err.name === "AggregateError" && err.errors && err.errors.length){
+        throw err.errors[0];
       }
+      throw err;
     }
-    throw dernierEchec || new Error("Tous les miroirs Overpass ont échoué");
   }
 
   // ---------- Boîte de dialogue de confirmation ----------
@@ -793,12 +820,20 @@
   function ouvrirAttente(message){
     const overlay = document.getElementById("attenteOverlay");
     const texte = document.getElementById("attenteTexte");
+    const chrono = document.getElementById("attenteChrono");
     const btnAnnuler = document.getElementById("attenteAnnuler");
     texte.textContent = message || "Recherche en cours…";
+    chrono.textContent = "0 s";
     overlay.classList.add("open");
     const controller = new AbortController();
     attenteControleur = controller;
     btnAnnuler.onclick = () => controller.abort();
+
+    const debut = Date.now();
+    attenteIntervalId = setInterval(()=>{
+      chrono.textContent = Math.round((Date.now() - debut) / 1000) + " s";
+    }, 1000);
+
     return controller;
   }
 
@@ -806,6 +841,7 @@
     document.getElementById("attenteOverlay").classList.remove("open");
     document.getElementById("attenteAnnuler").onclick = null;
     attenteControleur = null;
+    if(attenteIntervalId){ clearInterval(attenteIntervalId); attenteIntervalId = null; }
   }
 
   // Cherche les restaurants les plus proches (nommés, via Overpass) + l'adresse (via Nominatim),
