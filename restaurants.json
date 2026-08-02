@@ -47,7 +47,15 @@
       "name": "Nouveau restaurant",
       "address": "",
       "maj": "2026-08-02T14:22:50.876Z"
+    },
+    {
+      "id": "r_msbwalxy_rqi0gk",
+      "lat": 48.833908273200876,
+      "lon": 2.295400638218691,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-02T14:28:06.167Z"
     }
   ],
-  "maj": "2026-08-02T14:22:52.083Z"
+  "maj": "2026-08-02T14:28:07.380Z"
 }
