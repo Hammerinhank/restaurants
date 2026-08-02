@@ -245,6 +245,38 @@
     border-top:1px solid var(--line);
   }
   .popup-date{font-size:10px;color:var(--muted);}
+
+  /* Modale de confirmation */
+  .modal-overlay{
+    position:fixed;inset:0;
+    background:rgba(20,18,14,.45);
+    display:flex;align-items:center;justify-content:center;
+    z-index:3000;
+    padding:16px;
+    opacity:0;
+    pointer-events:none;
+    transition:opacity .15s ease;
+  }
+  .modal-overlay.open{opacity:1;pointer-events:auto;}
+  .modal-box{
+    background:var(--panel);
+    border-radius:12px;
+    padding:18px;
+    width:100%;
+    max-width:340px;
+    box-shadow:0 10px 40px rgba(0,0,0,.35);
+  }
+  .modal-box h3{margin:0 0 4px;font-size:15px;}
+  .modal-hint{font-size:11.5px;color:var(--muted);margin:0 0 12px;}
+  .modal-box label{
+    display:flex;flex-direction:column;gap:4px;
+    font-size:12px;color:var(--muted);
+    margin-bottom:10px;
+  }
+  .modal-box input{
+    font:inherit;padding:8px 9px;border:1px solid var(--line);border-radius:7px;
+  }
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
 </style>
 </head>
 <body>
@@ -292,12 +324,29 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <h3>Confirmer le restaurant</h3>
+    <div class="modal-hint" id="modalHint"></div>
+    <label>Nom
+      <input type="text" id="modalNom" autocomplete="off">
+    </label>
+    <label>Adresse
+      <input type="text" id="modalAdresse" autocomplete="off">
+    </label>
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="modalAnnuler">Ignorer</button>
+      <button class="btn-primary btn-small" id="modalValider">Valider</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
   "use strict";
 
-  const VERSION = "V2";
+  const VERSION = "V3";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -428,7 +477,7 @@
   }
 
   // Appelé après un glisser-déposer de l'icône : met à jour les coordonnées
-  // et tente de rafraîchir automatiquement l'adresse.
+  // puis propose une identification du restaurant le plus proche à confirmer.
   async function gererDeplacement(id){
     const r = restaurants.find(x=>x.id===id);
     const m = markers[id];
@@ -440,21 +489,7 @@
     sauverLocal();
     rafraichirListe();
     pousserVersGithubDifféré();
-    statut("Position mise à jour. Recherche de la nouvelle adresse…");
-    try{
-      const info = await reverseGeocode(r.lat, r.lon);
-      if(info.adresse) r.address = info.adresse;
-      if(info.nom && (!r.name || r.name === "Nouveau restaurant")) r.name = info.nom;
-      r.maj = new Date().toISOString();
-      sauverLocal();
-      m.bindPopup(popupHTML(r));
-      if(m.isPopupOpen()){ m.openPopup(); brancherEditionPopup(id); }
-      rafraichirListe();
-      pousserVersGithubDifféré();
-      statut("Adresse mise à jour.", "ok");
-    }catch(e){
-      statut("Position déplacée, mais l'adresse n'a pas pu être actualisée automatiquement.", "err");
-    }
+    await identifierEtConfirmer(r);
   }
 
   function supprimerMarqueur(id){
@@ -602,7 +637,132 @@
     return {nom, adresse};
   }
 
-  // ---------- Nouveau restaurant ----------
+  // ---------- Recherche du restaurant le plus proche (Overpass / OSM) ----------
+  function distanceMetres(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const toRad = d => d * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  }
+
+  async function rechercherRestaurantProche(lat, lon){
+    const rayon = 60; // mètres
+    const requete = `[out:json][timeout:15];(node["amenity"="restaurant"](around:${rayon},${lat},${lon});way["amenity"="restaurant"](around:${rayon},${lat},${lon});relation["amenity"="restaurant"](around:${rayon},${lat},${lon}););out center tags;`;
+    const res = await fetch("https://overpass-api.de/api/interpreter", {
+      method: "POST",
+      body: "data=" + encodeURIComponent(requete)
+    });
+    if(!res.ok) throw new Error("Overpass HTTP " + res.status);
+    const data = await res.json();
+    const candidats = (data.elements || []).map(el=>{
+      const la = el.lat !== undefined ? el.lat : (el.center ? el.center.lat : null);
+      const lo = el.lon !== undefined ? el.lon : (el.center ? el.center.lon : null);
+      if(la == null || lo == null) return null;
+      return {tags: el.tags || {}, distance: distanceMetres(lat, lon, la, lo)};
+    }).filter(Boolean).sort((a,b)=> a.distance - b.distance);
+
+    if(!candidats.length) return null;
+    const t = candidats[0].tags;
+    const numRue = [t["addr:housenumber"], t["addr:street"]].filter(Boolean).join(" ");
+    const ville = [t["addr:postcode"], t["addr:city"]].filter(Boolean).join(" ");
+    return {
+      nom: t.name || "",
+      adresse: [numRue, ville].filter(Boolean).join(", "),
+      distance: Math.round(candidats[0].distance)
+    };
+  }
+
+  // ---------- Boîte de dialogue de confirmation ----------
+  function ouvrirModalIdentification(nomPropose, adressePropose, indice){
+    return new Promise((resolve)=>{
+      const overlay = document.getElementById("modalOverlay");
+      const inputNom = document.getElementById("modalNom");
+      const inputAdr = document.getElementById("modalAdresse");
+      const hint = document.getElementById("modalHint");
+      const btnValider = document.getElementById("modalValider");
+      const btnAnnuler = document.getElementById("modalAnnuler");
+
+      inputNom.value = nomPropose || "";
+      inputAdr.value = adressePropose || "";
+      hint.textContent = indice || "";
+      overlay.classList.add("open");
+      setTimeout(()=> inputNom.focus(), 60);
+
+      const nettoyer = () => {
+        overlay.classList.remove("open");
+        btnValider.removeEventListener("click", onValider);
+        btnAnnuler.removeEventListener("click", onAnnuler);
+        overlay.removeEventListener("keydown", onKey);
+      };
+      const onValider = () => {
+        const nom = inputNom.value.trim();
+        const adresse = inputAdr.value.trim();
+        nettoyer();
+        resolve({ok:true, nom, adresse});
+      };
+      const onAnnuler = () => { nettoyer(); resolve({ok:false}); };
+      const onKey = (ev) => {
+        if(ev.key === "Enter") onValider();
+        if(ev.key === "Escape") onAnnuler();
+      };
+      btnValider.addEventListener("click", onValider);
+      btnAnnuler.addEventListener("click", onAnnuler);
+      overlay.addEventListener("keydown", onKey);
+    });
+  }
+
+  // Cherche le restaurant le plus proche + l'adresse, puis demande confirmation.
+  async function identifierEtConfirmer(r){
+    statut("Recherche du restaurant le plus proche…");
+    const [resProche, resAdresse] = await Promise.allSettled([
+      rechercherRestaurantProche(r.lat, r.lon),
+      reverseGeocode(r.lat, r.lon)
+    ]);
+
+    let nomTrouve = "";
+    let adresseTrouvee = "";
+    let indice = "";
+
+    if(resProche.status === "fulfilled" && resProche.value){
+      nomTrouve = resProche.value.nom;
+      if(resProche.value.adresse) adresseTrouvee = resProche.value.adresse;
+      indice = nomTrouve
+        ? `Trouvé à environ ${resProche.value.distance} m : vérifiez avant de valider.`
+        : `Un restaurant a été repéré à environ ${resProche.value.distance} m, mais sans nom renseigné dans OpenStreetMap.`;
+    }
+    if(resAdresse.status === "fulfilled" && resAdresse.value){
+      if(!adresseTrouvee && resAdresse.value.adresse) adresseTrouvee = resAdresse.value.adresse;
+      if(!nomTrouve && resAdresse.value.nom) nomTrouve = resAdresse.value.nom;
+    }
+    if(!indice){
+      indice = nomTrouve || adresseTrouvee
+        ? "Aucun restaurant identifié à proximité ; adresse estimée depuis les coordonnées."
+        : "Rien trouvé automatiquement : merci de compléter vous-même.";
+    }
+    statut("");
+
+    const choix = await ouvrirModalIdentification(nomTrouve || r.name, adresseTrouvee || r.address, indice);
+    if(choix.ok){
+      r.name = choix.nom || "Nouveau restaurant";
+      r.address = choix.adresse || "";
+      r.maj = new Date().toISOString();
+      sauverLocal();
+      redessinerMarqueur(r);
+      if(markers[r.id] && markers[r.id].isPopupOpen()){
+        markers[r.id].openPopup();
+        brancherEditionPopup(r.id);
+      }
+      rafraichirListe();
+      pousserVersGithubDifféré();
+      statut("Informations confirmées.", "ok");
+    }else{
+      statut("Suggestion ignorée. Vous pouvez saisir les informations manuellement (double-clic).", "");
+    }
+  }
+
+
   document.getElementById("btnNouveau").addEventListener("click", async ()=>{
     if(!navigator.geolocation){
       statut("La géolocalisation n'est pas disponible sur cet appareil.", "err");
@@ -627,22 +787,9 @@
       redessinerMarqueur(r);
       definirSelection(r.id, {pan:true});
       btn.disabled = false;
-      statut("Restaurant enregistré. Recherche du nom et de l'adresse…");
-
-      try{
-        const info = await reverseGeocode(lat, lon);
-        if(info.nom) r.name = info.nom;
-        if(info.adresse) r.address = info.adresse;
-        r.maj = new Date().toISOString();
-        sauverLocal();
-        redessinerMarqueur(r);
-        rafraichirListe();
-        if(markers[r.id].isPopupOpen()) markers[r.id].openPopup();
-        statut(info.nom || info.adresse ? "Adresse trouvée. Double-cliquez sur le nom ou l'adresse pour modifier, ou glissez l'icône pour la déplacer." : "Adresse introuvable, vous pouvez la saisir vous-même.", "ok");
-      }catch(e){
-        statut("Impossible d'obtenir l'adresse automatiquement (double-cliquez pour la saisir).", "err");
-      }
       pousserVersGithubDifféré();
+
+      await identifierEtConfirmer(r);
 
     }, (err)=>{
       btn.disabled = false;
