@@ -17,13 +17,29 @@
       "maj": "2026-08-02T11:06:21.385Z"
     },
     {
+      "id": "r_msbtg4gv_bohygw",
+      "lat": 48.859431522971406,
+      "lon": 2.2673350532856396,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-02T13:08:24.607Z"
+    },
+    {
       "id": "r_msc7phih_sbosru",
       "lat": 48.833887563427275,
       "lon": 2.2955445407589563,
       "name": "Nouveau restaurant",
       "address": "",
       "maj": "2026-08-02T19:47:36.041Z"
+    },
+    {
+      "id": "r_msc7tl8c_r6ag5g",
+      "lat": 48.83393883973587,
+      "lon": 2.2954940909060664,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-02T19:50:47.484Z"
     }
   ],
-  "maj": "2026-08-02T19:49:38.340Z"
+  "maj": "2026-08-02T19:50:48.696Z"
 }
