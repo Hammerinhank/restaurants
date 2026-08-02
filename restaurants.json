@@ -1,12 +1,28 @@
 {
   "restaurants": [
     {
+      "id": "r_msbfjjbb_bqgxtv",
+      "lat": 48.84212536878913,
+      "lon": 2.32386589050293,
+      "name": "Nouveau restaurant",
+      "address": "7 Rue Robert Lindet, 75015 Paris",
+      "maj": "2026-08-02T07:26:16.836Z"
+    },
+    {
       "id": "r_msbhwcal_k2vfct",
       "lat": 48.83440859768,
       "lon": 2.2946405410766606,
       "name": "Le Mûrier",
       "address": "5 Rue Robert Lindet, 75015 Paris",
       "maj": "2026-08-02T07:47:09.713Z"
+    },
+    {
+      "id": "r_msbhxnun_ykz9zq",
+      "lat": 48.83391200325696,
+      "lon": 2.295689308255562,
+      "name": "Nouveau restaurant",
+      "address": "7 Rue Robert Lindet, 75015 Paris",
+      "maj": "2026-08-02T07:46:13.061Z"
     },
     {
       "id": "r_msbmjdea_1bfbfc",
@@ -23,7 +39,15 @@
       "name": "Nouveau restaurant",
       "address": "",
       "maj": "2026-08-02T13:08:24.607Z"
+    },
+    {
+      "id": "r_msbw3unw_yvkcs0",
+      "lat": 48.83395449655923,
+      "lon": 2.2955519002456644,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-02T14:22:50.876Z"
     }
   ],
-  "maj": "2026-08-02T13:08:25.821Z"
+  "maj": "2026-08-02T14:22:52.083Z"
 }
