@@ -2,12 +2,20 @@
   "restaurants": [
     {
       "id": "r_msayhuod_twu7zi",
-      "lat": 48.835628702319354,
-      "lon": 2.2958850860595708,
+      "lat": 48.83483670319311,
+      "lon": 2.3014640808105473,
       "name": "Test",
-      "address": "Passage Olivier de Serres, 75015 Paris",
-      "maj": "2026-08-02T06:38:56.398Z"
+      "address": "58 Rue Dombasle, 75015 Paris",
+      "maj": "2026-08-02T06:39:08.036Z"
+    },
+    {
+      "id": "r_msbfjjbb_bqgxtv",
+      "lat": 48.83392068665978,
+      "lon": 2.295649208555715,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-02T06:39:09.191Z"
     }
   ],
-  "maj": "2026-08-02T06:38:57.601Z"
+  "maj": "2026-08-02T06:39:09.237Z"
 }
