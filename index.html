@@ -1,995 +1,286 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<title>Restaurants</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<style>
-  :root{
-    --bg:#f6f4ef;
-    --panel:#ffffff;
-    --ink:#1f2320;
-    --muted:#6b6f6a;
-    --accent:#c1502e;
-    --accent-ink:#ffffff;
-    --line:#e3e0d6;
-    --ok:#2f7a4f;
-    --err:#b3341c;
-  }
-  *{box-sizing:border-box;}
-  html,body{height:100%;margin:0;}
-  body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
-    background:var(--bg);
-    color:var(--ink);
-    display:flex;
-    flex-direction:column;
-    overscroll-behavior:none;
-  }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestion de Restaurants - Leaflet</title>
 
-  header{
-    background:var(--panel);
-    border-bottom:1px solid var(--line);
-    padding:10px 12px;
-    display:flex;
-    align-items:center;
-    gap:10px;
-    flex-wrap:wrap;
-    position:relative;
-    z-index:1000;
-  }
-  header h1{
-    font-size:17px;
-    margin:0;
-    font-weight:700;
-    letter-spacing:.2px;
-    flex:0 0 auto;
-  }
-  .badge{
-    font-size:10px;
-    color:var(--muted);
-    border:1px solid var(--line);
-    border-radius:20px;
-    padding:1px 7px;
-    cursor:pointer;
-    user-select:none;
-  }
-  .spacer{flex:1 1 auto;}
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  button{
-    font:inherit;
-    border:none;
-    border-radius:9px;
-    padding:9px 14px;
-    cursor:pointer;
-    font-weight:600;
-    font-size:14px;
-  }
-  .btn-primary{
-    background:var(--accent);
-    color:var(--accent-ink);
-  }
-  .btn-primary:disabled{opacity:.55;cursor:default;}
-  .btn-ghost{
-    background:transparent;
-    color:var(--ink);
-    border:1px solid var(--line);
-  }
-  .btn-danger{
-    background:transparent;
-    color:var(--err);
-    border:1px solid var(--err);
-    padding:5px 9px;
-    font-size:12px;
-  }
-  .btn-small{
-    padding:5px 9px;
-    font-size:12px;
-  }
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; height: 100vh; display: flex; overflow: hidden; }
+    
+    #sidebar { width: 320px; background: #f8f9fa; border-right: 1px solid #dee2e6; display: flex; flex-direction: column; height: 100vh; }
+    #sidebar-header { padding: 15px; border-bottom: 1px solid #dee2e6; background: #fff; }
+    #sidebar-header h2 { font-size: 1.1rem; margin-bottom: 10px; }
+    #listBody { flex: 1; overflow-y: auto; padding: 10px; }
+    
+    #map { flex: 1; height: 100vh; }
 
-  #statusLine{
-    font-size:12px;
-    color:var(--muted);
-    padding:0 12px 8px;
-    min-height:14px;
-  }
-  #statusLine.err{color:var(--err);}
-  #statusLine.ok{color:var(--ok);}
+    /* Boutons et UI */
+    .btn { padding: 8px 12px; font-size: 13px; border-radius: 4px; border: none; cursor: pointer; background: #0d6efd; color: #fff; }
+    .btn:hover { background: #0b5ed7; }
+    .btn-danger { background: #dc3545; color: white; border: none; padding: 3px 8px; border-radius: 3px; cursor: pointer; }
+    .btn-danger:hover { background: #bb2d3b; }
+    .btn-ghost { background: #e9ecef; color: #495057; border: 1px solid #ced4da; border-radius: 3px; font-size: 12px; }
+    .btn-ghost:hover { background: #dee2e6; }
+    .btn-small { padding: 4px 8px; font-size: 12px; }
 
-  #settings{
-    background:var(--panel);
-    border-bottom:1px solid var(--line);
-    padding:12px;
-    display:none;
-    gap:8px;
-    flex-direction:column;
-    font-size:13px;
-  }
-  #settings.open{display:flex;}
-  #settings label{
-    display:flex;
-    flex-direction:column;
-    gap:3px;
-    color:var(--muted);
-    font-size:12px;
-  }
-  #settings input{
-    font:inherit;
-    padding:8px 9px;
-    border:1px solid var(--line);
-    border-radius:7px;
-    background:#fff;
-  }
-  .settings-row{display:flex;gap:8px;flex-wrap:wrap;}
-  .settings-row > label{flex:1 1 140px;}
-  .settings-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:2px;}
-
-  #main{
-    flex:1 1 auto;
-    display:flex;
-    min-height:0;
-  }
-  #map{
-    flex:1 1 auto;
-    min-width:0;
-  }
-
-  #listPanel{
-    width:290px;
-    flex:0 0 auto;
-    background:var(--panel);
-    border-left:1px solid var(--line);
-    overflow-y:auto;
-    display:flex;
-    flex-direction:column;
-  }
-  #listPanel h2{
-    font-size:12px;
-    text-transform:uppercase;
-    letter-spacing:.6px;
-    color:var(--muted);
-    margin:0;
-    padding:12px 12px 6px;
-  }
-  .empty-hint{
-    padding:10px 12px;
-    font-size:13px;
-    color:var(--muted);
-  }
-  .resto-item{
-    padding:10px 12px;
-    border-top:1px solid var(--line);
-    cursor:pointer;
-    display:flex;
-    justify-content:space-between;
-    gap:8px;
-    align-items:flex-start;
-  }
-  .resto-item:hover{background:#faf8f3;}
-  .resto-item.selected{
-    background:#faf0ea;
-    border-left:3px solid var(--accent);
-    padding-left:9px;
-  }
-  .resto-item .txt{min-width:0;}
-  .resto-item .nom{
-    font-weight:600;
-    font-size:13.5px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-  .resto-item .adr{
-    font-size:12px;
-    color:var(--muted);
-    margin-top:2px;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-  }
-
-  @media (max-width:720px){
-    #main{flex-direction:column;}
-    #listPanel{
-      width:auto;
-      max-height:34vh;
-      border-left:none;
-      border-top:1px solid var(--line);
-    }
-  }
-
-  /* Marker */
-  .resto-pin{
-    background:var(--accent);
-    width:30px;height:30px;border-radius:50% 50% 50% 0;
-    transform:rotate(-45deg);
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 1px 4px rgba(0,0,0,.35);
-    border:2px solid #fff;
-  }
-  .resto-pin span{
-    transform:rotate(45deg);
-    font-size:14px;
-  }
-  .resto-pin.selected{
-    box-shadow:0 0 0 4px rgba(193,80,46,.4), 0 1px 4px rgba(0,0,0,.35);
-    cursor:grab;
-  }
-
-  /* Popup */
-  .leaflet-popup-content{margin:10px 12px;min-width:190px;}
-  .popup-field{margin-bottom:6px;}
-  .popup-label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);}
-  .popup-text{
-    font-size:14px;
-    cursor:text;
-    border-bottom:1px dashed transparent;
-    padding:1px 0;
-  }
-  .popup-text:hover{border-bottom-color:var(--line);}
-  .popup-text.nom{font-weight:700;font-size:15px;}
-  .popup-edit{
-    width:100%;
-    font:inherit;
-    padding:4px 6px;
-    border:1px solid var(--accent);
-    border-radius:6px;
-  }
-  .popup-actions{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-top:8px;
-    padding-top:6px;
-    border-top:1px solid var(--line);
-  }
-  .popup-date{font-size:10px;color:var(--muted);}
-
-  /* Modale de confirmation */
-  .modal-overlay{
-    position:fixed;inset:0;
-    background:rgba(20,18,14,.45);
-    display:flex;align-items:center;justify-content:center;
-    z-index:3000;
-    padding:16px;
-    opacity:0;
-    pointer-events:none;
-    transition:opacity .15s ease;
-  }
-  .modal-overlay.open{opacity:1;pointer-events:auto;}
-  .modal-box{
-    background:var(--panel);
-    border-radius:12px;
-    padding:18px;
-    width:100%;
-    max-width:340px;
-    box-shadow:0 10px 40px rgba(0,0,0,.35);
-  }
-  .modal-box h3{margin:0 0 4px;font-size:15px;}
-  .modal-hint{font-size:11.5px;color:var(--muted);margin:0 0 12px;}
-  .modal-box label{
-    display:flex;flex-direction:column;gap:4px;
-    font-size:12px;color:var(--muted);
-    margin-bottom:10px;
-  }
-  .modal-box input, .modal-box select{
-    font:inherit;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;
-  }
-  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
-</style>
+    /* Éléments de la liste */
+    .resto-item { background: #fff; border: 1px solid #ced4da; border-radius: 6px; padding: 10px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: flex-start; cursor: pointer; }
+    .resto-item.selected { border-color: #0d6efd; background: #f0f7ff; }
+    .resto-item .txt { flex: 1; margin-right: 8px; }
+    
+    /* Field popup & list */
+    .popup-field { margin-bottom: 6px; }
+    .popup-label { font-size: 10px; text-transform: uppercase; color: #6c757d; font-weight: bold; }
+    .popup-text { font-size: 13px; color: #212529; cursor: pointer; padding: 2px; border-radius: 3px; }
+    .popup-text:hover { background: #e9ecef; }
+    .popup-text.nom { font-weight: bold; }
+    .popup-actions { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; padding-top: 8px; border-top: 1px solid #eee; }
+    .popup-date { font-size: 10px; color: #6c757d; }
+    .empty-hint { font-size: 13px; color: #6c757d; text-align: center; margin-top: 20px; }
+    
+    /* Style champ d'édition rapide */
+    .edit-input { width: 100%; font-size: 13px; padding: 2px 4px; border: 1px solid #0d6efd; border-radius: 3px; }
+  </style>
 </head>
 <body>
 
-<header>
-  <h1>🍽️ Restaurants</h1>
-  <span class="badge" id="versionBadge" title="Historique des versions">V1</span>
-  <div class="spacer"></div>
-  <button class="btn-ghost" id="btnSettings">⚙️ GitHub</button>
-  <button class="btn-primary" id="btnNouveau">📍 Nouveau restaurant</button>
-</header>
-
-<div id="statusLine"></div>
-
-<div id="settings">
-  <div class="settings-row">
-    <label>Utilisateur / organisation GitHub
-      <input type="text" id="cfgOwner" autocomplete="off" placeholder="ex. hammerinhank">
-    </label>
-    <label>Dépôt
-      <input type="text" id="cfgRepo" autocomplete="off" placeholder="ex. restaurant">
-    </label>
-    <label>Branche
-      <input type="text" id="cfgBranch" autocomplete="off" placeholder="main" value="main">
-    </label>
-  </div>
-  <div class="settings-row">
-    <label>Jeton d'accès personnel (PAT)
-      <input type="password" id="cfgToken" autocomplete="off" placeholder="ghp_...">
-    </label>
-  </div>
-  <div class="settings-actions">
-    <button class="btn-primary btn-small" id="btnSaveCfg">Enregistrer les identifiants</button>
-    <button class="btn-ghost btn-small" id="btnClearCfg">Effacer les identifiants</button>
-    <button class="btn-ghost btn-small" id="btnPush">⬆️ Envoyer vers GitHub</button>
-    <button class="btn-ghost btn-small" id="btnPull">⬇️ Récupérer depuis GitHub</button>
-  </div>
-</div>
-
-<div id="main">
-  <div id="map"></div>
-  <div id="listPanel">
-    <h2>Liste (<span id="countLbl">0</span>)</h2>
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <h2>Restaurants (<span id="countLbl">0</span>)</h2>
+      <button class="btn" id="btnAdd">➕ Nouveau restaurant</button>
+    </div>
     <div id="listBody"></div>
   </div>
-</div>
 
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal-box">
-    <h3>Confirmer le restaurant</h3>
-    <div class="modal-hint" id="modalHint"></div>
-    <label>Nom
-      <input type="text" id="modalNom" autocomplete="off">
-    </label>
-    <label id="modalAlternativesChamp">Autres restaurants à proximité
-      <select id="modalAlternatives"></select>
-    </label>
-    <label>Adresse
-      <input type="text" id="modalAdresse" autocomplete="off">
-    </label>
-    <div class="modal-actions">
-      <button class="btn-ghost btn-small" id="modalAnnuler">Ignorer</button>
-      <button class="btn-primary btn-small" id="modalValider">Valider</button>
-    </div>
-  </div>
-</div>
+  <div id="map"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script>
-(function(){
-  "use strict";
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  const VERSION = "V4";
-  document.getElementById("versionBadge").textContent = VERSION;
+  <script>
+    // --- Données & État ---
+    let restaurants = [];
+    let markersMap = new Map();
+    let selectedId = null;
 
-  const LS_DATA_KEY = "restaurants.v1";
-  const LS_CFG_KEY = "restaurantsGithubConfig.v1";
-  const FILE_NAME = "restaurants.json";
+    // --- Initialisation Carte ---
+    const map = L.map('map').setView([48.8566, 2.3522], 13); // Paris par défaut
 
-  // ---------- État ----------
-  let restaurants = chargerLocal();   // [{id, lat, lon, name, address, maj}]
-  let cfg = chargerCfg();             // {owner, repo, branch, token}
-  let markers = {};                   // id -> L.marker
-  let dernierSha = null;              // sha du fichier GitHub connu
-  let selectedId = null;              // id du restaurant sélectionné (déplaçable)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-  // ---------- Persistance locale ----------
-  function chargerLocal(){
-    try{
-      const raw = localStorage.getItem(LS_DATA_KEY);
-      return raw ? JSON.parse(raw) : [];
-    }catch(e){ return []; }
-  }
-  function sauverLocal(){
-    localStorage.setItem(LS_DATA_KEY, JSON.stringify(restaurants));
-  }
-  function chargerCfg(){
-    try{
-      const raw = localStorage.getItem(LS_CFG_KEY);
-      return raw ? JSON.parse(raw) : {owner:"",repo:"",branch:"main",token:""};
-    }catch(e){ return {owner:"",repo:"",branch:"main",token:""}; }
-  }
-  function sauverCfg(){
-    localStorage.setItem(LS_CFG_KEY, JSON.stringify(cfg));
-  }
-
-  // ---------- Statut ----------
-  let statusTimer = null;
-  function statut(msg, type){
-    const el = document.getElementById("statusLine");
-    el.textContent = msg || "";
-    el.className = type || "";
-    if(statusTimer) clearTimeout(statusTimer);
-    if(msg){
-      statusTimer = setTimeout(()=>{ el.textContent=""; el.className=""; }, 6000);
+    // --- Fonctions d'échappement et Utilitaires ---
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
     }
-  }
 
-  // ---------- Carte ----------
-  const map = L.map("map", {zoomControl:true}).setView([46.6, 2.4], 6);
-  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-    maxZoom: 19,
-    attribution: "&copy; contributeurs OpenStreetMap"
-  }).addTo(map);
-
-  function iconResto(selectionne){
-    const cls = selectionne ? "resto-pin selected" : "resto-pin";
-    return L.divIcon({
-      className: "",
-      html: `<div class="${cls}"><span>🍽️</span></div>`,
-      iconSize: [30,30],
-      iconAnchor: [15,29],
-      popupAnchor: [0,-28]
-    });
-  }
-
-  function idUnique(){
-    return "r_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
-  }
-
-  // ---------- Rendu ----------
-  function popupHTML(r){
-    const dateAff = new Date(r.maj).toLocaleString("fr-FR");
-    return `
-      <div class="popup-field">
-        <div class="popup-label">Nom</div>
-        <div class="popup-text nom" data-id="${r.id}" data-field="name">${escHtml(r.name || "Nouveau restaurant")}</div>
-      </div>
-      <div class="popup-field">
-        <div class="popup-label">Adresse</div>
-        <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "(adresse non définie, double-cliquez pour saisir)")}</div>
-      </div>
-      <div class="popup-actions">
-        <span class="popup-date">${dateAff}</span>
-        <button class="btn-danger" data-del="${r.id}">Supprimer</button>
-      </div>
-    `;
-  }
-
-  function escHtml(s){
-    return String(s == null ? "" : s)
-      .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
-  }
-
-  function redessinerMarqueur(r){
-    let m = markers[r.id];
-    if(!m){
-      m = L.marker([r.lat, r.lon], {icon: iconResto(r.id===selectedId), draggable:false}).addTo(map);
-      markers[r.id] = m;
-      m.on("popupopen", ()=> brancherEditionPopup(r.id));
-      m.on("click", ()=> definirSelection(r.id, {pan:false}));
-      m.on("dragend", ()=> gererDeplacement(r.id));
-      if(r.id === selectedId && m.dragging) m.dragging.enable();
-    }else{
-      m.setLatLng([r.lat, r.lon]);
-      m.setIcon(iconResto(r.id===selectedId));
-    }
-    m.bindPopup(popupHTML(r));
-  }
-
-  // Sélectionne un restaurant : active le glisser-déposer de son icône,
-  // désactive celui des autres, met en surbrillance dans la liste et sur la carte.
-  function definirSelection(id, {pan=false} = {}){
-    const precedent = selectedId;
-    selectedId = id;
-    if(precedent && precedent !== id && markers[precedent]){
-      markers[precedent].setIcon(iconResto(false));
-      if(markers[precedent].dragging) markers[precedent].dragging.disable();
-    }
-    if(id && markers[id]){
-      markers[id].setIcon(iconResto(true));
-      if(markers[id].dragging) markers[id].dragging.enable();
-      if(pan){
-        const r = restaurants.find(x=>x.id===id);
-        if(r) map.setView([r.lat, r.lon], Math.max(map.getZoom(), 16), {animate:true});
-      }
-      markers[id].openPopup();
-      statut("Restaurant sélectionné : faites glisser son icône sur la carte pour la déplacer.", "ok");
-    }
-    rafraichirListe();
-  }
-
-  // Appelé après un glisser-déposer de l'icône : met à jour les coordonnées
-  // puis propose une identification du restaurant le plus proche à confirmer.
-  async function gererDeplacement(id){
-    const r = restaurants.find(x=>x.id===id);
-    const m = markers[id];
-    if(!r || !m) return;
-    const ll = m.getLatLng();
-    r.lat = ll.lat;
-    r.lon = ll.lng;
-    r.maj = new Date().toISOString();
-    sauverLocal();
-    rafraichirListe();
-    pousserVersGithubDifféré();
-    await identifierEtConfirmer(r);
-  }
-
-  function supprimerMarqueur(id){
-    const m = markers[id];
-    if(m){ map.removeLayer(m); delete markers[id]; }
-  }
-
-  function brancherEditionPopup(id){
-    const popupEl = document.querySelector(`.popup-text[data-id="${id}"]`)?.closest(".leaflet-popup-content");
-    if(!popupEl) return;
-    popupEl.querySelectorAll(".popup-text").forEach(el=>{
-      el.ondblclick = () => passerEnEdition(el);
-    });
-    const delBtn = popupEl.querySelector("[data-del]");
-    if(delBtn){
-      delBtn.onclick = () => supprimerRestaurant(delBtn.getAttribute("data-del"));
-    }
-  }
-
-  function passerEnEdition(el){
-    const id = el.getAttribute("data-id");
-    const field = el.getAttribute("data-field");
-    const r = restaurants.find(x=>x.id===id);
-    if(!r) return;
-    const depuisPopup = !!el.closest(".leaflet-popup-content");
-    const valeurActuelle = r[field] || "";
-    const input = document.createElement("input");
-    input.type = "text";
-    input.className = "popup-edit";
-    input.value = valeurActuelle;
-    el.replaceWith(input);
-    input.focus();
-    input.select();
-
-    const valider = () => {
-      const nv = input.value.trim();
-      r[field] = nv;
-      r.maj = new Date().toISOString();
-      sauverLocal();
-      const newEl = document.createElement("div");
-      newEl.className = el.className;
-      newEl.setAttribute("data-id", id);
-      newEl.setAttribute("data-field", field);
-      newEl.textContent = nv || (field === "name" ? "Nouveau restaurant" : "(adresse non définie, double-cliquez pour saisir)");
-      newEl.ondblclick = () => passerEnEdition(newEl);
-      input.replaceWith(newEl);
-      redessinerMarqueur(r);
-      if(depuisPopup){
-        const m = markers[id];
-        if(m) m.openPopup();
-        brancherEditionPopup(id);
-      }
-      rafraichirListe();
-      pousserVersGithubDifféré();
-    };
-    input.addEventListener("blur", valider);
-    input.addEventListener("keydown", (ev)=>{
-      if(ev.key === "Enter"){ input.blur(); }
-      if(ev.key === "Escape"){ input.value = valeurActuelle; input.blur(); }
-    });
-  }
-
-  function supprimerRestaurant(id){
-    if(!confirm("Supprimer ce restaurant de la liste ?")) return;
-    restaurants = restaurants.filter(r=>r.id!==id);
-    sauverLocal();
-    supprimerMarqueur(id);
-    rafraichirListe();
-    pousserVersGithubDifféré();
-  }
-
-  // ---------- Liste latérale ----------
-  function rafraichirListe(){
-    const body = document.getElementById("listBody");
-    document.getElementById("countLbl").textContent = restaurants.length;
-    if(restaurants.length === 0){
-      body.innerHTML = '<div class="empty-hint">Aucun restaurant enregistré. Utilisez le bouton « Nouveau restaurant ».</div>';
-      return;
-    }
-    const tries = [...restaurants].sort((a,b)=> (b.maj||"").localeCompare(a.maj||""));
-    body.innerHTML = tries.map(r => `
-      <div class="resto-item${r.id===selectedId ? ' selected' : ''}" data-goto="${r.id}">
-        <div class="txt">
-          <div class="popup-text nom" data-id="${r.id}" data-field="name">${escHtml(r.name || "Nouveau restaurant")}</div>
-          <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "adresse non définie")}</div>
+    // --- Génération HTML Popup ---
+    function popupHTML(r) {
+      const dateAff = r.maj ? new Date(r.maj).toLocaleString("fr-FR") : "";
+      const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lon}`;
+      const osmUrl = `https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lon}#map=18/${r.lat}/${r.lon}`;
+      
+      return `
+        <div style="min-width: 200px;">
+          <div class="popup-field">
+            <div class="popup-label">Nom</div>
+            <div class="popup-text nom" data-id="${r.id}" data-field="name">${escHtml(r.name || "Nouveau restaurant")}</div>
+          </div>
+          <div class="popup-field">
+            <div class="popup-label">Adresse</div>
+            <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "(adresse non définie, double-cliquez pour saisir)")}</div>
+          </div>
+          <div class="popup-field" style="margin-top:8px; display:flex; gap:6px;">
+            <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-ghost btn-small" style="text-decoration:none; text-align:center; flex:1;">📍 Google Maps</a>
+            <a href="${osmUrl}" target="_blank" rel="noopener noreferrer" class="btn-ghost btn-small" style="text-decoration:none; text-align:center; flex:1;">🗺️ OSM</a>
+          </div>
+          <div class="popup-actions">
+            <span class="popup-date">${dateAff}</span>
+            <button class="btn-danger" data-del="${r.id}">Supprimer</button>
+          </div>
         </div>
-        <button class="btn-danger" data-del="${r.id}">✕</button>
-      </div>
-    `).join("");
-    body.querySelectorAll("[data-goto]").forEach(el=>{
-      el.addEventListener("click",(ev)=>{
-        if(ev.target.closest("[data-del]") || ev.target.closest(".popup-text")) return;
-        definirSelection(el.getAttribute("data-goto"), {pan:true});
-      });
-    });
-    body.querySelectorAll("[data-del]").forEach(el=>{
-      el.addEventListener("click",(ev)=>{
-        ev.stopPropagation();
-        supprimerRestaurant(el.getAttribute("data-del"));
-      });
-    });
-    body.querySelectorAll(".popup-text").forEach(el=>{
-      el.ondblclick = (ev)=>{
-        ev.stopPropagation();
-        passerEnEdition(el);
-      };
-    });
-  }
-
-  function toutRedessiner(){
-    Object.keys(markers).forEach(supprimerMarqueur);
-    restaurants.forEach(redessinerMarqueur);
-    rafraichirListe();
-  }
-
-  // ---------- Reverse geocoding (Nominatim) ----------
-  async function reverseGeocode(lat, lon){
-    const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=18&addressdetails=1&namedetails=1&accept-language=fr`;
-    const res = await fetch(url, { 
-      headers: { 
-        "Accept": "application/json",
-        "User-Agent": "RestaurantsApp/1.0"
-      } 
-    });
-    if(!res.ok) throw new Error("Nominatim HTTP " + res.status);
-    const data = await res.json();
-
-    let nom = "";
-    if(data.namedetails && data.namedetails.name){
-      nom = data.namedetails.name;
-    }else if(data.name){
-      nom = data.name;
-    }else if(data.address && (data.address.restaurant || data.address.amenity)){
-      nom = data.address.restaurant || data.address.amenity;
+      `;
     }
 
-    let adresse = "";
-    if(data.address){
-      const a = data.address;
-      const numRue = [a.house_number, a.road].filter(Boolean).join(" ");
-      const ville = a.postcode || a.city || a.town || a.village
-        ? [a.postcode, a.city || a.town || a.village].filter(Boolean).join(" ")
-        : "";
-      adresse = [numRue, ville].filter(Boolean).join(", ");
-    }
-    if(!adresse && data.display_name){
-      adresse = data.display_name;
-    }
-
-    return {nom, adresse};
-  }
-
-  // ---------- Recherche du restaurant le plus proche (Overpass / OSM) ----------
-  function distanceMetres(lat1, lon1, lat2, lon2){
-    const R = 6371000;
-    const toRad = d => d * Math.PI / 180;
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lon2 - lon1);
-    const a = Math.sin(dLat/2)**2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon/2)**2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  }
-
-  async function rechercherRestaurantsProches(lat, lon, limite){
-    const rayon = 200; // mètres
-    const requete = `[out:json][timeout:15];(node["amenity"~"restaurant|fast_food|cafe"](around:${rayon},${lat},${lon});way["amenity"~"restaurant|fast_food|cafe"](around:${rayon},${lat},${lon});relation["amenity"~"restaurant|fast_food|cafe"](around:${rayon},${lat},${lon}););out center tags;`;
-    
-    const params = new URLSearchParams();
-    params.append("data", requete);
-
-    const res = await fetch("https://overpass-api.de/api/interpreter", {
-      method: "POST",
-      body: params
-    });
-    if(!res.ok) throw new Error("Overpass HTTP " + res.status);
-    const data = await res.json();
-    const candidats = (data.elements || []).map(el=>{
-      const la = el.lat !== undefined ? el.lat : (el.center ? el.center.lat : null);
-      const lo = el.lon !== undefined ? el.lon : (el.center ? el.center.lon : null);
-      const t = el.tags || {};
-      const nom = t.name || t.brand || t.official_name || t.operator;
-      if(la == null || lo == null || !nom) return null;
-      const numRue = [t["addr:housenumber"], t["addr:street"]].filter(Boolean).join(" ");
-      const ville = [t["addr:postcode"], t["addr:city"]].filter(Boolean).join(" ");
-      return {
-        nom,
-        adresse: [numRue, ville].filter(Boolean).join(", "),
-        distance: Math.round(distanceMetres(lat, lon, la, lo))
-      };
-    }).filter(Boolean).sort((a,b)=> a.distance - b.distance);
-    return candidats.slice(0, limite);
-  }
-
-  // ---------- Boîte de dialogue de confirmation ----------
-  function ouvrirModalIdentification({nom, adresse, indice, alternatives}){
-    return new Promise((resolve)=>{
-      const overlay = document.getElementById("modalOverlay");
-      const inputNom = document.getElementById("modalNom");
-      const inputAdr = document.getElementById("modalAdresse");
-      const hint = document.getElementById("modalHint");
-      const champAlt = document.getElementById("modalAlternativesChamp");
-      const selectAlt = document.getElementById("modalAlternatives");
-      const btnValider = document.getElementById("modalValider");
-      const btnAnnuler = document.getElementById("modalAnnuler");
-
-      const listeAlt = alternatives || [];
-      inputNom.value = nom || "";
-      inputAdr.value = adresse || "";
-      hint.textContent = indice || "";
-      selectAlt.innerHTML = '<option value="">— choisir une autre suggestion —</option>' +
-        listeAlt.map((a,i)=> `<option value="${i}">${escHtml(a.nom)} (${a.distance} m)</option>`).join("");
-      champAlt.style.display = listeAlt.length ? "flex" : "none";
-      selectAlt.value = "";
-
-      overlay.classList.add("open");
-      setTimeout(()=> inputNom.focus(), 60);
-
-      const onChangeAlt = () => {
-        const idx = selectAlt.value;
-        // Choisir une suggestion alternative ne remplace que le nom, jamais l'adresse.
-        if(idx !== "" && listeAlt[idx]) inputNom.value = listeAlt[idx].nom;
-      };
-      const nettoyer = () => {
-        overlay.classList.remove("open");
-        btnValider.removeEventListener("click", onValider);
-        btnAnnuler.removeEventListener("click", onAnnuler);
-        overlay.removeEventListener("keydown", onKey);
-        selectAlt.removeEventListener("change", onChangeAlt);
-      };
-      const onValider = () => {
-        const nv = inputNom.value.trim();
-        const av = inputAdr.value.trim();
-        nettoyer();
-        resolve({ok:true, nom:nv, adresse:av});
-      };
-      const onAnnuler = () => { nettoyer(); resolve({ok:false}); };
-      const onKey = (ev) => {
-        if(ev.key === "Enter" && ev.target !== selectAlt) onValider();
-        if(ev.key === "Escape") onAnnuler();
-      };
-      selectAlt.addEventListener("change", onChangeAlt);
-      btnValider.addEventListener("click", onValider);
-      btnAnnuler.addEventListener("click", onAnnuler);
-      overlay.addEventListener("keydown", onKey);
-    });
-  }
-
-  // Cherche les restaurants les plus proches (nommés, via Overpass) + l'adresse (via Nominatim),
-  // puis demande confirmation dans une boîte de dialogue.
-  async function identifierEtConfirmer(r){
-    statut("Recherche des restaurants à proximité…");
-    const [resProches, resAdresse] = await Promise.allSettled([
-      rechercherRestaurantsProches(r.lat, r.lon, 5),
-      reverseGeocode(r.lat, r.lon)
-    ]);
-
-    const proches = (resProches.status === "fulfilled" && resProches.value) ? resProches.value : [];
-    const principal = proches[0] || null;
-    const alternatives = proches.slice(1, 5);
-
-    const adresseNominatim = (resAdresse.status === "fulfilled" && resAdresse.value) ? resAdresse.value.adresse : "";
-    const adresseTrouvee = adresseNominatim || (principal ? principal.adresse : "") || r.address;
-
-    const indice = principal
-      ? `Restaurant le plus proche : ${principal.nom} (${principal.distance} m).`
-      : "Aucun restaurant identifié à proximité ; adresse estimée depuis les coordonnées.";
-
-    statut("");
-
-    const choix = await ouvrirModalIdentification({
-      nom: principal ? principal.nom : r.name,
-      adresse: adresseTrouvee,
-      indice,
-      alternatives
-    });
-
-    if(choix.ok){
-      r.name = choix.nom || "Nouveau restaurant";
-      r.address = choix.adresse || "";
-      r.maj = new Date().toISOString();
-      sauverLocal();
-      redessinerMarqueur(r);
-      if(markers[r.id] && markers[r.id].isPopupOpen()){
-        markers[r.id].openPopup();
-        brancherEditionPopup(r.id);
-      }
-      rafraichirListe();
-      pousserVersGithubDifféré();
-      statut("Informations confirmées.", "ok");
-    }else{
-      statut("Suggestion ignorée. Vous pouvez saisir les informations manuellement (double-clic).", "");
-    }
-  }
-
-
-  document.getElementById("btnNouveau").addEventListener("click", async ()=>{
-    if(!navigator.geolocation){
-      statut("La géolocalisation n'est pas disponible sur cet appareil.", "err");
-      return;
-    }
-    const btn = document.getElementById("btnNouveau");
-    btn.disabled = true;
-    statut("Localisation en cours…");
-
-    navigator.geolocation.getCurrentPosition(async (pos)=>{
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      const r = {
-        id: idUnique(),
-        lat, lon,
-        name: "Nouveau restaurant",
-        address: "",
-        maj: new Date().toISOString()
-      };
-      restaurants.push(r);
-      sauverLocal();
-      redessinerMarqueur(r);
-      definirSelection(r.id, {pan:true});
-      btn.disabled = false;
-      pousserVersGithubDifféré();
-
-      await identifierEtConfirmer(r);
-
-    }, (err)=>{
-      btn.disabled = false;
-      statut("Localisation refusée ou indisponible : " + err.message, "err");
-    }, {enableHighAccuracy:true, timeout:12000, maximumAge:0});
-  });
-
-  // ---------- Réglages GitHub ----------
-  const elOwner = document.getElementById("cfgOwner");
-  const elRepo = document.getElementById("cfgRepo");
-  const elBranch = document.getElementById("cfgBranch");
-  const elToken = document.getElementById("cfgToken");
-
-  function remplirChampsCfg(){
-    elOwner.value = cfg.owner || "";
-    elRepo.value = cfg.repo || "";
-    elBranch.value = cfg.branch || "main";
-    elToken.value = cfg.token || "";
-  }
-  remplirChampsCfg();
-
-  document.getElementById("btnSettings").addEventListener("click", ()=>{
-    document.getElementById("settings").classList.toggle("open");
-  });
-
-  document.getElementById("btnSaveCfg").addEventListener("click", ()=>{
-    const owner = elOwner.value.trim();
-    const repo = elRepo.value.trim();
-    const branch = elBranch.value.trim() || "main";
-    const token = elToken.value.trim();
-    if(!owner || !repo || !token){
-      statut("Utilisateur, dépôt et jeton sont requis.", "err");
-      return;
-    }
-    cfg = {owner, repo, branch, token};
-    sauverCfg();
-    statut("Identifiants GitHub enregistrés.", "ok");
-    chargerDepuisGithub(true);
-  });
-
-  document.getElementById("btnClearCfg").addEventListener("click", ()=>{
-    if(!confirm("Effacer les identifiants GitHub enregistrés sur cet appareil ?")) return;
-    cfg = {owner:"",repo:"",branch:"main",token:""};
-    sauverCfg();
-    remplirChampsCfg();
-    dernierSha = null;
-    statut("Identifiants effacés.", "ok");
-  });
-
-  document.getElementById("btnPush").addEventListener("click", ()=> pousserVersGithub(true));
-  document.getElementById("btnPull").addEventListener("click", ()=> chargerDepuisGithub(true));
-
-  function cfgComplete(){
-    return !!(cfg.owner && cfg.repo && cfg.token);
-  }
-
-  // ---------- Synchro GitHub ----------
-  function b64EncodeUnicode(str){
-    return btoa(unescape(encodeURIComponent(str)));
-  }
-  function b64DecodeUnicode(str){
-    return decodeURIComponent(escape(atob(str)));
-  }
-
-  async function chargerDepuisGithub(feedback){
-    if(!cfgComplete()){
-      if(feedback) statut("Identifiants GitHub incomplets.", "err");
-      return;
-    }
-    if(feedback) statut("Récupération depuis GitHub…");
-    try{
-      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${FILE_NAME}?ref=${encodeURIComponent(cfg.branch)}`;
-      const res = await fetch(url, {
-        headers: {
-          "Authorization": `Bearer ${cfg.token}`,
-          "Accept": "application/vnd.github+json"
-        }
-      });
-      if(res.status === 404){
-        dernierSha = null;
-        if(feedback) statut("Aucun fichier distant pour l'instant (il sera créé au premier envoi).", "ok");
+    // --- Rafraîchissement Panneau Latéral ---
+    function rafraichirListe() {
+      const body = document.getElementById("listBody");
+      document.getElementById("countLbl").textContent = restaurants.length;
+      
+      if (restaurants.length === 0) {
+        body.innerHTML = '<div class="empty-hint">Aucun restaurant enregistré. Cliquez sur « Nouveau restaurant » ou sur la carte.</div>';
         return;
       }
-      if(!res.ok) throw new Error("HTTP " + res.status);
-      const data = await res.json();
-      dernierSha = data.sha;
-      const contenu = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g,"")));
-      const distants = Array.isArray(contenu.restaurants) ? contenu.restaurants : [];
-      fusionner(distants);
-      if(feedback) statut("Synchronisé depuis GitHub.", "ok");
-    }catch(e){
-      if(feedback) statut("Échec de la récupération GitHub : " + e.message, "err");
-    }
-  }
+      
+      const tries = [...restaurants].sort((a, b) => (b.maj || "").localeCompare(a.maj || ""));
+      
+      body.innerHTML = tries.map(r => {
+        const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${r.lat},${r.lon}`;
+        const osmUrl = `https://www.openstreetmap.org/?mlat=${r.lat}&mlon=${r.lon}#map=18/${r.lat}/${r.lon}`;
+        return `
+          <div class="resto-item${r.id === selectedId ? ' selected' : ''}" data-goto="${r.id}">
+            <div class="txt">
+              <div class="popup-text nom" data-id="${r.id}" data-field="name">${escHtml(r.name || "Nouveau restaurant")}</div>
+              <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "adresse non définie")}</div>
+              <div style="margin-top:6px; display:flex; gap:6px;">
+                <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="btn-ghost" style="padding:2px 6px; font-size:11px; text-decoration:none;">📍 Google Maps</a>
+                <a href="${osmUrl}" target="_blank" rel="noopener noreferrer" class="btn-ghost" style="padding:2px 6px; font-size:11px; text-decoration:none;">🗺️ OSM</a>
+              </div>
+            </div>
+            <button class="btn-danger" data-del="${r.id}">✕</button>
+          </div>
+        `;
+      }).join("");
 
-  function fusionner(distants){
-    const parId = new Map(restaurants.map(r=>[r.id, r]));
-    distants.forEach(d=>{
-      const local = parId.get(d.id);
-      if(!local){
-        parId.set(d.id, d);
-      }else{
-        const majLocal = new Date(local.maj || 0).getTime();
-        const majDist = new Date(d.maj || 0).getTime();
-        if(majDist > majLocal) parId.set(d.id, d);
-      }
-    });
-    restaurants = Array.from(parId.values());
-    sauverLocal();
-    toutRedessiner();
-  }
-
-  let pushTimer = null;
-  function pousserVersGithubDifféré(){
-    if(!cfgComplete()) return;
-    if(pushTimer) clearTimeout(pushTimer);
-    pushTimer = setTimeout(()=> pousserVersGithub(false), 1200);
-  }
-
-  async function pousserVersGithub(feedback){
-    if(!cfgComplete()){
-      if(feedback) statut("Identifiants GitHub incomplets.", "err");
-      return;
-    }
-    if(feedback) statut("Envoi vers GitHub…");
-    try{
-      const contenu = {restaurants, maj: new Date().toISOString()};
-      const body = {
-        message: "Mise à jour restaurants.json",
-        content: b64EncodeUnicode(JSON.stringify(contenu, null, 2)),
-        branch: cfg.branch
-      };
-      if(dernierSha) body.sha = dernierSha;
-
-      const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${FILE_NAME}`;
-      const res = await fetch(url, {
-        method: "PUT",
-        headers: {
-          "Authorization": `Bearer ${cfg.token}`,
-          "Accept": "application/vnd.github+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
+      // Événements liste
+      body.querySelectorAll("[data-goto]").forEach(el => {
+        el.addEventListener("click", (ev) => {
+          if (ev.target.closest("[data-del]") || ev.target.closest(".popup-text") || ev.target.closest("a")) return;
+          definirSelection(el.getAttribute("data-goto"), { pan: true });
+        });
       });
 
-      if(res.status === 409 || (res.status === 422 && dernierSha)){
-        // conflit : on relit puis on retente une fois
-        await chargerDepuisGithub(false);
-        return pousserVersGithub(feedback);
-      }
-      if(!res.ok){
-        const errTxt = await res.text();
-        throw new Error("HTTP " + res.status + " " + errTxt.slice(0,120));
-      }
-      const data = await res.json();
-      dernierSha = data.content.sha;
-      if(feedback) statut("Envoyé vers GitHub.", "ok");
-    }catch(e){
-      if(feedback) statut("Échec de l'envoi GitHub : " + e.message, "err");
+      body.querySelectorAll("[data-del]").forEach(el => {
+        el.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          supprimerRestaurant(el.getAttribute("data-del"));
+        });
+      });
+
+      body.querySelectorAll(".popup-text").forEach(el => {
+        el.ondblclick = (ev) => {
+          ev.stopPropagation();
+          passerEnEdition(el);
+        };
+      });
     }
-  }
 
-  // ---------- Démarrage ----------
-  toutRedessiner();
-  if(restaurants.length){
-    const dernier = restaurants[restaurants.length - 1];
-    map.setView([dernier.lat, dernier.lon], 14);
-  }else if(navigator.geolocation){
-    navigator.geolocation.getCurrentPosition(
-      (pos)=> map.setView([pos.coords.latitude, pos.coords.longitude], 14),
-      ()=>{}
-    );
-  }
-  if(cfgComplete()) chargerDepuisGithub(false);
+    // --- Gestion des Marqueurs et Sélection ---
+    function ajouterMarqueur(r) {
+      const marker = L.marker([r.lat, r.lon]).addTo(map);
+      marker.bindPopup(() => popupHTML(r));
+      
+      marker.on("click", () => {
+        definirSelection(r.id, { pan: false });
+      });
 
-})();
-</script>
+      marker.on("popupopen", () => {
+        const popupEl = marker.getPopup().getElement();
+        if (!popupEl) return;
+        
+        popupEl.querySelectorAll(".popup-text").forEach(el => {
+          el.ondblclick = (ev) => {
+            ev.stopPropagation();
+            passerEnEdition(el);
+          };
+        });
+
+        popupEl.querySelectorAll("[data-del]").forEach(el => {
+          el.onclick = (ev) => {
+            ev.stopPropagation();
+            supprimerRestaurant(el.getAttribute("data-del"));
+          };
+        });
+      });
+
+      markersMap.set(r.id, marker);
+    }
+
+    function definirSelection(id, options = { pan: false }) {
+      selectedId = id;
+      const r = restaurants.find(x => x.id === id);
+      if (!r) return;
+
+      if (options.pan) {
+        map.panTo([r.lat, r.lon]);
+        const m = markersMap.get(id);
+        if (m) m.openPopup();
+      }
+      rafraichirListe();
+    }
+
+    // --- Modificateurs de données (CRUD) ---
+    function ajouterRestaurant(lat, lon) {
+      const id = "resto_" + Date.now();
+      const nouveau = {
+        id: id,
+        name: "Nouveau restaurant",
+        address: "",
+        lat: lat,
+        lon: lon,
+        maj: new Date().toISOString()
+      };
+      
+      restaurants.push(nouveau);
+      ajouterMarqueur(nouveau);
+      definirSelection(id, { pan: true });
+    }
+
+    function supprimerRestaurant(id) {
+      restaurants = restaurants.filter(r => r.id !== id);
+      const marker = markersMap.get(id);
+      if (marker) {
+        map.removeLayer(marker);
+        markersMap.delete(id);
+      }
+      if (selectedId === id) selectedId = null;
+      rafraichirListe();
+    }
+
+    function passerEnEdition(el) {
+      const id = el.getAttribute("data-id");
+      const field = el.getAttribute("data-field");
+      const r = restaurants.find(x => x.id === id);
+      if (!r) return;
+
+      const currentValue = r[field] || "";
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "edit-input";
+      input.value = currentValue;
+
+      el.replaceWith(input);
+      input.focus();
+
+      function valider() {
+        r[field] = input.value.trim();
+        r.maj = new Date().toISOString();
+        
+        // Mettre à jour le popup du marqueur
+        const marker = markersMap.get(id);
+        if (marker) {
+          marker.setPopupContent(popupHTML(r));
+        }
+        rafraichirListe();
+      }
+
+      input.addEventListener("blur", valider);
+      input.addEventListener("keydown", (ev) => {
+        if (ev.key === "Enter") valider();
+      });
+    }
+
+    // --- Événements globaux ---
+    document.getElementById("btnAdd").addEventListener("click", () => {
+      const center = map.getCenter();
+      ajouterRestaurant(center.lat, center.lng);
+    });
+
+    map.on("click", (e) => {
+      // Optionnel : ajouter au clic sur la carte
+      ajouterRestaurant(e.latlng.lat, e.latlng.lng);
+    });
+  </script>
 </body>
 </html>
