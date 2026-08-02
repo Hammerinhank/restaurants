@@ -26,6 +26,7 @@
     display:flex;
     flex-direction:column;
     overscroll-behavior:none;
+    touch-action:manipulation; /* bloque le zoom natif au double-tap (que iOS applique malgré user-scalable=no), sans gêner le pincement (pinch-zoom) */
   }
 
   header{
@@ -133,6 +134,14 @@
   #map{
     flex:1 1 auto;
     min-width:0;
+  }
+
+  /* Mode plein écran de la carte (basculé au double-clic/double-tap sur la carte) */
+  body.map-fullscreen header,
+  body.map-fullscreen #statusLine,
+  body.map-fullscreen #settings,
+  body.map-fullscreen #listPanel{
+    display:none !important;
   }
 
   #listPanel{
@@ -461,7 +470,16 @@
   }
 
   // ---------- Carte ----------
-  const map = L.map("map", {zoomControl:true}).setView([46.6, 2.4], 6);
+  const map = L.map("map", {zoomControl:true, doubleClickZoom:false}).setView([46.6, 2.4], 6);
+
+  // Double-clic/double-tap sur la carte : bascule en plein écran (masque l'en-tête et la liste),
+  // un nouveau double-clic revient à la présentation initiale.
+  map.on("dblclick", ()=>{
+    document.body.classList.toggle("map-fullscreen");
+    // Laisser le temps au reflow (en-tête/liste masqués ou réaffichés) avant de recalculer
+    // la taille interne de la carte, sinon Leaflet garde l'ancienne taille et affiche des tuiles manquantes.
+    requestAnimationFrame(()=> requestAnimationFrame(()=> map.invalidateSize()));
+  });
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; contributeurs OpenStreetMap"
