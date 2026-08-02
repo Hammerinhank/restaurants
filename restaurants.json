@@ -15,7 +15,15 @@
       "name": "Les Belles Plantes",
       "address": "Cour Cuvier, 75005 Paris",
       "maj": "2026-08-02T11:06:21.385Z"
+    },
+    {
+      "id": "r_msbwlc7b_g65z6n",
+      "lat": 48.83395464288694,
+      "lon": 2.295457856099639,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-02T14:36:26.759Z"
     }
   ],
-  "maj": "2026-08-02T14:30:16.728Z"
+  "maj": "2026-08-02T14:36:27.967Z"
 }
