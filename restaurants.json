@@ -1,13 +1,21 @@
 {
   "restaurants": [
     {
+      "id": "r_msayhuod_twu7zi",
+      "lat": 48.83483670319311,
+      "lon": 2.3014640808105473,
+      "name": "Test",
+      "address": "58 Rue Dombasle, 75015 Paris",
+      "maj": "2026-08-02T06:39:08.036Z"
+    },
+    {
       "id": "r_msbfjjbb_bqgxtv",
-      "lat": 48.84212536878913,
-      "lon": 2.32386589050293,
+      "lat": 48.84743416507783,
+      "lon": 2.3192596435547013,
       "name": "Nouveau restaurant",
       "address": "7 Rue Robert Lindet, 75015 Paris",
-      "maj": "2026-08-02T07:26:16.836Z"
+      "maj": "2026-08-02T07:44:09.096Z"
     }
   ],
-  "maj": "2026-08-02T07:37:17.659Z"
+  "maj": "2026-08-02T07:44:10.299Z"
 }
