@@ -167,6 +167,11 @@
     align-items:flex-start;
   }
   .resto-item:hover{background:#faf8f3;}
+  .resto-item.selected{
+    background:#faf0ea;
+    border-left:3px solid var(--accent);
+    padding-left:9px;
+  }
   .resto-item .txt{min-width:0;}
   .resto-item .nom{
     font-weight:600;
@@ -206,6 +211,10 @@
   .resto-pin span{
     transform:rotate(45deg);
     font-size:14px;
+  }
+  .resto-pin.selected{
+    box-shadow:0 0 0 4px rgba(193,80,46,.4), 0 1px 4px rgba(0,0,0,.35);
+    cursor:grab;
   }
 
   /* Popup */
@@ -288,7 +297,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V1";
+  const VERSION = "V2";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -300,6 +309,7 @@
   let cfg = chargerCfg();             // {owner, repo, branch, token}
   let markers = {};                   // id -> L.marker
   let dernierSha = null;              // sha du fichier GitHub connu
+  let selectedId = null;              // id du restaurant sélectionné (déplaçable)
 
   // ---------- Persistance locale ----------
   function chargerLocal(){
@@ -340,10 +350,11 @@
     attribution: "&copy; contributeurs OpenStreetMap"
   }).addTo(map);
 
-  function iconResto(){
+  function iconResto(selectionne){
+    const cls = selectionne ? "resto-pin selected" : "resto-pin";
     return L.divIcon({
       className: "",
-      html: '<div class="resto-pin"><span>🍽️</span></div>',
+      html: `<div class="${cls}"><span>🍽️</span></div>`,
       iconSize: [30,30],
       iconAnchor: [15,29],
       popupAnchor: [0,-28]
@@ -381,13 +392,69 @@
   function redessinerMarqueur(r){
     let m = markers[r.id];
     if(!m){
-      m = L.marker([r.lat, r.lon], {icon: iconResto()}).addTo(map);
+      m = L.marker([r.lat, r.lon], {icon: iconResto(r.id===selectedId), draggable:false}).addTo(map);
       markers[r.id] = m;
       m.on("popupopen", ()=> brancherEditionPopup(r.id));
+      m.on("click", ()=> definirSelection(r.id, {pan:false}));
+      m.on("dragend", ()=> gererDeplacement(r.id));
+      if(r.id === selectedId && m.dragging) m.dragging.enable();
     }else{
       m.setLatLng([r.lat, r.lon]);
+      m.setIcon(iconResto(r.id===selectedId));
     }
     m.bindPopup(popupHTML(r));
+  }
+
+  // Sélectionne un restaurant : active le glisser-déposer de son icône,
+  // désactive celui des autres, met en surbrillance dans la liste et sur la carte.
+  function definirSelection(id, {pan=false} = {}){
+    const precedent = selectedId;
+    selectedId = id;
+    if(precedent && precedent !== id && markers[precedent]){
+      markers[precedent].setIcon(iconResto(false));
+      if(markers[precedent].dragging) markers[precedent].dragging.disable();
+    }
+    if(id && markers[id]){
+      markers[id].setIcon(iconResto(true));
+      if(markers[id].dragging) markers[id].dragging.enable();
+      if(pan){
+        const r = restaurants.find(x=>x.id===id);
+        if(r) map.setView([r.lat, r.lon], Math.max(map.getZoom(), 16), {animate:true});
+      }
+      markers[id].openPopup();
+      statut("Restaurant sélectionné : faites glisser son icône sur la carte pour la déplacer.", "ok");
+    }
+    rafraichirListe();
+  }
+
+  // Appelé après un glisser-déposer de l'icône : met à jour les coordonnées
+  // et tente de rafraîchir automatiquement l'adresse.
+  async function gererDeplacement(id){
+    const r = restaurants.find(x=>x.id===id);
+    const m = markers[id];
+    if(!r || !m) return;
+    const ll = m.getLatLng();
+    r.lat = ll.lat;
+    r.lon = ll.lng;
+    r.maj = new Date().toISOString();
+    sauverLocal();
+    rafraichirListe();
+    pousserVersGithubDifféré();
+    statut("Position mise à jour. Recherche de la nouvelle adresse…");
+    try{
+      const info = await reverseGeocode(r.lat, r.lon);
+      if(info.adresse) r.address = info.adresse;
+      if(info.nom && (!r.name || r.name === "Nouveau restaurant")) r.name = info.nom;
+      r.maj = new Date().toISOString();
+      sauverLocal();
+      m.bindPopup(popupHTML(r));
+      if(m.isPopupOpen()){ m.openPopup(); brancherEditionPopup(id); }
+      rafraichirListe();
+      pousserVersGithubDifféré();
+      statut("Adresse mise à jour.", "ok");
+    }catch(e){
+      statut("Position déplacée, mais l'adresse n'a pas pu être actualisée automatiquement.", "err");
+    }
   }
 
   function supprimerMarqueur(id){
@@ -412,6 +479,7 @@
     const field = el.getAttribute("data-field");
     const r = restaurants.find(x=>x.id===id);
     if(!r) return;
+    const depuisPopup = !!el.closest(".leaflet-popup-content");
     const valeurActuelle = r[field] || "";
     const input = document.createElement("input");
     input.type = "text";
@@ -434,9 +502,11 @@
       newEl.ondblclick = () => passerEnEdition(newEl);
       input.replaceWith(newEl);
       redessinerMarqueur(r);
-      const m = markers[id];
-      if(m) m.openPopup();
-      brancherEditionPopup(id);
+      if(depuisPopup){
+        const m = markers[id];
+        if(m) m.openPopup();
+        brancherEditionPopup(id);
+      }
       rafraichirListe();
       pousserVersGithubDifféré();
     };
@@ -466,23 +536,18 @@
     }
     const tries = [...restaurants].sort((a,b)=> (b.maj||"").localeCompare(a.maj||""));
     body.innerHTML = tries.map(r => `
-      <div class="resto-item" data-goto="${r.id}">
+      <div class="resto-item${r.id===selectedId ? ' selected' : ''}" data-goto="${r.id}">
         <div class="txt">
-          <div class="nom">${escHtml(r.name || "Nouveau restaurant")}</div>
-          <div class="adr">${escHtml(r.address || "adresse non définie")}</div>
+          <div class="popup-text nom" data-id="${r.id}" data-field="name">${escHtml(r.name || "Nouveau restaurant")}</div>
+          <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "adresse non définie")}</div>
         </div>
         <button class="btn-danger" data-del="${r.id}">✕</button>
       </div>
     `).join("");
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
-        if(ev.target.closest("[data-del]")) return;
-        const id = el.getAttribute("data-goto");
-        const r = restaurants.find(x=>x.id===id);
-        if(!r) return;
-        map.setView([r.lat, r.lon], 17, {animate:true});
-        const m = markers[id];
-        if(m) m.openPopup();
+        if(ev.target.closest("[data-del]") || ev.target.closest(".popup-text")) return;
+        definirSelection(el.getAttribute("data-goto"), {pan:true});
       });
     });
     body.querySelectorAll("[data-del]").forEach(el=>{
@@ -490,6 +555,12 @@
         ev.stopPropagation();
         supprimerRestaurant(el.getAttribute("data-del"));
       });
+    });
+    body.querySelectorAll(".popup-text").forEach(el=>{
+      el.ondblclick = (ev)=>{
+        ev.stopPropagation();
+        passerEnEdition(el);
+      };
     });
   }
 
@@ -554,9 +625,7 @@
       restaurants.push(r);
       sauverLocal();
       redessinerMarqueur(r);
-      rafraichirListe();
-      map.setView([lat, lon], 17, {animate:true});
-      markers[r.id].openPopup();
+      definirSelection(r.id, {pan:true});
       btn.disabled = false;
       statut("Restaurant enregistré. Recherche du nom et de l'adresse…");
 
@@ -569,7 +638,7 @@
         redessinerMarqueur(r);
         rafraichirListe();
         if(markers[r.id].isPopupOpen()) markers[r.id].openPopup();
-        statut(info.nom || info.adresse ? "Adresse trouvée. Double-cliquez pour modifier." : "Adresse introuvable, vous pouvez la saisir vous-même.", "ok");
+        statut(info.nom || info.adresse ? "Adresse trouvée. Double-cliquez sur le nom ou l'adresse pour modifier, ou glissez l'icône pour la déplacer." : "Adresse introuvable, vous pouvez la saisir vous-même.", "ok");
       }catch(e){
         statut("Impossible d'obtenir l'adresse automatiquement (double-cliquez pour la saisir).", "err");
       }
