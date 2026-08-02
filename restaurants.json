@@ -1,4 +1,13 @@
 {
-  "restaurants": [],
-  "maj": "2026-08-02T07:45:05.093Z"
+  "restaurants": [
+    {
+      "id": "r_msbhwcal_k2vfct",
+      "lat": 48.83393883973587,
+      "lon": 2.2954940909060664,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-02T07:45:05.853Z"
+    }
+  ],
+  "maj": "2026-08-02T07:45:07.063Z"
 }
