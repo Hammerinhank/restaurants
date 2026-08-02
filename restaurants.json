@@ -23,7 +23,15 @@
       "name": "Senso",
       "address": "1 Rue Robert Lindet, 75015 Paris",
       "maj": "2026-08-02T20:57:25.984Z"
+    },
+    {
+      "id": "r_mscadh8p_2mth4o",
+      "lat": 48.833932037842025,
+      "lon": 2.295518880060802,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-02T21:02:14.665Z"
     }
   ],
-  "maj": "2026-08-02T21:01:30.537Z"
+  "maj": "2026-08-02T21:02:15.872Z"
 }
