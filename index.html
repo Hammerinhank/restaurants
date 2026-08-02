@@ -226,12 +226,14 @@
     cursor:text;
     border-bottom:1px dashed transparent;
     padding:1px 0;
+    touch-action:manipulation; /* évite que le double-tap iOS soit intercepté comme un zoom de page */
   }
   .popup-text:hover{border-bottom-color:var(--line);}
   .popup-text.nom{font-weight:700;font-size:15px;}
   .popup-edit{
     width:100%;
     font:inherit;
+    font-size:16px; /* >=16px : empêche Safari iOS de zoomer automatiquement la page au focus du champ */
     padding:4px 6px;
     border:1px solid var(--accent);
     border-radius:6px;
