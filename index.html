@@ -349,7 +349,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V4";
+  const VERSION = "V5";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -732,23 +732,36 @@
 
   // Cherche les restaurants les plus proches (nommés, via Overpass) + l'adresse (via Nominatim),
   // puis demande confirmation dans une boîte de dialogue.
-  async function identifierEtConfirmer(r){
+  async function identifierEtConfirmer(r, options){
+    const precision = options && options.precision;
     statut("Recherche des restaurants à proximité…");
     const [resProches, resAdresse] = await Promise.allSettled([
       rechercherRestaurantsProches(r.lat, r.lon, 5),
       reverseGeocode(r.lat, r.lon)
     ]);
 
-    const proches = (resProches.status === "fulfilled" && resProches.value) ? resProches.value : [];
-    const principal = proches[0] || null;
-    const alternatives = proches.slice(1, 5);
+    let principal = null;
+    let alternatives = [];
+    let indice;
+
+    if(resProches.status === "fulfilled"){
+      const proches = resProches.value || [];
+      principal = proches[0] || null;
+      alternatives = proches.slice(1, 5);
+      indice = principal
+        ? `Restaurant le plus proche : ${principal.nom} (${principal.distance} m).`
+        : "Aucun restaurant nommé trouvé dans OpenStreetMap à moins de 200 m de ce point.";
+    }else{
+      const msg = (resProches.reason && resProches.reason.message) ? resProches.reason.message : "erreur inconnue";
+      indice = `La recherche de restaurants à proximité a échoué (réseau ou blocage) : ${msg}.`;
+      console.error("Overpass:", resProches.reason);
+    }
+    if(precision != null){
+      indice += ` Position localisée à ${Math.round(precision)} m près.`;
+    }
 
     const adresseNominatim = (resAdresse.status === "fulfilled" && resAdresse.value) ? resAdresse.value.adresse : "";
     const adresseTrouvee = adresseNominatim || (principal ? principal.adresse : "") || r.address;
-
-    const indice = principal
-      ? `Restaurant le plus proche : ${principal.nom} (${principal.distance} m).`
-      : "Aucun restaurant identifié à proximité ; adresse estimée depuis les coordonnées.";
 
     statut("");
 
@@ -790,6 +803,7 @@
     navigator.geolocation.getCurrentPosition(async (pos)=>{
       const lat = pos.coords.latitude;
       const lon = pos.coords.longitude;
+      const precision = pos.coords.accuracy;
       const r = {
         id: idUnique(),
         lat, lon,
@@ -804,7 +818,7 @@
       btn.disabled = false;
       pousserVersGithubDifféré();
 
-      await identifierEtConfirmer(r);
+      await identifierEtConfirmer(r, {precision});
 
     }, (err)=>{
       btn.disabled = false;
