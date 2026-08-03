@@ -226,6 +226,12 @@
     margin:0;
     padding:12px 12px 6px;
   }
+  #listeNomLbl{
+    text-transform:none;
+    letter-spacing:normal;
+    font-weight:600;
+    color:var(--ink);
+  }
   /* Combo box "liste actuelle" + bouton "Nouvelle liste", affichés uniquement en mode Modifier,
      à la place du titre "Liste (N)". */
   #listeHeaderCombo{
@@ -503,7 +509,7 @@
 <div id="main">
   <div id="map"></div>
   <div id="listPanel">
-    <h2>Liste (<span id="countLbl">0</span>)</h2>
+    <h2>Liste (<span id="countLbl">0</span>) <span id="listeNomLbl"></span></h2>
     <div id="listeHeaderCombo">
       <select id="selectListeActuelle" title="Liste affichée"></select>
       <button class="btn-ghost" id="btnNouvelleListe">+ Nouvelle liste</button>
@@ -576,7 +582,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V16";
+  const VERSION = "V17";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -656,6 +662,9 @@
       "La liste par défaut (nom = chaîne vide) reste celle utilisée par tous les restaurants existants ; elle apparaît telle quelle (vide) dans les combo box.",
       "La liste latérale et les marqueurs sur la carte n'affichent désormais que les restaurants de la liste actuellement sélectionnée ; un nouveau restaurant est automatiquement affecté à cette liste.",
       "Noms de listes, affectation de chaque restaurant et liste actuellement sélectionnée sont persistés localement et synchronisés via GitHub (fusion par dernier écrit gagnant, comme le reste des données)."
+    ]},
+    { v:"V17", resume:[
+      "Hors mode Modifier, le nom de la liste actuellement sélectionnée s'affiche désormais à côté du titre « Liste (N) » (« (sans nom) » pour la liste par défaut au nom vide)."
     ]}
   ];
 
@@ -1102,6 +1111,7 @@
     const body = document.getElementById("listBody");
     const restosListe = restaurants.filter(r => (r.liste||"") === listeActuelle);
     document.getElementById("countLbl").textContent = restosListe.length;
+    document.getElementById("listeNomLbl").textContent = listeActuelle ? listeActuelle : "(sans nom)";
     if(restosListe.length === 0){
       body.innerHTML = '<div class="empty-hint">Aucun restaurant dans cette liste. Utilisez le bouton « Nouveau restaurant ».</div>';
       return;
