@@ -23,16 +23,7 @@
       "name": "Senso",
       "address": "Rue Olivier de Serres, 75015 Paris",
       "maj": "2026-08-03T06:39:51.844Z"
-    },
-    {
-      "id": "r_mscvixnv_m2nbfl",
-      "lat": 48.83196899941515,
-      "lon": 2.3000907897949223,
-      "name": "Nouveau restaurant",
-      "address": "Place Jacques Marette, 75015 Paris",
-      "maj": "2026-08-03T06:54:57.893Z"
     }
   ],
-  "suppressions": [],
-  "maj": "2026-08-03T06:54:59.094Z"
+  "maj": "2026-08-03T07:01:38.361Z"
 }
