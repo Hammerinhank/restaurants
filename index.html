@@ -582,7 +582,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V17";
+  const VERSION = "V18";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -665,6 +665,10 @@
     ]},
     { v:"V17", resume:[
       "Hors mode Modifier, le nom de la liste actuellement sélectionnée s'affiche désormais à côté du titre « Liste (N) » (« (sans nom) » pour la liste par défaut au nom vide)."
+    ]},
+    { v:"V18", resume:[
+      "Correction de persistance : une suppression pouvait ne jamais être envoyée vers GitHub si l'onglet passait en arrière-plan (verrouillage, changement d'appli…) avant l'écoulement du délai d'envoi de 1.2 s — cas fréquent sur iPhone juste après une suppression. La suppression est désormais envoyée immédiatement, sans délai.",
+      "Filet de sécurité général : toute autre modification encore en attente d'envoi (déplacement, édition, changement de liste…) est désormais envoyée immédiatement dès que l'onglet quitte le premier plan, au lieu d'attendre le minuteur qui pouvait ne jamais se déclencher."
     ]}
   ];
 
@@ -1103,7 +1107,12 @@
     sauverSuppressionsLocal();
     supprimerMarqueur(id);
     rafraichirListe();
-    pousserVersGithubDifféré();
+    // Envoi immédiat (pas de délai) : une suppression est une action ponctuelle et souvent la
+    // dernière avant de quitter l'appli (cf. forcerEnvoiSiEnAttente ci-dessous pour les autres
+    // modifications encore en attente à ce moment-là) — mieux vaut ne pas dépendre du minuteur
+    // de 1.2 s qui pourrait ne jamais se déclencher si l'onglet est aussitôt mis en arrière-plan.
+    if(pushTimer){ clearTimeout(pushTimer); pushTimer = null; }
+    pousserVersGithub(false);
   }
 
   // ---------- Liste latérale ----------
@@ -1786,6 +1795,25 @@
     if(pushTimer) clearTimeout(pushTimer);
     pushTimer = setTimeout(()=> pousserVersGithub(false), 1200);
   }
+
+  // Sur mobile (en particulier iOS Safari), l'onglet peut être suspendu — écran verrouillé,
+  // bascule vers une autre appli, fermeture — bien avant que le délai de 1.2 s ci-dessus ne
+  // s'écoule : l'envoi programmé n'a alors jamais lieu. La modification (typiquement une
+  // suppression, souvent la dernière action avant de quitter l'appli) reste alors invisible
+  // sur les autres appareils tant qu'aucune autre action ne relance un envoi sur ce même
+  // appareil. On force donc l'envoi immédiat de toute modification encore en attente dès que
+  // l'onglet quitte le premier plan, au lieu d'attendre le minuteur.
+  function forcerEnvoiSiEnAttente(){
+    if(pushTimer){
+      clearTimeout(pushTimer);
+      pushTimer = null;
+      pousserVersGithub(false);
+    }
+  }
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "hidden") forcerEnvoiSiEnAttente();
+  });
+  window.addEventListener("pagehide", forcerEnvoiSiEnAttente);
 
   async function pousserVersGithub(feedback){
     if(!cfgComplete()){
