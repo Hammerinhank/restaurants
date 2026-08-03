@@ -450,7 +450,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V13";
+  const VERSION = "V14";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -515,6 +515,10 @@
     ]},
     { v:"V13", resume:[
       "Le délai de 10 s du mode déplacement se réinitialise désormais en continu pendant tout le glisser de l'icône (pas seulement au relâchement) : il faut 10 s sans aucun mouvement de l'icône pour en sortir."
+    ]},
+    { v:"V14", resume:[
+      "Correction : la recherche du restaurant le plus proche se déclenchait encore trop tôt (2 s après un relâchement) pendant qu'on ajustait la position en plusieurs fois.",
+      "Elle n'est désormais lancée qu'à la fin réelle du mode déplacement — sortie automatique après 10 s d'inactivité, reclic sur « Déplacer », ou activation d'un autre restaurant — et seulement si l'icône a effectivement été déplacée."
     ]}
   ];
 
@@ -547,7 +551,7 @@
   let selectedId = null;              // id du restaurant sélectionné (surbrillance liste/carte)
   let deplacableId = null;            // id du restaurant actuellement déplaçable (bouton "Déplacer" activé)
   let deplacableTimer = null;         // minuteur de 10 s : au-delà, le restaurant redevient non déplaçable
-  let deplacementTimer = null;        // délai avant de lancer la recherche après un déplacement
+  let deplacementEffectue = false;    // le restaurant déplaçable actuel a-t-il réellement été bougé ?
   let attenteControleur = null;       // AbortController de la recherche en cours (annulable)
   let attenteIntervalId = null;       // intervalle du chronomètre affiché dans la fenêtre d'attente
 
@@ -702,6 +706,7 @@
     }
     desactiverDeplacement();
     deplacableId = id;
+    deplacementEffectue = false;
     const m = markers[id];
     if(m){
       if(m.dragging) m.dragging.enable();
@@ -723,24 +728,36 @@
     deplacableTimer = setTimeout(()=> desactiverDeplacement(), 10000);
   }
 
-  function desactiverDeplacement(){
+  // Désactive le mode déplacement, que ce soit automatiquement (10 s sans mouvement),
+  // manuellement (reclic sur "Déplacer", ou activation d'un autre restaurant) ou lors d'une
+  // suppression. C'est SEULEMENT à ce moment-là — la fin réelle de la séquence de déplacement —
+  // que la recherche du restaurant le plus proche est lancée, et uniquement si l'icône a
+  // effectivement été déplacée entre-temps. Passer {rechercher:false} pour l'ignorer (cas de
+  // la suppression du restaurant).
+  function desactiverDeplacement({rechercher=true} = {}){
     if(deplacableTimer){ clearTimeout(deplacableTimer); deplacableTimer = null; }
     if(deplacableId){
       const id = deplacableId;
+      const aBouge = deplacementEffectue;
       const m = markers[id];
       if(m){
         if(m.dragging) m.dragging.disable();
         m.setIcon(iconResto(id===selectedId, false));
       }
       deplacableId = null;
+      deplacementEffectue = false;
       rafraichirListe();
+      if(rechercher && aBouge){
+        const r = restaurants.find(x=>x.id===id);
+        if(r) identifierEtConfirmer(r);
+      }
     }
   }
 
-  // Appelé à chaque relâchement de l'icône : met à jour les coordonnées immédiatement,
-  // puis planifie l'identification du restaurant après 2 s d'inactivité (le déplacement
-  // peut se faire en plusieurs fois : chaque nouveau relâchement réinitialise le délai
-  // et annule une recherche déjà en cours).
+  // Appelé à chaque relâchement de l'icône : met à jour les coordonnées immédiatement.
+  // La recherche du restaurant le plus proche n'est PAS lancée ici : elle n'a lieu qu'à la
+  // fin réelle du mode déplacement (voir desactiverDeplacement), pour éviter qu'elle ne se
+  // déclenche prématurément pendant qu'on ajuste encore la position en plusieurs fois.
   function gererDeplacement(id){
     const r = restaurants.find(x=>x.id===id);
     const m = markers[id];
@@ -753,15 +770,8 @@
     rafraichirListe();
     pousserVersGithubDifféré();
 
+    if(id === deplacableId) deplacementEffectue = true;
     relancerMinuteurDeplacement(id);
-
-    if(deplacementTimer) clearTimeout(deplacementTimer);
-    if(attenteControleur){ attenteControleur.abort(); fermerAttente(); }
-    deplacementTimer = setTimeout(()=>{
-      deplacementTimer = null;
-      const rActuel = restaurants.find(x=>x.id===id);
-      if(rActuel) identifierEtConfirmer(rActuel);
-    }, 2000);
   }
 
   function supprimerMarqueur(id){
@@ -826,10 +836,7 @@
 
   function supprimerRestaurant(id){
     if(!confirm("Supprimer ce restaurant de la liste ?")) return;
-    if(id === deplacableId){
-      if(deplacableTimer){ clearTimeout(deplacableTimer); deplacableTimer = null; }
-      deplacableId = null;
-    }
+    if(id === deplacableId) desactiverDeplacement({rechercher:false});
     if(id === selectedId) selectedId = null;
     restaurants = restaurants.filter(r=>r.id!==id);
     sauverLocal();
