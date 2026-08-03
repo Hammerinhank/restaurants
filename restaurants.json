@@ -35,15 +35,6 @@
       "address": "3 Rue Robert Lindet, 75015 Paris",
       "maj": "2026-08-03T20:27:55.342Z",
       "liste": "Paris"
-    },
-    {
-      "id": "r_msdpdkfk_uc667t",
-      "lat": 48.83393797696218,
-      "lon": 2.2954211747213784,
-      "name": "Art Sushi",
-      "address": "3 Rue Robert Lindet, 75015 Paris",
-      "liste": "Paris",
-      "maj": "2026-08-03T20:50:05.747Z"
     }
   ],
   "suppressions": [
@@ -94,6 +85,10 @@
     {
       "id": "r_msdpamq3_bt64e5",
       "maj": "2026-08-03T20:49:02.343Z"
+    },
+    {
+      "id": "r_msdpdkfk_uc667t",
+      "maj": "2026-08-03T20:50:30.315Z"
     }
   ],
   "listes": [
@@ -102,5 +97,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T20:28:13.546Z",
-  "maj": "2026-08-03T20:50:06.951Z"
+  "maj": "2026-08-03T20:50:30.316Z"
 }
