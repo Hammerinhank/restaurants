@@ -35,15 +35,6 @@
       "address": "3 Rue Robert Lindet, 75015 Paris",
       "maj": "2026-08-03T20:27:55.342Z",
       "liste": "Paris"
-    },
-    {
-      "id": "r_msdpamq3_bt64e5",
-      "lat": 48.83390080692544,
-      "lon": 2.295340997519127,
-      "name": "Nouveau restaurant",
-      "address": "1 Rue Robert Lindet, 75015 Paris",
-      "liste": "Paris",
-      "maj": "2026-08-03T20:47:52.954Z"
     }
   ],
   "suppressions": [
@@ -90,6 +81,10 @@
     {
       "id": "r_msdoygbj_niz7c8",
       "maj": "2026-08-03T20:38:54.370Z"
+    },
+    {
+      "id": "r_msdpamq3_bt64e5",
+      "maj": "2026-08-03T20:49:02.343Z"
     }
   ],
   "listes": [
@@ -98,5 +93,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T20:28:13.546Z",
-  "maj": "2026-08-03T20:47:54.164Z"
+  "maj": "2026-08-03T20:49:02.345Z"
 }
