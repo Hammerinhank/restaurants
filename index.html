@@ -226,6 +226,53 @@
     margin:0;
     padding:12px 12px 6px;
   }
+  /* Combo box "liste actuelle" + bouton "Nouvelle liste", affichés uniquement en mode Modifier,
+     à la place du titre "Liste (N)". */
+  #listeHeaderCombo{
+    display:none;
+    flex-direction:column;
+    gap:6px;
+    padding:10px 12px 8px;
+    border-bottom:1px solid var(--line);
+  }
+  body.mode-modif #listPanel h2{display:none;}
+  body.mode-modif #listeHeaderCombo{display:flex;}
+  #listeHeaderCombo select{
+    font:inherit;
+    font-size:13px;
+    padding:7px 8px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    background:#fff;
+  }
+  #listeHeaderCombo .btn-ghost{
+    align-self:flex-start;
+    font-size:12px;
+    padding:6px 10px;
+  }
+  /* Combo box "liste" de chaque item, affichée uniquement en mode Modifier. */
+  .item-liste-row{
+    display:none;
+    align-items:center;
+    gap:6px;
+    margin-top:6px;
+  }
+  body.mode-modif .item-liste-row{display:flex;}
+  .item-liste-row .item-liste-label{
+    font-size:11px;
+    color:var(--muted);
+    flex:none;
+  }
+  .item-liste-row select{
+    font:inherit;
+    font-size:12px;
+    padding:4px 6px;
+    border:1px solid var(--line);
+    border-radius:6px;
+    background:#fff;
+    min-width:0;
+    flex:1 1 auto;
+  }
   .empty-hint{
     padding:10px 12px;
     font-size:13px;
@@ -457,6 +504,10 @@
   <div id="map"></div>
   <div id="listPanel">
     <h2>Liste (<span id="countLbl">0</span>)</h2>
+    <div id="listeHeaderCombo">
+      <select id="selectListeActuelle" title="Liste affichée"></select>
+      <button class="btn-ghost" id="btnNouvelleListe">+ Nouvelle liste</button>
+    </div>
     <div id="listBody"></div>
   </div>
 </div>
@@ -525,7 +576,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V15";
+  const VERSION = "V16";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -598,6 +649,13 @@
     { v:"V15", resume:[
       "Correction de persistance (1/2) : les suppressions de restaurants ne se propageaient pas via GitHub — un restaurant supprimé sur un appareil pouvait réapparaître au prochain appareil synchronisé. Un suivi des suppressions (horodaté) est désormais inclus dans restaurants.json et appliqué à la fusion.",
       "Correction de persistance (2/2) : les échecs d'envoi ou de récupération GitHub survenant automatiquement (en arrière-plan, sans action explicite de l'utilisateur) étaient totalement silencieux — l'application semblait synchronisée alors que rien n'avait été transmis. Toute erreur est désormais signalée dans la barre d'état, même lors d'une synchro automatique."
+    ]},
+    { v:"V16", resume:[
+      "Ajout de listes de restaurants : en mode Modifier, le titre « Liste (N) » est remplacé par une combo box affichant la liste actuellement sélectionnée, suivie d'un bouton « + Nouvelle liste » (demande un nom et l'ajoute à la combo).",
+      "Chaque item de la liste affiche désormais, en mode Modifier, sa propre combo box « Liste » permettant de le faire passer d'une liste à une autre.",
+      "La liste par défaut (nom = chaîne vide) reste celle utilisée par tous les restaurants existants ; elle apparaît telle quelle (vide) dans les combo box.",
+      "La liste latérale et les marqueurs sur la carte n'affichent désormais que les restaurants de la liste actuellement sélectionnée ; un nouveau restaurant est automatiquement affecté à cette liste.",
+      "Noms de listes, affectation de chaque restaurant et liste actuellement sélectionnée sont persistés localement et synchronisés via GitHub (fusion par dernier écrit gagnant, comme le reste des données)."
     ]}
   ];
 
@@ -621,6 +679,8 @@
   const LS_DATA_KEY = "restaurants.v1";
   const LS_SUPPR_KEY = "restaurantsSuppressions.v1";
   const LS_CFG_KEY = "restaurantsGithubConfig.v1";
+  const LS_LISTES_KEY = "restaurantsListes.v1";
+  const LS_LISTE_ACTUELLE_KEY = "restaurantsListeActuelle.v1";
   const SS_MODIF_KEY = "restaurantsModifApresRechargement";
   const FILE_NAME = "restaurants.json";
 
@@ -631,6 +691,10 @@
                                        // (sans cela, un restaurant supprimé sur un appareil peut
                                        // réapparaître au prochain appareil qui synchronise).
   let cfg = chargerCfg();             // {owner, repo, branch, token}
+  let listes = chargerListes();       // [nomListe, ...] — noms des listes connues (toujours au moins "")
+  const _listeActuelleInit = chargerListeActuelle();
+  let listeActuelle = _listeActuelleInit.nom;       // nom de la liste actuellement affichée/sélectionnée
+  let listeActuelleMaj = _listeActuelleInit.maj;    // horodatage de la dernière sélection (pour la fusion GitHub)
   let markers = {};                   // id -> L.marker
   let dernierSha = null;              // sha du fichier GitHub connu
   let selectedId = null;              // id du restaurant sélectionné (surbrillance liste/carte)
@@ -668,6 +732,57 @@
   }
   function sauverCfg(){
     localStorage.setItem(LS_CFG_KEY, JSON.stringify(cfg));
+  }
+
+  // ---------- Listes (regroupement des restaurants) ----------
+  // Un restaurant appartient toujours à une liste identifiée par son nom (r.liste), la liste
+  // "" (chaîne vide) étant la liste par défaut. "listes" recense tous les noms de listes connus,
+  // y compris ceux sans aucun restaurant pour l'instant (liste tout juste créée) — elle doit donc
+  // être stockée séparément et pas seulement déduite des restaurants existants.
+  function normaliserListes(arr){
+    const s = new Set(Array.isArray(arr) ? arr.filter(n=>typeof n==="string") : []);
+    s.add(""); // la liste par défaut existe toujours
+    return Array.from(s);
+  }
+  function chargerListes(){
+    try{
+      const raw = localStorage.getItem(LS_LISTES_KEY);
+      return normaliserListes(raw ? JSON.parse(raw) : []);
+    }catch(e){ return [""]; }
+  }
+  function sauverListes(){
+    localStorage.setItem(LS_LISTES_KEY, JSON.stringify(listes));
+  }
+  function chargerListeActuelle(){
+    try{
+      const raw = localStorage.getItem(LS_LISTE_ACTUELLE_KEY);
+      const obj = raw ? JSON.parse(raw) : null;
+      if(obj && typeof obj.nom === "string") return obj;
+    }catch(e){}
+    return {nom:"", maj:"1970-01-01T00:00:00.000Z"};
+  }
+  function sauverListeActuelle(){
+    localStorage.setItem(LS_LISTE_ACTUELLE_KEY, JSON.stringify({nom:listeActuelle, maj:listeActuelleMaj}));
+  }
+  // Génère les <option> d'une combo box de listes, avec la valeur indiquée pré-sélectionnée.
+  // Le nom "" (liste par défaut) apparaît volontairement comme une option vide dans la liste.
+  function optionsListesHtml(valeurSelectionnee){
+    return listes.map(nom =>
+      `<option value="${escHtml(nom)}"${nom === (valeurSelectionnee||"") ? " selected" : ""}>${escHtml(nom)}</option>`
+    ).join("");
+  }
+  // Ajoute un nom de liste s'il n'existe pas déjà.
+  function ajouterListe(nom){
+    if(!listes.includes(nom)){
+      listes.push(nom);
+      sauverListes();
+    }
+  }
+  function remplirSelectListeActuelle(){
+    const sel = document.getElementById("selectListeActuelle");
+    if(!sel) return;
+    sel.innerHTML = optionsListesHtml(listeActuelle);
+    sel.value = listeActuelle;
   }
 
   // ---------- Statut ----------
@@ -985,12 +1100,13 @@
   // ---------- Liste latérale ----------
   function rafraichirListe(){
     const body = document.getElementById("listBody");
-    document.getElementById("countLbl").textContent = restaurants.length;
-    if(restaurants.length === 0){
-      body.innerHTML = '<div class="empty-hint">Aucun restaurant enregistré. Utilisez le bouton « Nouveau restaurant ».</div>';
+    const restosListe = restaurants.filter(r => (r.liste||"") === listeActuelle);
+    document.getElementById("countLbl").textContent = restosListe.length;
+    if(restosListe.length === 0){
+      body.innerHTML = '<div class="empty-hint">Aucun restaurant dans cette liste. Utilisez le bouton « Nouveau restaurant ».</div>';
       return;
     }
-    const tries = [...restaurants].sort((a,b)=> (b.maj||"").localeCompare(a.maj||""));
+    const tries = [...restosListe].sort((a,b)=> (b.maj||"").localeCompare(a.maj||""));
     body.innerHTML = tries.map(r => {
       const enEdition = editingIds.has(r.id);
       const txtHtml = enEdition
@@ -1000,7 +1116,13 @@
            <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "adresse non définie")}</div>`;
       return `
       <div class="resto-item${r.id===selectedId ? ' selected' : ''}" data-goto="${r.id}">
-        <div class="txt">${txtHtml}</div>
+        <div class="txt">
+          ${txtHtml}
+          <div class="item-liste-row">
+            <span class="item-liste-label">Liste</span>
+            <select class="item-liste-select" data-liste-id="${r.id}">${optionsListesHtml(r.liste)}</select>
+          </div>
+        </div>
         <div class="actions">
           <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}">Edit</button>
           <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
@@ -1011,8 +1133,15 @@
     }).join("");
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
-        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.tagName === "INPUT") return;
+        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.closest(".item-liste-select") || ev.target.tagName === "INPUT") return;
         definirSelection(el.getAttribute("data-goto"));
+      });
+    });
+    body.querySelectorAll(".item-liste-select").forEach(el=>{
+      el.addEventListener("click",(ev)=> ev.stopPropagation());
+      el.addEventListener("change",(ev)=>{
+        ev.stopPropagation();
+        changerListeItem(el.getAttribute("data-liste-id"), el.value);
       });
     });
     body.querySelectorAll("[data-move]").forEach(el=>{
@@ -1094,9 +1223,24 @@
     }
   }
 
+  // Change la liste d'appartenance d'un restaurant (combo box affichée sur chaque item en mode
+  // Modifier). Si l'item change de liste, il quitte la vue actuelle (filtrée sur listeActuelle) :
+  // on annule proprement une sélection ou un mode déplacement en cours sur cet item.
+  function changerListeItem(id, nouvelleListe){
+    const r = restaurants.find(x=>x.id===id);
+    if(!r) return;
+    r.liste = nouvelleListe;
+    r.maj = new Date().toISOString();
+    if(id === deplacableId) desactiverDeplacement({rechercher:false});
+    if(id === selectedId) selectedId = null;
+    sauverLocal();
+    toutRedessiner();
+    pousserVersGithubDifféré();
+  }
+
   function toutRedessiner(){
     Object.keys(markers).forEach(supprimerMarqueur);
-    restaurants.forEach(redessinerMarqueur);
+    restaurants.filter(r => (r.liste||"") === listeActuelle).forEach(redessinerMarqueur);
     rafraichirListe();
   }
 
@@ -1450,6 +1594,7 @@
         lat, lon,
         name: "Nouveau restaurant",
         address: "",
+        liste: listeActuelle,
         maj: new Date().toISOString()
       };
       restaurants.push(r);
@@ -1549,7 +1694,10 @@
       const contenu = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g,"")));
       const distants = Array.isArray(contenu.restaurants) ? contenu.restaurants : [];
       const suppressionsDistantes = Array.isArray(contenu.suppressions) ? contenu.suppressions : [];
-      fusionner(distants, suppressionsDistantes);
+      const listesDistantes = Array.isArray(contenu.listes) ? contenu.listes : [];
+      const listeActuelleDistante = typeof contenu.listeActuelle === "string" ? contenu.listeActuelle : null;
+      const listeActuelleMajDistante = contenu.listeActuelleMaj || null;
+      fusionner(distants, suppressionsDistantes, listesDistantes, listeActuelleDistante, listeActuelleMajDistante);
       if(feedback) statut("Synchronisé depuis GitHub.", "ok");
     }catch(e){
       // Toujours signalée, même lors de la synchro automatique et silencieuse au démarrage
@@ -1566,7 +1714,7 @@
   // restaurant existant tant que ce dernier n'a pas été modifié APRÈS la suppression — c'est
   // ce qui permet à un restaurant supprimé sur un appareil de disparaître aussi sur les autres,
   // au lieu de réapparaître au prochain merge (bug corrigé en V15).
-  function fusionner(distants, suppressionsDistantes){
+  function fusionner(distants, suppressionsDistantes, listesDistantes, listeActuelleDistante, listeActuelleMajDistante){
     // 1) Fusionner les listes de suppressions (par id, on garde l'horodatage le plus récent).
     const suppressionsParId = new Map(suppressions.map(s=>[s.id, s]));
     (suppressionsDistantes || []).forEach(s=>{
@@ -1598,6 +1746,27 @@
     restaurants = Array.from(parId.values());
     sauverLocal();
     sauverSuppressionsLocal();
+
+    // 4) Fusionner les noms de listes connus (union, sans doublons — une liste créée sur un
+    // appareil, même encore vide, doit apparaître sur l'autre).
+    listes = normaliserListes([...listes, ...(listesDistantes || [])]);
+    sauverListes();
+
+    // 5) Fusionner la liste actuellement sélectionnée : dernier écrit gagnant, comme pour les
+    // restaurants, afin de retrouver la même liste affichée sur tous les appareils.
+    if(listeActuelleDistante !== null && listeActuelleMajDistante){
+      if(new Date(listeActuelleMajDistante).getTime() > new Date(listeActuelleMaj || 0).getTime()){
+        listeActuelle = listeActuelleDistante;
+        listeActuelleMaj = listeActuelleMajDistante;
+        sauverListeActuelle();
+      }
+    }
+    if(!listes.includes(listeActuelle)){
+      listes.push(listeActuelle);
+      sauverListes();
+    }
+    remplirSelectListeActuelle();
+
     toutRedessiner();
   }
 
@@ -1615,7 +1784,7 @@
     }
     if(feedback) statut("Envoi vers GitHub…");
     try{
-      const contenu = {restaurants, suppressions, maj: new Date().toISOString()};
+      const contenu = {restaurants, suppressions, listes, listeActuelle, listeActuelleMaj, maj: new Date().toISOString()};
       const body = {
         message: "Mise à jour restaurants.json",
         content: b64EncodeUnicode(JSON.stringify(contenu, null, 2)),
@@ -1656,7 +1825,29 @@
     }
   }
 
+  // ---------- Listes (combo box principale) ----------
+  document.getElementById("selectListeActuelle").addEventListener("change", (ev)=>{
+    listeActuelle = ev.target.value;
+    listeActuelleMaj = new Date().toISOString();
+    sauverListeActuelle();
+    toutRedessiner();
+    pousserVersGithubDifféré();
+  });
+  document.getElementById("btnNouvelleListe").addEventListener("click", ()=>{
+    const saisie = prompt("Nom de la nouvelle liste :");
+    if(saisie === null) return; // annulé
+    const nom = saisie.trim();
+    ajouterListe(nom);
+    listeActuelle = nom;
+    listeActuelleMaj = new Date().toISOString();
+    sauverListeActuelle();
+    remplirSelectListeActuelle();
+    toutRedessiner();
+    pousserVersGithubDifféré();
+  });
+
   // ---------- Démarrage ----------
+  remplirSelectListeActuelle();
   toutRedessiner();
   if(restaurants.length){
     const dernier = restaurants[restaurants.length - 1];
