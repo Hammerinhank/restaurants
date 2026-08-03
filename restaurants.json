@@ -31,16 +31,13 @@
       "name": "Nouveau restaurant",
       "address": "Place Jacques Marette, 75015 Paris",
       "maj": "2026-08-03T06:54:57.893Z"
-    },
-    {
-      "id": "r_mscvz0wp_p66ly4",
-      "lat": 48.83390746664461,
-      "lon": 2.2955617359199025,
-      "name": "Nouveau restaurant TEST",
-      "address": "5 Rue Robert Lindet, 75015 Paris",
-      "maj": "2026-08-03T07:07:08.535Z"
     }
   ],
-  "suppressions": [],
-  "maj": "2026-08-03T07:07:09.739Z"
+  "suppressions": [
+    {
+      "id": "r_mscvz0wp_p66ly4",
+      "maj": "2026-08-03T07:07:48.959Z"
+    }
+  ],
+  "maj": "2026-08-03T07:07:50.186Z"
 }
