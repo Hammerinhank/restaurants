@@ -22,7 +22,8 @@
       "lon": 2.295005321502686,
       "name": "Senso",
       "address": "Rue Olivier de Serres, 75015 Paris",
-      "maj": "2026-08-03T09:14:59.170Z"
+      "maj": "2026-08-03T20:27:58.123Z",
+      "liste": "Paris"
     },
     {
       "id": "r_msd0ybgh_23mpkv",
@@ -78,5 +79,5 @@
   ],
   "listeActuelle": "",
   "listeActuelleMaj": "2026-08-03T19:47:57.266Z",
-  "maj": "2026-08-03T20:27:56.571Z"
+  "maj": "2026-08-03T20:27:59.328Z"
 }
