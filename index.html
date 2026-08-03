@@ -450,7 +450,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V12";
+  const VERSION = "V13";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -512,6 +512,9 @@
     { v:"V12", resume:[
       "La sélection d'un restaurant (liste, carte ou bouton « Déplacer ») centre désormais systématiquement son icône au centre de la carte.",
       "Historique des versions consultable en cliquant sur le badge de version (cette fenêtre)."
+    ]},
+    { v:"V13", resume:[
+      "Le délai de 10 s du mode déplacement se réinitialise désormais en continu pendant tout le glisser de l'icône (pas seulement au relâchement) : il faut 10 s sans aucun mouvement de l'icône pour en sortir."
     ]}
   ];
 
@@ -658,6 +661,7 @@
       m.on("popupopen", ()=> brancherEditionPopup(r.id));
       m.on("click", ()=> definirSelection(r.id));
       m.on("dragend", ()=> gererDeplacement(r.id));
+      m.on("drag", ()=> relancerMinuteurDeplacement(r.id));
       if(r.id === deplacableId && m.dragging) m.dragging.enable();
     }else{
       m.setLatLng([r.lat, r.lon]);
@@ -686,9 +690,10 @@
   // Active le mode déplacement pour un restaurant : rend son icône déplaçable (glisser-déposer)
   // et la colore en vert, ainsi que le bouton "Déplacer" correspondant dans la liste.
   // Un seul restaurant à la fois peut être en mode déplacement : en activer un désactive
-  // automatiquement le précédent. Si l'icône n'est pas déplacée dans les 10 secondes,
-  // le mode déplacement est automatiquement désactivé (icône et bouton reprennent leur
-  // couleur normale, et l'icône n'est plus déplaçable).
+  // automatiquement le précédent. Le délai de 10 s se réinitialise en continu tant que
+  // l'icône est en train d'être glissée (et à chaque relâchement) : il faut 10 secondes
+  // SANS AUCUN mouvement de l'icône pour que le mode déplacement se désactive automatiquement
+  // (icône et bouton reprennent alors leur couleur normale).
   function activerDeplacement(id){
     if(deplacableId === id){
       // Reclique sur le bouton déjà actif : désactive le mode déplacement.
@@ -703,9 +708,19 @@
       m.setIcon(iconResto(id===selectedId, true));
       map.setView(m.getLatLng(), Math.max(map.getZoom(), 16), {animate:true});
     }
-    deplacableTimer = setTimeout(()=> desactiverDeplacement(), 10000);
+    relancerMinuteurDeplacement(id);
     statut("Faites glisser l'icône sur la carte dans les 10 secondes pour la déplacer.", "ok");
     rafraichirListe();
+  }
+
+  // Relance le délai de 10 s avant que le mode déplacement ne s'éteigne. Appelée en continu
+  // pendant le glisser (événement "drag" de Leaflet, déclenché à chaque mouvement tant que
+  // l'icône est tenue) ainsi qu'à chaque relâchement : il faut donc 10 secondes SANS aucun
+  // mouvement de l'icône pour que le mode déplacement se désactive automatiquement.
+  function relancerMinuteurDeplacement(id){
+    if(id !== deplacableId) return;
+    if(deplacableTimer) clearTimeout(deplacableTimer);
+    deplacableTimer = setTimeout(()=> desactiverDeplacement(), 10000);
   }
 
   function desactiverDeplacement(){
@@ -738,12 +753,7 @@
     rafraichirListe();
     pousserVersGithubDifféré();
 
-    // Le restaurant vient d'être déplacé : on relance le délai de 10 s avant que
-    // le mode déplacement ne s'éteigne, pour permettre un ajustement en plusieurs fois.
-    if(id === deplacableId){
-      if(deplacableTimer) clearTimeout(deplacableTimer);
-      deplacableTimer = setTimeout(()=> desactiverDeplacement(), 10000);
-    }
+    relancerMinuteurDeplacement(id);
 
     if(deplacementTimer) clearTimeout(deplacementTimer);
     if(attenteControleur){ attenteControleur.abort(); fermerAttente(); }
