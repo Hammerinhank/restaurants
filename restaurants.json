@@ -39,6 +39,14 @@
       "name": "xxxxxxxxxxxxxxx",
       "address": "Gare de Paris-Brancion, 75015 Paris",
       "maj": "2026-08-03T09:17:08.543Z"
+    },
+    {
+      "id": "r_msd0ybgh_23mpkv",
+      "lat": 48.833899123117966,
+      "lon": 2.295446958452454,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-03T09:26:16.961Z"
     }
   ],
   "suppressions": [
@@ -55,5 +63,5 @@
       "maj": "2026-08-03T09:25:35.445Z"
     }
   ],
-  "maj": "2026-08-03T09:25:36.646Z"
+  "maj": "2026-08-03T09:26:18.439Z"
 }
