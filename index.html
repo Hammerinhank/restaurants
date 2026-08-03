@@ -302,6 +302,15 @@
   }
   .popup-text:hover{border-bottom-color:var(--line);}
   .popup-text.nom{font-weight:700;font-size:15px;}
+  .popup-maps-link{
+    display:inline-block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--accent);
+    text-decoration:none;
+    margin-top:2px;
+  }
+  .popup-maps-link:hover{text-decoration:underline;}
   .popup-edit{
     width:100%;
     font:inherit;
@@ -735,6 +744,7 @@
   // ---------- Rendu ----------
   function popupHTML(r){
     const dateAff = new Date(r.maj).toLocaleString("fr-FR");
+    const lienMaps = urlGoogleMaps(r.name, r.lat, r.lon);
     return `
       <div class="popup-field">
         <div class="popup-label">Nom</div>
@@ -744,6 +754,7 @@
         <div class="popup-label">Adresse</div>
         <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "(adresse non définie, double-cliquez pour saisir)")}</div>
       </div>
+      ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">Voir la fiche sur Google Maps ↗</a>` : ""}
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
         <button class="btn-danger" data-del="${r.id}">Supprimer</button>
@@ -754,6 +765,14 @@
   function escHtml(s){
     return String(s == null ? "" : s)
       .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  // Construit l'URL de recherche Google Maps d'un restaurant à partir de son nom et de ses
+  // coordonnées (on ne dispose pas d'identifiant de fiche Google via OpenStreetMap/Overpass).
+  // Utilisée à la fois par le popup de la carte et par la fenêtre de confirmation.
+  function urlGoogleMaps(nom, lat, lon){
+    if(!nom || lat == null || lon == null) return null;
+    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nom + " " + lat + "," + lon)}`;
   }
 
   function redessinerMarqueur(r){
@@ -1217,8 +1236,9 @@
       // et de ses coordonnées (recherche Google Maps, faute de disposer d'un identifiant de
       // fiche Google). Masqué si on n'a ni coordonnées ni nom exploitables (aucun restaurant trouvé).
       const majLienMaps = (n, la, lo) => {
-        if(n && la != null && lo != null){
-          lienMaps.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n + " " + la + "," + lo)}`;
+        const url = urlGoogleMaps(n, la, lo);
+        if(url){
+          lienMaps.href = url;
           lienMaps.style.display = "inline-block";
         }else{
           lienMaps.style.display = "none";
