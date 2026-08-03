@@ -6,7 +6,8 @@
       "lon": 2.296078205108643,
       "name": "Le Mûrier",
       "address": "Rue Eugène Gibez, 75015 Paris",
-      "maj": "2026-08-03T06:46:53.600Z"
+      "maj": "2026-08-03T20:28:03.783Z",
+      "liste": "Paris"
     },
     {
       "id": "r_msbmjdea_1bfbfc",
@@ -79,5 +80,5 @@
   ],
   "listeActuelle": "",
   "listeActuelleMaj": "2026-08-03T19:47:57.266Z",
-  "maj": "2026-08-03T20:27:59.328Z"
+  "maj": "2026-08-03T20:28:04.987Z"
 }
