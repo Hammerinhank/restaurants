@@ -31,6 +31,14 @@
       "name": "Nouveau restaurant",
       "address": "Place Jacques Marette, 75015 Paris",
       "maj": "2026-08-03T06:54:57.893Z"
+    },
+    {
+      "id": "r_mscw0axu_enhqvs",
+      "lat": 48.833931195282474,
+      "lon": 2.295460307588406,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "maj": "2026-08-03T07:07:51.522Z"
     }
   ],
   "suppressions": [
@@ -39,5 +47,5 @@
       "maj": "2026-08-03T07:07:48.959Z"
     }
   ],
-  "maj": "2026-08-03T07:07:50.186Z"
+  "maj": "2026-08-03T07:07:52.731Z"
 }
