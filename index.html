@@ -621,6 +621,7 @@
   const LS_DATA_KEY = "restaurants.v1";
   const LS_SUPPR_KEY = "restaurantsSuppressions.v1";
   const LS_CFG_KEY = "restaurantsGithubConfig.v1";
+  const SS_MODIF_KEY = "restaurantsModifApresRechargement";
   const FILE_NAME = "restaurants.json";
 
   // ---------- État ----------
@@ -1392,13 +1393,44 @@
   }
 
 
+  // Sur iPhone (notamment Chrome iOS, qui utilise le même moteur WebKit que Safari et peut
+  // conserver une version en cache), on force un rechargement complet de la page depuis le
+  // serveur à CHAQUE appui sur "Modifier", pour être certain de ne jamais travailler sur une
+  // ancienne version restée en cache. L'état visé (activé/désactivé) est mémorisé le temps du
+  // rechargement puis réappliqué automatiquement au retour (voir plus bas).
+  function estIOS(){
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  }
+
   // Bouton "Modifier" : affiche/masque les boutons "GitHub", "Test" et les boutons d'action
   // (Edit, Déplacer, ✕) de chaque item de la liste, tous masqués par défaut. Un nouveau clic
   // les remasque et redonne au bouton sa couleur par défaut.
   document.getElementById("btnModifier").addEventListener("click", ()=>{
-    const actif = document.body.classList.toggle("mode-modif");
-    document.getElementById("btnModifier").classList.toggle("active", actif);
+    const prochainEtat = !document.body.classList.contains("mode-modif");
+    if(estIOS()){
+      try{ sessionStorage.setItem(SS_MODIF_KEY, prochainEtat ? "1" : "0"); }catch(e){}
+      const url = new URL(location.href);
+      url.searchParams.set("_r", Date.now()); // paramètre anti-cache : force une requête réseau, pas le cache
+      location.href = url.toString();
+      return;
+    }
+    document.body.classList.toggle("mode-modif", prochainEtat);
+    document.getElementById("btnModifier").classList.toggle("active", prochainEtat);
   });
+
+  // Au chargement de la page (après un rechargement forcé déclenché ci-dessus sur iPhone),
+  // réapplique l'état "Modifier" voulu par l'utilisateur avant le rechargement.
+  (function reappliquerEtatModifApresRechargement(){
+    try{
+      const v = sessionStorage.getItem(SS_MODIF_KEY);
+      if(v === null) return;
+      sessionStorage.removeItem(SS_MODIF_KEY);
+      if(v === "1"){
+        document.body.classList.add("mode-modif");
+        document.getElementById("btnModifier").classList.add("active");
+      }
+    }catch(e){}
+  })();
 
   document.getElementById("btnNouveau").addEventListener("click", async ()=>{
     if(!navigator.geolocation){
