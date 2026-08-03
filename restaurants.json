@@ -40,10 +40,10 @@
       "id": "r_msdpdkfk_uc667t",
       "lat": 48.83393797696218,
       "lon": 2.2954211747213784,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Art Sushi",
+      "address": "3 Rue Robert Lindet, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-08-03T20:49:59.216Z"
+      "maj": "2026-08-03T20:50:05.747Z"
     }
   ],
   "suppressions": [
@@ -102,5 +102,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T20:28:13.546Z",
-  "maj": "2026-08-03T20:50:00.603Z"
+  "maj": "2026-08-03T20:50:06.951Z"
 }
