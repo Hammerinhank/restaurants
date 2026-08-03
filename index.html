@@ -77,6 +77,13 @@
     color:var(--ink);
     border:1px solid var(--line);
   }
+  #btnSettings, #btnDiagTest{display:none;}
+  body.mode-modif #btnSettings, body.mode-modif #btnDiagTest{display:inline-block;}
+  #btnModifier.active{
+    background:var(--accent);
+    color:#fff;
+    border-color:var(--accent);
+  }
   .btn-danger{
     background:transparent;
     color:var(--err);
@@ -240,7 +247,8 @@
     padding-left:9px;
   }
   .resto-item .txt{min-width:0;}
-  .resto-item .actions{display:flex;gap:6px;align-items:center;flex:none;}
+  .resto-item .actions{display:none;gap:6px;align-items:center;flex:none;}
+  body.mode-modif .resto-item .actions{display:flex;}
   .resto-item .nom{
     font-weight:600;
     font-size:13.5px;
@@ -412,6 +420,7 @@
   <div class="spacer"></div>
   <button class="btn-ghost" id="btnSettings">⚙️ GitHub</button>
   <button class="btn-ghost" id="btnDiagTest" title="Diagnostic réseau détaillé (Overpass, géolocalisation, etc.)">🔧 Test</button>
+  <button class="btn-ghost" id="btnModifier">✏️ Modifier</button>
   <button class="btn-primary" id="btnNouveau">📍 Nouveau restaurant</button>
 </header>
 
@@ -1380,6 +1389,14 @@
     }
   }
 
+
+  // Bouton "Modifier" : affiche/masque les boutons "GitHub", "Test" et les boutons d'action
+  // (Edit, Déplacer, ✕) de chaque item de la liste, tous masqués par défaut. Un nouveau clic
+  // les remasque et redonne au bouton sa couleur par défaut.
+  document.getElementById("btnModifier").addEventListener("click", ()=>{
+    const actif = document.body.classList.toggle("mode-modif");
+    document.getElementById("btnModifier").classList.toggle("active", actif);
+  });
 
   document.getElementById("btnNouveau").addEventListener("click", async ()=>{
     if(!navigator.geolocation){
