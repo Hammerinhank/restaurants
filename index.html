@@ -613,6 +613,7 @@
     if(m){
       if(m.dragging) m.dragging.enable();
       m.setIcon(iconResto(id===selectedId, true));
+      map.setView(m.getLatLng(), Math.max(map.getZoom(), 16), {animate:true});
     }
     deplacableTimer = setTimeout(()=> desactiverDeplacement(), 10000);
     statut("Faites glisser l'icône sur la carte dans les 10 secondes pour la déplacer.", "ok");
