@@ -774,8 +774,12 @@
     }
     if(id && markers[id]){
       markers[id].setIcon(iconResto(true, id===deplacableId));
-      map.setView(markers[id].getLatLng(), Math.max(map.getZoom(), 16), {animate:true});
+      // L'ouverture du popup se fait AVANT le setView : Leaflet déclenche son propre
+      // "auto-pan" pour rendre le popup visible, ce qui peut décentrer le marqueur.
+      // Le setView explicite ci-dessous, exécuté après, a donc toujours le dernier mot
+      // et garantit que le marqueur reste bien au centre de la carte.
       markers[id].openPopup();
+      map.setView(markers[id].getLatLng(), Math.max(map.getZoom(), 16), {animate:true});
     }
     rafraichirListe();
   }
