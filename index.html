@@ -582,7 +582,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V19";
+  const VERSION = "V20";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -673,6 +673,9 @@
     { v:"V19", resume:[
       "La récupération depuis GitHub force désormais une requête réseau fraîche (cache:\"no-store\") : le navigateur pouvait resservir une réponse mise en cache de l'API GitHub, donnant l'impression trompeuse d'avoir récupéré les dernières données alors qu'une version périmée était relue.",
       "Les messages « Récupéré depuis GitHub » / « Envoyé vers GitHub » affichent désormais le dépôt et la branche ciblés (compte/dépôt@branche) ainsi que le nombre de restaurants trouvés côté serveur, pour repérer facilement une configuration GitHub différente entre deux appareils (owner/repo/branch, volontairement non synchronisés — à vérifier dans Réglages sur chaque appareil s'ils ne convergent toujours pas)."
+    ]},
+    { v:"V20", resume:[
+      "Un clic (ou tap) sur la carte à proximité immédiate d'une ou plusieurs icônes de restaurant (sans viser précisément l'icône) ouvre désormais le popup du restaurant le plus proche du point cliqué."
     ]}
   ];
 
@@ -824,18 +827,29 @@
   // une fois que le zoom Leaflet au double-clic (doubleClickZoom) est désactivé — Leaflet ne
   // synthétise alors plus cet événement à partir des taps. La détection via "click" fonctionne
   // de façon identique sur souris (desktop) et sur tap (mobile).
+  //
+  // Un clic "simple" confirmé (pas suivi d'un second clic dans le délai) déclenche par ailleurs
+  // l'ouverture du popup du restaurant le plus proche du point cliqué, si un ou plusieurs se
+  // trouvent à proximité immédiate — pratique pour viser une icône sans avoir à taper pile dessus.
   let mapClicTimer = null;
+  let mapClicEvenement = null;
   const MAP_DBLCLIC_DELAI = 350; // ms — fenêtre de tolérance entre les deux taps/clics
-  map.on("click", ()=>{
+  map.on("click", (ev)=>{
     if(mapClicTimer){
       clearTimeout(mapClicTimer);
       mapClicTimer = null;
+      mapClicEvenement = null;
       document.body.classList.toggle("map-fullscreen");
       // Laisser le temps au reflow (en-tête/liste masqués ou réaffichés) avant de recalculer
       // la taille interne de la carte, sinon Leaflet garde l'ancienne taille et affiche des tuiles manquantes.
       requestAnimationFrame(()=> requestAnimationFrame(()=> map.invalidateSize()));
     }else{
-      mapClicTimer = setTimeout(()=>{ mapClicTimer = null; }, MAP_DBLCLIC_DELAI);
+      mapClicEvenement = ev;
+      mapClicTimer = setTimeout(()=>{
+        mapClicTimer = null;
+        selectionnerRestoProcheDuClic(mapClicEvenement);
+        mapClicEvenement = null;
+      }, MAP_DBLCLIC_DELAI);
     }
   });
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -858,6 +872,28 @@
 
   function idUnique(){
     return "r_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
+  }
+
+  // Sélectionne (et ouvre le popup de) le restaurant dont l'icône est la plus proche du point
+  // cliqué sur la carte, à condition qu'il se trouve à proximité immédiate — évite d'avoir à
+  // viser précisément la petite icône, en particulier au doigt sur mobile ou quand plusieurs
+  // icônes sont proches les unes des autres (on ouvre alors celle la plus proche du clic).
+  const RAYON_CLIC_PROCHE_PX = 40; // tolérance en pixels écran autour du point cliqué
+  function selectionnerRestoProcheDuClic(ev){
+    if(!ev || !ev.containerPoint) return;
+    let meilleurId = null;
+    let meilleureDistance = Infinity;
+    Object.keys(markers).forEach(id=>{
+      const pointMarqueur = map.latLngToContainerPoint(markers[id].getLatLng());
+      const d = ev.containerPoint.distanceTo(pointMarqueur);
+      if(d < meilleureDistance){
+        meilleureDistance = d;
+        meilleurId = id;
+      }
+    });
+    if(meilleurId && meilleureDistance <= RAYON_CLIC_PROCHE_PX){
+      definirSelection(meilleurId);
+    }
   }
 
   // Détection manuelle de double-clic/double-tap (même technique que pour le plein écran
