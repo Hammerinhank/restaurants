@@ -123,9 +123,17 @@
     border-radius:6px;
     margin-bottom:4px;
     box-sizing:border-box;
+    touch-action:manipulation; /* évite que le double-tap iOS soit intercepté comme un zoom de page (cf. double-tap plein écran carte) */
+    transition:font-size .12s ease, padding .12s ease, min-height .12s ease;
   }
   .list-edit-input:last-child{margin-bottom:0;}
   .list-edit-input.adr-input{font-size:12px;}
+  .list-edit-input.expanded{
+    font-size:16px; /* >=16px : empêche aussi Safari iOS de zoomer la page au focus */
+    padding:10px 12px;
+    min-height:44px;
+    border-width:2px;
+  }
 
   #statusLine{
     font-size:12px;
@@ -677,6 +685,24 @@
     return "r_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,8);
   }
 
+  // Détection manuelle de double-clic/double-tap (même technique que pour le plein écran
+  // de la carte) : plus fiable que l'événement natif "dblclick" sur iOS/Safari, qui n'est
+  // pas toujours émis de façon fiable pour un double-tap. Fonctionne à l'identique sur
+  // souris (desktop) et au doigt (mobile) puisqu'elle se base sur deux "click" rapprochés.
+  const DBLTAP_DELAI = 350; // ms — fenêtre de tolérance entre les deux taps/clics
+  function surDoubleTap(el, callback){
+    let timer = null;
+    el.addEventListener("click", ()=>{
+      if(timer){
+        clearTimeout(timer);
+        timer = null;
+        callback();
+      }else{
+        timer = setTimeout(()=>{ timer = null; }, DBLTAP_DELAI);
+      }
+    });
+  }
+
   // ---------- Rendu ----------
   function popupHTML(r){
     const dateAff = new Date(r.maj).toLocaleString("fr-FR");
@@ -950,6 +976,13 @@
         const id = itemEl && itemEl.getAttribute("data-goto");
         if(ev.key === "Enter"){ ev.preventDefault(); basculerEditionListe(id); }
         if(ev.key === "Escape"){ ev.preventDefault(); editingIds.delete(id); rafraichirListe(); }
+      });
+      // Double-clic/double-tap dans le champ (uniquement possible ici, en mode édition) :
+      // agrandit la zone pour éditer confortablement ; un nouveau double-clic/double-tap
+      // lui redonne sa taille d'origine.
+      surDoubleTap(el, ()=>{
+        el.classList.toggle("expanded");
+        el.focus();
       });
     });
     body.querySelectorAll(".popup-text").forEach(el=>{
