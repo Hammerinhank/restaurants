@@ -433,13 +433,104 @@
   </div>
 </div>
 
+<!-- ===== Historique des versions ===== -->
+<div class="modal-overlay" id="historyOverlay">
+  <div class="modal-box modal-box-diag">
+    <h3>🕒 Historique des versions</h3>
+    <div class="modal-hint">Résumé des modifications apportées à chaque version.</div>
+    <div id="historyBody" class="diag-report"></div>
+    <div class="modal-actions">
+      <button class="btn-primary btn-small" id="historyFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
   "use strict";
 
-  const VERSION = "V11";
+  const VERSION = "V12";
   document.getElementById("versionBadge").textContent = VERSION;
+
+  // Historique des versions : résumé des modifications apportées à chaque version,
+  // affiché dans une modale au clic sur le badge de version.
+  const HISTORIQUE_VERSIONS = [
+    { v:"V1", resume:[
+      "Carte Leaflet/OpenStreetMap avec bouton de géolocalisation.",
+      "Reverse geocoding Nominatim (nom + adresse).",
+      "Édition inline par double-clic dans le popup du marqueur.",
+      "Liste latérale des restaurants avec suppression.",
+      "Persistance localStorage + synchronisation GitHub (restaurants.json)."
+    ]},
+    { v:"V2", resume:[
+      "Clic sur une ligne de la liste : sélectionne le restaurant (surbrillance liste + icône).",
+      "Icône sélectionnée déplaçable par glisser-déposer sur la carte, adresse re-géocodée après déplacement.",
+      "Édition du nom/adresse par double-clic, dans le popup comme dans la liste.",
+      "Nouveau restaurant sélectionné automatiquement à la création."
+    ]},
+    { v:"V3", resume:[
+      "Recherche du restaurant le plus proche (API Overpass, rayon 60 m) à la création et après déplacement.",
+      "Boîte de dialogue de confirmation personnalisée (nom/adresse pré-remplis, modifiables)."
+    ]},
+    { v:"V4", resume:[
+      "Recherche Overpass élargie (rayon 200 m, restaurants nommés uniquement), jusqu'à 5 candidats.",
+      "Combo box « Autres restaurants à proximité » pour les 4 suggestions suivantes.",
+      "Un choix dans la combo ne change que le Nom, jamais l'Adresse."
+    ]},
+    { v:"V5", resume:[
+      "Affichage de la précision de géolocalisation (en mètres) dans l'indice de la boîte de dialogue.",
+      "Message d'erreur explicite en cas d'échec réseau/Overpass, distinct de « aucun restaurant trouvé »."
+    ]},
+    { v:"V6", resume:[
+      "Plusieurs miroirs Overpass essayés dans l'ordre, bascule automatique en cas d'échec (CORS ou autre)."
+    ]},
+    { v:"V7", resume:[
+      "Fenêtre modale d'attente (spinner + bouton Annuler) pendant toute la recherche.",
+      "Annulation via AbortController, interrompt les requêtes en cours.",
+      "Recherche d'identification différée de 2 s après un déplacement (réinitialisée à chaque relâchement)."
+    ]},
+    { v:"V8", resume:[
+      "Chronomètre en secondes affiché en direct dans la fenêtre d'attente.",
+      "Miroirs Overpass interrogés en parallèle (Promise.any), délai maximal de 8 s chacun.",
+      "Même délai maximal de 8 s appliqué à l'appel Nominatim."
+    ]},
+    { v:"V9", resume:[
+      "Miroir overpass.kumi.systems remplacé par son nom actuel overpass.private.coffee."
+    ]},
+    { v:"V10", resume:[
+      "Ajout d'un 4ᵉ miroir Overpass (VK Maps / maps.mail.ru) pour améliorer la fiabilité des recherches."
+    ]},
+    { v:"V11", resume:[
+      "Nouveau bouton « Déplacer » sur chaque ligne de la liste (remplace l'ancien lien sélection → déplacement).",
+      "Au clic : bouton et icône passent en vert, icône déplaçable ; revient à la normale après 10 s sans déplacement (minuteur relancé à chaque relâchement).",
+      "Un seul restaurant déplaçable à la fois ; activer un autre désactive le précédent.",
+      "La sélection (liste/carte) reste indépendante du déplacement et n'active plus le glisser-déposer.",
+      "Clic sur le nom/adresse d'une ligne : sélectionne l'item comme un clic sur le fond de la case (le double-clic ouvre toujours l'édition).",
+      "Clic sur « Déplacer » : recentre aussi la carte sur l'icône concernée."
+    ]},
+    { v:"V12", resume:[
+      "La sélection d'un restaurant (liste, carte ou bouton « Déplacer ») centre désormais systématiquement son icône au centre de la carte.",
+      "Historique des versions consultable en cliquant sur le badge de version (cette fenêtre)."
+    ]}
+  ];
+
+  function afficherHistoriqueVersions(){
+    const body = document.getElementById("historyBody");
+    if(!body) return;
+    body.textContent = [...HISTORIQUE_VERSIONS].reverse().map(entry =>
+      entry.v + (entry.v === VERSION ? " (version actuelle)" : "") + "\n" +
+      entry.resume.map(ligne => "  • " + ligne).join("\n")
+    ).join("\n\n");
+    document.getElementById("historyOverlay").classList.add("open");
+  }
+  document.getElementById("versionBadge").addEventListener("click", afficherHistoriqueVersions);
+  document.getElementById("historyFermer").addEventListener("click", ()=>{
+    document.getElementById("historyOverlay").classList.remove("open");
+  });
+  document.getElementById("historyOverlay").addEventListener("keydown", (ev)=>{
+    if(ev.key === "Escape") document.getElementById("historyOverlay").classList.remove("open");
+  });
 
   const LS_DATA_KEY = "restaurants.v1";
   const LS_CFG_KEY = "restaurantsGithubConfig.v1";
@@ -565,7 +656,7 @@
       m = L.marker([r.lat, r.lon], {icon: iconResto(r.id===selectedId, r.id===deplacableId), draggable:false}).addTo(map);
       markers[r.id] = m;
       m.on("popupopen", ()=> brancherEditionPopup(r.id));
-      m.on("click", ()=> definirSelection(r.id, {pan:false}));
+      m.on("click", ()=> definirSelection(r.id));
       m.on("dragend", ()=> gererDeplacement(r.id));
       if(r.id === deplacableId && m.dragging) m.dragging.enable();
     }else{
@@ -576,9 +667,9 @@
   }
 
   // Sélectionne un restaurant : met en surbrillance dans la liste et sur la carte,
-  // recentre la carte et ouvre le popup. N'a aucun effet sur la possibilité de déplacer
-  // l'icône (voir activerDeplacement / le bouton "Déplacer" de la liste).
-  function definirSelection(id, {pan=false} = {}){
+  // centre toujours la carte sur son icône et ouvre le popup. N'a aucun effet sur la
+  // possibilité de déplacer l'icône (voir activerDeplacement / le bouton "Déplacer" de la liste).
+  function definirSelection(id){
     const precedent = selectedId;
     selectedId = id;
     if(precedent && precedent !== id && markers[precedent]){
@@ -586,10 +677,7 @@
     }
     if(id && markers[id]){
       markers[id].setIcon(iconResto(true, id===deplacableId));
-      if(pan){
-        const r = restaurants.find(x=>x.id===id);
-        if(r) map.setView([r.lat, r.lon], Math.max(map.getZoom(), 16), {animate:true});
-      }
+      map.setView(markers[id].getLatLng(), Math.max(map.getZoom(), 16), {animate:true});
       markers[id].openPopup();
     }
     rafraichirListe();
@@ -764,7 +852,7 @@
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
         if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]")) return;
-        definirSelection(el.getAttribute("data-goto"), {pan:true});
+        definirSelection(el.getAttribute("data-goto"));
       });
     });
     body.querySelectorAll("[data-move]").forEach(el=>{
@@ -1085,7 +1173,7 @@
       restaurants.push(r);
       sauverLocal();
       redessinerMarqueur(r);
-      definirSelection(r.id, {pan:true});
+      definirSelection(r.id);
       btn.disabled = false;
       pousserVersGithubDifféré();
 
