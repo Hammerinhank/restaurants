@@ -342,6 +342,15 @@
   }
   .modal-box h3{margin:0 0 4px;font-size:15px;}
   .modal-hint{font-size:11.5px;color:var(--muted);margin:0 0 12px;}
+  .modal-maps-link{
+    display:none; /* affiché en JS uniquement quand un restaurant a été trouvé */
+    font-size:12px;
+    color:var(--accent);
+    text-decoration:none;
+    margin:-6px 0 12px;
+    font-weight:600;
+  }
+  .modal-maps-link:hover{text-decoration:underline;}
   .modal-box label{
     display:flex;flex-direction:column;gap:4px;
     font-size:12px;color:var(--muted);
@@ -447,6 +456,7 @@
   <div class="modal-box">
     <h3>Confirmer le restaurant</h3>
     <div class="modal-hint" id="modalHint"></div>
+    <a id="modalMapsLink" class="modal-maps-link" href="#" target="_blank" rel="noopener">Voir la fiche sur Google Maps ↗</a>
     <label>Nom
       <input type="text" id="modalNom" autocomplete="off">
     </label>
@@ -1143,7 +1153,9 @@
       return {
         nom,
         adresse: [numRue, ville].filter(Boolean).join(", "),
-        distance: Math.round(distanceMetres(lat, lon, la, lo))
+        distance: Math.round(distanceMetres(lat, lon, la, lo)),
+        lat: la,
+        lon: lo
       };
     }).filter(Boolean).sort((a,b)=> a.distance - b.distance);
     return candidats.slice(0, limite);
@@ -1180,12 +1192,13 @@
   }
 
   // ---------- Boîte de dialogue de confirmation ----------
-  function ouvrirModalIdentification({nom, adresse, indice, alternatives}){
+  function ouvrirModalIdentification({nom, adresse, indice, alternatives, lat, lon}){
     return new Promise((resolve)=>{
       const overlay = document.getElementById("modalOverlay");
       const inputNom = document.getElementById("modalNom");
       const inputAdr = document.getElementById("modalAdresse");
       const hint = document.getElementById("modalHint");
+      const lienMaps = document.getElementById("modalMapsLink");
       const champAlt = document.getElementById("modalAlternativesChamp");
       const selectAlt = document.getElementById("modalAlternatives");
       const btnValider = document.getElementById("modalValider");
@@ -1200,13 +1213,31 @@
       champAlt.style.display = listeAlt.length ? "flex" : "none";
       selectAlt.value = "";
 
+      // Lien vers la fiche Google Maps du restaurant identifié : construit à partir de son nom
+      // et de ses coordonnées (recherche Google Maps, faute de disposer d'un identifiant de
+      // fiche Google). Masqué si on n'a ni coordonnées ni nom exploitables (aucun restaurant trouvé).
+      const majLienMaps = (n, la, lo) => {
+        if(n && la != null && lo != null){
+          lienMaps.href = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(n + " " + la + "," + lo)}`;
+          lienMaps.style.display = "inline-block";
+        }else{
+          lienMaps.style.display = "none";
+        }
+      };
+      majLienMaps(nom, lat, lon);
+
       overlay.classList.add("open");
       setTimeout(()=> inputNom.focus(), 60);
 
       const onChangeAlt = () => {
         const idx = selectAlt.value;
         // Choisir une suggestion alternative ne remplace que le nom, jamais l'adresse.
-        if(idx !== "" && listeAlt[idx]) inputNom.value = listeAlt[idx].nom;
+        if(idx !== "" && listeAlt[idx]){
+          inputNom.value = listeAlt[idx].nom;
+          majLienMaps(listeAlt[idx].nom, listeAlt[idx].lat, listeAlt[idx].lon);
+        }else{
+          majLienMaps(nom, lat, lon);
+        }
       };
       const nettoyer = () => {
         overlay.classList.remove("open");
@@ -1306,7 +1337,9 @@
       nom: principal ? principal.nom : r.name,
       adresse: adresseTrouvee,
       indice,
-      alternatives
+      alternatives,
+      lat: principal ? principal.lat : r.lat,
+      lon: principal ? principal.lon : r.lon
     });
 
     if(choix.ok){
