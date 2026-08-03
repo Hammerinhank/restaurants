@@ -582,7 +582,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V18";
+  const VERSION = "V19";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -669,6 +669,10 @@
     { v:"V18", resume:[
       "Correction de persistance : une suppression pouvait ne jamais être envoyée vers GitHub si l'onglet passait en arrière-plan (verrouillage, changement d'appli…) avant l'écoulement du délai d'envoi de 1.2 s — cas fréquent sur iPhone juste après une suppression. La suppression est désormais envoyée immédiatement, sans délai.",
       "Filet de sécurité général : toute autre modification encore en attente d'envoi (déplacement, édition, changement de liste…) est désormais envoyée immédiatement dès que l'onglet quitte le premier plan, au lieu d'attendre le minuteur qui pouvait ne jamais se déclencher."
+    ]},
+    { v:"V19", resume:[
+      "La récupération depuis GitHub force désormais une requête réseau fraîche (cache:\"no-store\") : le navigateur pouvait resservir une réponse mise en cache de l'API GitHub, donnant l'impression trompeuse d'avoir récupéré les dernières données alors qu'une version périmée était relue.",
+      "Les messages « Récupéré depuis GitHub » / « Envoyé vers GitHub » affichent désormais le dépôt et la branche ciblés (compte/dépôt@branche) ainsi que le nombre de restaurants trouvés côté serveur, pour repérer facilement une configuration GitHub différente entre deux appareils (owner/repo/branch, volontairement non synchronisés — à vérifier dans Réglages sur chaque appareil s'ils ne convergent toujours pas)."
     ]}
   ];
 
@@ -1693,10 +1697,17 @@
       if(feedback) statut("Identifiants GitHub incomplets.", "err");
       return;
     }
-    if(feedback) statut("Récupération depuis GitHub…");
+    const cible = `${cfg.owner}/${cfg.repo}@${cfg.branch}`;
+    if(feedback) statut("Récupération depuis GitHub (" + cible + ")…");
     try{
       const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${FILE_NAME}?ref=${encodeURIComponent(cfg.branch)}`;
       const res = await fetch(url, {
+        // "no-store" : certains navigateurs peuvent mettre en cache la réponse HTTP de l'API
+        // GitHub (ETag/Cache-Control) et la resservir telle quelle lors d'un rechargement ou
+        // d'un nouveau clic sur « Récupérer depuis GitHub », ce qui donnerait l'impression
+        // trompeuse que la récupération a eu lieu alors qu'une version périmée a été relue.
+        // On force donc systématiquement une requête réseau fraîche.
+        cache: "no-store",
         headers: {
           "Authorization": `Bearer ${cfg.token}`,
           "Accept": "application/vnd.github+json"
@@ -1704,7 +1715,7 @@
       });
       if(res.status === 404){
         dernierSha = null;
-        if(feedback) statut("Aucun fichier distant pour l'instant (il sera créé au premier envoi).", "ok");
+        if(feedback) statut("Aucun fichier distant pour l'instant sur " + cible + " (il sera créé au premier envoi).", "ok");
         return;
       }
       if(!res.ok) throw new Error("HTTP " + res.status);
@@ -1717,7 +1728,11 @@
       const listeActuelleDistante = typeof contenu.listeActuelle === "string" ? contenu.listeActuelle : null;
       const listeActuelleMajDistante = contenu.listeActuelleMaj || null;
       fusionner(distants, suppressionsDistantes, listesDistantes, listeActuelleDistante, listeActuelleMajDistante);
-      if(feedback) statut("Synchronisé depuis GitHub.", "ok");
+      // Le nombre de restaurants distants (avant fusion avec le local) est affiché pour pouvoir
+      // comparer facilement, d'un appareil à l'autre, ce que contient réellement le fichier
+      // GitHub à cet instant — utile pour repérer un dépôt/branche mal configuré sur l'un des
+      // deux appareils (owner/repo/branch, volontairement non synchronisés, voir Réglages).
+      if(feedback) statut("Synchronisé depuis GitHub (" + cible + ") — " + distants.length + " restaurant(s) distant(s).", "ok");
     }catch(e){
       // Toujours signalée, même lors de la synchro automatique et silencieuse au démarrage
       // (feedback=false) : une erreur de récupération passée sous silence est la cause la plus
@@ -1820,7 +1835,8 @@
       if(feedback) statut("Identifiants GitHub incomplets.", "err");
       return;
     }
-    if(feedback) statut("Envoi vers GitHub…");
+    const cible = `${cfg.owner}/${cfg.repo}@${cfg.branch}`;
+    if(feedback) statut("Envoi vers GitHub (" + cible + ")…");
     try{
       const contenu = {restaurants, suppressions, listes, listeActuelle, listeActuelleMaj, maj: new Date().toISOString()};
       const body = {
@@ -1852,7 +1868,7 @@
       }
       const data = await res.json();
       dernierSha = data.content.sha;
-      if(feedback) statut("Envoyé vers GitHub.", "ok");
+      if(feedback) statut("Envoyé vers GitHub (" + cible + ").", "ok");
     }catch(e){
       // Toujours signalée : un envoi automatique qui échoue silencieusement (mauvais jeton,
       // dépôt introuvable, coupure réseau…) fait croire que les modifications sont sauvegardées
