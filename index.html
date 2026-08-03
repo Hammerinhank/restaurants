@@ -762,7 +762,7 @@
     `).join("");
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
-        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest(".popup-text")) return;
+        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]")) return;
         definirSelection(el.getAttribute("data-goto"), {pan:true});
       });
     });
