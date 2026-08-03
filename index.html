@@ -88,6 +88,19 @@
     padding:5px 9px;
     font-size:12px;
   }
+  .btn-move{
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--line);
+    padding:5px 9px;
+    font-size:12px;
+    flex:none;
+  }
+  .btn-move.active{
+    background:var(--ok);
+    color:#fff;
+    border-color:var(--ok);
+  }
 
   #statusLine{
     font-size:12px;
@@ -182,6 +195,7 @@
     padding-left:9px;
   }
   .resto-item .txt{min-width:0;}
+  .resto-item .actions{display:flex;gap:6px;align-items:center;flex:none;}
   .resto-item .nom{
     font-weight:600;
     font-size:13.5px;
@@ -223,6 +237,10 @@
   }
   .resto-pin.selected{
     box-shadow:0 0 0 4px rgba(193,80,46,.4), 0 1px 4px rgba(0,0,0,.35);
+  }
+  .resto-pin.movable{
+    background:var(--ok);
+    box-shadow:0 0 0 4px rgba(47,122,79,.4), 0 1px 4px rgba(0,0,0,.35);
     cursor:grab;
   }
 
@@ -420,7 +438,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V10";
+  const VERSION = "V11";
   document.getElementById("versionBadge").textContent = VERSION;
 
   const LS_DATA_KEY = "restaurants.v1";
@@ -432,7 +450,9 @@
   let cfg = chargerCfg();             // {owner, repo, branch, token}
   let markers = {};                   // id -> L.marker
   let dernierSha = null;              // sha du fichier GitHub connu
-  let selectedId = null;              // id du restaurant sélectionné (déplaçable)
+  let selectedId = null;              // id du restaurant sélectionné (surbrillance liste/carte)
+  let deplacableId = null;            // id du restaurant actuellement déplaçable (bouton "Déplacer" activé)
+  let deplacableTimer = null;         // minuteur de 10 s : au-delà, le restaurant redevient non déplaçable
   let deplacementTimer = null;        // délai avant de lancer la recherche après un déplacement
   let attenteControleur = null;       // AbortController de la recherche en cours (annulable)
   let attenteIntervalId = null;       // intervalle du chronomètre affiché dans la fenêtre d'attente
@@ -498,8 +518,10 @@
     attribution: "&copy; contributeurs OpenStreetMap"
   }).addTo(map);
 
-  function iconResto(selectionne){
-    const cls = selectionne ? "resto-pin selected" : "resto-pin";
+  function iconResto(selectionne, deplacable){
+    let cls = "resto-pin";
+    if(selectionne) cls += " selected";
+    if(deplacable) cls += " movable";
     return L.divIcon({
       className: "",
       html: `<div class="${cls}"><span>🍽️</span></div>`,
@@ -540,39 +562,75 @@
   function redessinerMarqueur(r){
     let m = markers[r.id];
     if(!m){
-      m = L.marker([r.lat, r.lon], {icon: iconResto(r.id===selectedId), draggable:false}).addTo(map);
+      m = L.marker([r.lat, r.lon], {icon: iconResto(r.id===selectedId, r.id===deplacableId), draggable:false}).addTo(map);
       markers[r.id] = m;
       m.on("popupopen", ()=> brancherEditionPopup(r.id));
       m.on("click", ()=> definirSelection(r.id, {pan:false}));
       m.on("dragend", ()=> gererDeplacement(r.id));
-      if(r.id === selectedId && m.dragging) m.dragging.enable();
+      if(r.id === deplacableId && m.dragging) m.dragging.enable();
     }else{
       m.setLatLng([r.lat, r.lon]);
-      m.setIcon(iconResto(r.id===selectedId));
+      m.setIcon(iconResto(r.id===selectedId, r.id===deplacableId));
     }
     m.bindPopup(popupHTML(r));
   }
 
-  // Sélectionne un restaurant : active le glisser-déposer de son icône,
-  // désactive celui des autres, met en surbrillance dans la liste et sur la carte.
+  // Sélectionne un restaurant : met en surbrillance dans la liste et sur la carte,
+  // recentre la carte et ouvre le popup. N'a aucun effet sur la possibilité de déplacer
+  // l'icône (voir activerDeplacement / le bouton "Déplacer" de la liste).
   function definirSelection(id, {pan=false} = {}){
     const precedent = selectedId;
     selectedId = id;
     if(precedent && precedent !== id && markers[precedent]){
-      markers[precedent].setIcon(iconResto(false));
-      if(markers[precedent].dragging) markers[precedent].dragging.disable();
+      markers[precedent].setIcon(iconResto(false, precedent===deplacableId));
     }
     if(id && markers[id]){
-      markers[id].setIcon(iconResto(true));
-      if(markers[id].dragging) markers[id].dragging.enable();
+      markers[id].setIcon(iconResto(true, id===deplacableId));
       if(pan){
         const r = restaurants.find(x=>x.id===id);
         if(r) map.setView([r.lat, r.lon], Math.max(map.getZoom(), 16), {animate:true});
       }
       markers[id].openPopup();
-      statut("Restaurant sélectionné : faites glisser son icône sur la carte pour la déplacer.", "ok");
     }
     rafraichirListe();
+  }
+
+  // Active le mode déplacement pour un restaurant : rend son icône déplaçable (glisser-déposer)
+  // et la colore en vert, ainsi que le bouton "Déplacer" correspondant dans la liste.
+  // Un seul restaurant à la fois peut être en mode déplacement : en activer un désactive
+  // automatiquement le précédent. Si l'icône n'est pas déplacée dans les 10 secondes,
+  // le mode déplacement est automatiquement désactivé (icône et bouton reprennent leur
+  // couleur normale, et l'icône n'est plus déplaçable).
+  function activerDeplacement(id){
+    if(deplacableId === id){
+      // Reclique sur le bouton déjà actif : désactive le mode déplacement.
+      desactiverDeplacement();
+      return;
+    }
+    desactiverDeplacement();
+    deplacableId = id;
+    const m = markers[id];
+    if(m){
+      if(m.dragging) m.dragging.enable();
+      m.setIcon(iconResto(id===selectedId, true));
+    }
+    deplacableTimer = setTimeout(()=> desactiverDeplacement(), 10000);
+    statut("Faites glisser l'icône sur la carte dans les 10 secondes pour la déplacer.", "ok");
+    rafraichirListe();
+  }
+
+  function desactiverDeplacement(){
+    if(deplacableTimer){ clearTimeout(deplacableTimer); deplacableTimer = null; }
+    if(deplacableId){
+      const id = deplacableId;
+      const m = markers[id];
+      if(m){
+        if(m.dragging) m.dragging.disable();
+        m.setIcon(iconResto(id===selectedId, false));
+      }
+      deplacableId = null;
+      rafraichirListe();
+    }
   }
 
   // Appelé à chaque relâchement de l'icône : met à jour les coordonnées immédiatement,
@@ -590,6 +648,13 @@
     sauverLocal();
     rafraichirListe();
     pousserVersGithubDifféré();
+
+    // Le restaurant vient d'être déplacé : on relance le délai de 10 s avant que
+    // le mode déplacement ne s'éteigne, pour permettre un ajustement en plusieurs fois.
+    if(id === deplacableId){
+      if(deplacableTimer) clearTimeout(deplacableTimer);
+      deplacableTimer = setTimeout(()=> desactiverDeplacement(), 10000);
+    }
 
     if(deplacementTimer) clearTimeout(deplacementTimer);
     if(attenteControleur){ attenteControleur.abort(); fermerAttente(); }
@@ -662,6 +727,11 @@
 
   function supprimerRestaurant(id){
     if(!confirm("Supprimer ce restaurant de la liste ?")) return;
+    if(id === deplacableId){
+      if(deplacableTimer){ clearTimeout(deplacableTimer); deplacableTimer = null; }
+      deplacableId = null;
+    }
+    if(id === selectedId) selectedId = null;
     restaurants = restaurants.filter(r=>r.id!==id);
     sauverLocal();
     supprimerMarqueur(id);
@@ -684,13 +754,22 @@
           <div class="popup-text nom" data-id="${r.id}" data-field="name">${escHtml(r.name || "Nouveau restaurant")}</div>
           <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "adresse non définie")}</div>
         </div>
-        <button class="btn-danger" data-del="${r.id}">✕</button>
+        <div class="actions">
+          <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
+          <button class="btn-danger" data-del="${r.id}">✕</button>
+        </div>
       </div>
     `).join("");
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
-        if(ev.target.closest("[data-del]") || ev.target.closest(".popup-text")) return;
+        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest(".popup-text")) return;
         definirSelection(el.getAttribute("data-goto"), {pan:true});
+      });
+    });
+    body.querySelectorAll("[data-move]").forEach(el=>{
+      el.addEventListener("click",(ev)=>{
+        ev.stopPropagation();
+        activerDeplacement(el.getAttribute("data-move"));
       });
     });
     body.querySelectorAll("[data-del]").forEach(el=>{
