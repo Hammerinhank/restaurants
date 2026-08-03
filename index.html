@@ -116,6 +116,7 @@
   }
   .list-edit-input{
     width:100%;
+    display:block;
     font:inherit;
     font-size:13.5px;
     padding:4px 6px;
@@ -124,15 +125,26 @@
     margin-bottom:4px;
     box-sizing:border-box;
     touch-action:manipulation; /* évite que le double-tap iOS soit intercepté comme un zoom de page (cf. double-tap plein écran carte) */
-    transition:font-size .12s ease, padding .12s ease, min-height .12s ease;
+    transition:font-size .12s ease, padding .12s ease, height .12s ease;
+    resize:none;
+    overflow:hidden;
+    white-space:nowrap;
+    text-overflow:ellipsis;
+    line-height:1.35;
+    height:26px;
   }
   .list-edit-input:last-child{margin-bottom:0;}
-  .list-edit-input.adr-input{font-size:12px;}
+  .list-edit-input.adr-input{font-size:12px;height:24px;}
   .list-edit-input.expanded{
     font-size:16px; /* >=16px : empêche aussi Safari iOS de zoomer la page au focus */
     padding:10px 12px;
-    min-height:44px;
     border-width:2px;
+    white-space:pre-wrap;
+    word-break:break-word;
+    overflow-y:auto;
+    text-overflow:clip;
+    min-height:70px;
+    height:auto;
   }
 
   #statusLine{
@@ -703,6 +715,13 @@
     });
   }
 
+  // Fait grandir une textarea pour épouser tout son contenu (utilisé pour les champs
+  // d'édition de la liste une fois agrandis, afin d'éditer confortablement les lignes longues).
+  function ajusterHauteurAuto(el){
+    el.style.height = "auto";
+    el.style.height = el.scrollHeight + "px";
+  }
+
   // ---------- Rendu ----------
   function popupHTML(r){
     const dateAff = new Date(r.maj).toLocaleString("fr-FR");
@@ -930,8 +949,8 @@
     body.innerHTML = tries.map(r => {
       const enEdition = editingIds.has(r.id);
       const txtHtml = enEdition
-        ? `<input type="text" class="list-edit-input nom-input" data-field="name" value="${escHtml(r.name || "")}" placeholder="Nom du restaurant">
-           <input type="text" class="list-edit-input adr-input" data-field="address" value="${escHtml(r.address || "")}" placeholder="Adresse">`
+        ? `<textarea class="list-edit-input nom-input" data-field="name" rows="1" placeholder="Nom du restaurant">${escHtml(r.name || "")}</textarea>
+           <textarea class="list-edit-input adr-input" data-field="address" rows="1" placeholder="Adresse">${escHtml(r.address || "")}</textarea>`
         : `<div class="popup-text nom" data-id="${r.id}" data-field="name">${escHtml(r.name || "Nouveau restaurant")}</div>
            <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "adresse non définie")}</div>`;
       return `
@@ -978,11 +997,20 @@
         if(ev.key === "Escape"){ ev.preventDefault(); editingIds.delete(id); rafraichirListe(); }
       });
       // Double-clic/double-tap dans le champ (uniquement possible ici, en mode édition) :
-      // agrandit la zone pour éditer confortablement ; un nouveau double-clic/double-tap
-      // lui redonne sa taille d'origine.
+      // agrandit la zone (passage en textarea multi-lignes qui grandit avec le texte)
+      // pour éditer confortablement ; un nouveau double-clic/double-tap lui redonne sa taille d'origine.
       surDoubleTap(el, ()=>{
         el.classList.toggle("expanded");
+        if(el.classList.contains("expanded")){
+          ajusterHauteurAuto(el);
+        }else{
+          el.style.height = "";
+        }
         el.focus();
+      });
+      // Tant que la zone est agrandie, elle grandit automatiquement avec le texte saisi.
+      el.addEventListener("input", ()=>{
+        if(el.classList.contains("expanded")) ajusterHauteurAuto(el);
       });
     });
     body.querySelectorAll(".popup-text").forEach(el=>{
