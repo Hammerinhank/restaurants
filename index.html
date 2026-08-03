@@ -450,7 +450,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V14";
+  const VERSION = "V15";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -519,6 +519,10 @@
     { v:"V14", resume:[
       "Correction : la recherche du restaurant le plus proche se déclenchait encore trop tôt (2 s après un relâchement) pendant qu'on ajustait la position en plusieurs fois.",
       "Elle n'est désormais lancée qu'à la fin réelle du mode déplacement — sortie automatique après 10 s d'inactivité, reclic sur « Déplacer », ou activation d'un autre restaurant — et seulement si l'icône a effectivement été déplacée."
+    ]},
+    { v:"V15", resume:[
+      "Correction de persistance (1/2) : les suppressions de restaurants ne se propageaient pas via GitHub — un restaurant supprimé sur un appareil pouvait réapparaître au prochain appareil synchronisé. Un suivi des suppressions (horodaté) est désormais inclus dans restaurants.json et appliqué à la fusion.",
+      "Correction de persistance (2/2) : les échecs d'envoi ou de récupération GitHub survenant automatiquement (en arrière-plan, sans action explicite de l'utilisateur) étaient totalement silencieux — l'application semblait synchronisée alors que rien n'avait été transmis. Toute erreur est désormais signalée dans la barre d'état, même lors d'une synchro automatique."
     ]}
   ];
 
@@ -540,11 +544,16 @@
   });
 
   const LS_DATA_KEY = "restaurants.v1";
+  const LS_SUPPR_KEY = "restaurantsSuppressions.v1";
   const LS_CFG_KEY = "restaurantsGithubConfig.v1";
   const FILE_NAME = "restaurants.json";
 
   // ---------- État ----------
   let restaurants = chargerLocal();   // [{id, lat, lon, name, address, maj}]
+  let suppressions = chargerSuppressionsLocal(); // [{id, maj}] — traces des suppressions, pour que
+                                       // celles-ci se propagent bien via GitHub vers les autres appareils
+                                       // (sans cela, un restaurant supprimé sur un appareil peut
+                                       // réapparaître au prochain appareil qui synchronise).
   let cfg = chargerCfg();             // {owner, repo, branch, token}
   let markers = {};                   // id -> L.marker
   let dernierSha = null;              // sha du fichier GitHub connu
@@ -564,6 +573,15 @@
   }
   function sauverLocal(){
     localStorage.setItem(LS_DATA_KEY, JSON.stringify(restaurants));
+  }
+  function chargerSuppressionsLocal(){
+    try{
+      const raw = localStorage.getItem(LS_SUPPR_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+  function sauverSuppressionsLocal(){
+    localStorage.setItem(LS_SUPPR_KEY, JSON.stringify(suppressions));
   }
   function chargerCfg(){
     try{
@@ -839,7 +857,10 @@
     if(id === deplacableId) desactiverDeplacement({rechercher:false});
     if(id === selectedId) selectedId = null;
     restaurants = restaurants.filter(r=>r.id!==id);
+    suppressions = suppressions.filter(s=>s.id!==id);
+    suppressions.push({id, maj: new Date().toISOString()});
     sauverLocal();
+    sauverSuppressionsLocal();
     supprimerMarqueur(id);
     rafraichirListe();
     pousserVersGithubDifféré();
@@ -1283,14 +1304,34 @@
       dernierSha = data.sha;
       const contenu = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g,"")));
       const distants = Array.isArray(contenu.restaurants) ? contenu.restaurants : [];
-      fusionner(distants);
+      const suppressionsDistantes = Array.isArray(contenu.suppressions) ? contenu.suppressions : [];
+      fusionner(distants, suppressionsDistantes);
       if(feedback) statut("Synchronisé depuis GitHub.", "ok");
     }catch(e){
-      if(feedback) statut("Échec de la récupération GitHub : " + e.message, "err");
+      // Toujours signalée, même lors de la synchro automatique et silencieuse au démarrage
+      // (feedback=false) : une erreur de récupération passée sous silence est la cause la plus
+      // probable d'un appareil qui n'affiche pas les mêmes restaurants qu'un autre.
+      statut("Échec de la récupération GitHub : " + e.message, "err");
+      console.error("chargerDepuisGithub:", e);
     }
   }
 
-  function fusionner(distants){
+  // Fusionne les données distantes (GitHub) avec les données locales.
+  // Règle pour les restaurants : dernier écrit gagnant, en comparant les horodatages "maj".
+  // Règle pour les suppressions : une suppression (locale ou distante) l'emporte sur un
+  // restaurant existant tant que ce dernier n'a pas été modifié APRÈS la suppression — c'est
+  // ce qui permet à un restaurant supprimé sur un appareil de disparaître aussi sur les autres,
+  // au lieu de réapparaître au prochain merge (bug corrigé en V15).
+  function fusionner(distants, suppressionsDistantes){
+    // 1) Fusionner les listes de suppressions (par id, on garde l'horodatage le plus récent).
+    const suppressionsParId = new Map(suppressions.map(s=>[s.id, s]));
+    (suppressionsDistantes || []).forEach(s=>{
+      const existante = suppressionsParId.get(s.id);
+      if(!existante || new Date(s.maj||0) > new Date(existante.maj||0)) suppressionsParId.set(s.id, s);
+    });
+    suppressions = Array.from(suppressionsParId.values());
+
+    // 2) Fusionner les restaurants (dernier écrit gagnant par id).
     const parId = new Map(restaurants.map(r=>[r.id, r]));
     distants.forEach(d=>{
       const local = parId.get(d.id);
@@ -1302,8 +1343,17 @@
         if(majDist > majLocal) parId.set(d.id, d);
       }
     });
+
+    // 3) Appliquer les suppressions : un restaurant dont l'horodatage "maj" n'est pas postérieur
+    // à sa suppression est retiré (que la suppression soit locale ou distante).
+    suppressionsParId.forEach((s, id)=>{
+      const r = parId.get(id);
+      if(r && new Date(r.maj||0) <= new Date(s.maj||0)) parId.delete(id);
+    });
+
     restaurants = Array.from(parId.values());
     sauverLocal();
+    sauverSuppressionsLocal();
     toutRedessiner();
   }
 
@@ -1321,7 +1371,7 @@
     }
     if(feedback) statut("Envoi vers GitHub…");
     try{
-      const contenu = {restaurants, maj: new Date().toISOString()};
+      const contenu = {restaurants, suppressions, maj: new Date().toISOString()};
       const body = {
         message: "Mise à jour restaurants.json",
         content: b64EncodeUnicode(JSON.stringify(contenu, null, 2)),
@@ -1353,7 +1403,12 @@
       dernierSha = data.content.sha;
       if(feedback) statut("Envoyé vers GitHub.", "ok");
     }catch(e){
-      if(feedback) statut("Échec de l'envoi GitHub : " + e.message, "err");
+      // Toujours signalée : un envoi automatique qui échoue silencieusement (mauvais jeton,
+      // dépôt introuvable, coupure réseau…) fait croire que les modifications sont sauvegardées
+      // alors qu'elles ne quittent jamais l'appareil — c'est la cause la plus probable de
+      // divergence entre l'iMac et l'iPhone.
+      statut("Échec de l'envoi GitHub : " + e.message, "err");
+      console.error("pousserVersGithub:", e);
     }
   }
 
