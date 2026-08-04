@@ -121,10 +121,10 @@
       "id": "r_msewv76w_3mn2b1",
       "lat": 48.8432892,
       "lon": 2.3217021,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Tonkatsu-Tombo",
+      "address": "14 Rue de l'Arrivée, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T17:07:25.352Z"
+      "maj": "2026-08-04T17:07:31.022Z"
     }
   ],
   "suppressions": [
@@ -332,5 +332,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T17:07:26.586Z"
+  "maj": "2026-08-04T17:07:32.225Z"
 }
