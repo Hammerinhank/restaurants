@@ -524,8 +524,9 @@
     padding-top:6px;
     border-top:1px solid var(--line);
   }
-  .popup-actions .btn-danger{display:none;}
-  body.mode-modif .popup-actions .btn-danger{display:inline-block;}
+  .popup-actions-right{display:flex;gap:6px;align-items:center;}
+  .popup-actions .btn-danger, .popup-actions .btn-edit{display:none;}
+  body.mode-modif .popup-actions .btn-danger, body.mode-modif .popup-actions .btn-edit{display:inline-block;}
   .popup-date{font-size:10px;color:var(--muted);}
 
   /* Modale de confirmation */
@@ -1369,7 +1370,10 @@
       ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">${texteLienMaps}</a>` : ""}
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
-        <button class="btn-danger" data-del="${r.id}">Supprimer</button>
+        <div class="popup-actions-right">
+          <button class="btn-edit" data-editpopup="${r.id}">✏️ Edit</button>
+          <button class="btn-danger" data-del="${r.id}">Supprimer</button>
+        </div>
       </div>
     `;
   }
@@ -1568,7 +1572,8 @@
   }
 
   function brancherEditionPopup(id){
-    const popupEl = document.querySelector(`.popup-text[data-id="${id}"]`)?.closest(".leaflet-popup-content");
+    const popupEl = document.querySelector(`.popup-text[data-id="${id}"]`)?.closest(".leaflet-popup-content")
+      || document.querySelector(`[data-editpopup="${id}"]`)?.closest(".leaflet-popup-content");
     if(!popupEl) return;
     popupEl.querySelectorAll(".popup-text").forEach(el=>{
       el.ondblclick = () => passerEnEdition(el);
@@ -1577,6 +1582,63 @@
     if(delBtn){
       delBtn.onclick = () => supprimerRestaurant(delBtn.getAttribute("data-del"));
     }
+    const editBtn = popupEl.querySelector(`[data-editpopup="${id}"]`);
+    if(editBtn){
+      editBtn.onclick = (ev) => { ev.stopPropagation(); basculerEditionPopupComplet(id); };
+    }
+  }
+
+  // Bouton "✏️ Edit" du popup (visible en mode Modifier uniquement) : remplace en une seule fois
+  // le nom ET l'adresse par des champs éditables (au lieu du double-clic champ par champ déjà
+  // possible sur chaque ligne). Un nouveau clic sur le même bouton valide les deux champs et
+  // revient à l'affichage normal — même principe que le bouton "Edit" de la liste latérale.
+  function basculerEditionPopupComplet(id){
+    const r = restaurants.find(x=>x.id===id);
+    if(!r) return;
+    const popupEl = document.querySelector(`[data-editpopup="${id}"]`)?.closest(".leaflet-popup-content");
+    if(!popupEl) return;
+
+    const enEdition = !!popupEl.querySelector(".popup-edit");
+    if(enEdition){
+      // Valider : lire les champs en cours d'édition, sauvegarder, revenir à l'affichage.
+      const nomInput = popupEl.querySelector('.popup-edit[data-field="name"]');
+      const adrInput = popupEl.querySelector('.popup-edit[data-field="address"]');
+      if(nomInput) r.name = nomInput.value.trim();
+      if(adrInput) r.address = adrInput.value.trim();
+      r.maj = new Date().toISOString();
+      sauverLocal();
+      redessinerMarqueur(r);
+      const m = markers[id];
+      if(m) m.openPopup();
+      rafraichirListe();
+      pousserVersGithubDifféré();
+      return;
+    }
+
+    // Passer en édition : chaque champ affiché (nom, adresse) devient un input texte.
+    ["name","address"].forEach(field=>{
+      const el = popupEl.querySelector(`.popup-text[data-field="${field}"]`);
+      if(!el) return;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "popup-edit";
+      input.setAttribute("data-field", field);
+      input.value = r[field] || "";
+      input.addEventListener("keydown",(ev)=>{
+        if(ev.key === "Enter"){ ev.preventDefault(); basculerEditionPopupComplet(id); }
+        if(ev.key === "Escape"){
+          ev.preventDefault();
+          redessinerMarqueur(r);
+          const m = markers[id];
+          if(m) m.openPopup();
+        }
+      });
+      el.replaceWith(input);
+    });
+    const btn = popupEl.querySelector(`[data-editpopup="${id}"]`);
+    if(btn) btn.textContent = "✅ OK";
+    const nomInput = popupEl.querySelector('.popup-edit[data-field="name"]');
+    if(nomInput){ nomInput.focus(); nomInput.select(); }
   }
 
   function passerEnEdition(el){
