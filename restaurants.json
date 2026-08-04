@@ -32,8 +32,8 @@
       "lat": 48.8341716,
       "lon": 2.2954608,
       "name": "IZAKKI - Ramen & Izakaya",
-      "address": "47 Rue Olivier de Serres, 75015 Paris",
-      "maj": "2026-08-04T16:45:18.511Z",
+      "address": "49 Rue Olivier de Serres, 75015 Paris",
+      "maj": "2026-08-04T16:47:14.381Z",
       "liste": "Paris"
     },
     {
@@ -314,5 +314,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T16:45:19.716Z"
+  "maj": "2026-08-04T16:47:15.596Z"
 }
