@@ -131,9 +131,9 @@
       "lat": 48.8339331293717,
       "lon": 2.295537171506401,
       "name": "Nouveau restaurant",
-      "address": "",
+      "address": "5 Rue Robert Lindet, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T19:42:22.609Z"
+      "maj": "2026-08-04T19:42:34.233Z"
     }
   ],
   "suppressions": [
@@ -341,5 +341,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T19:42:23.917Z"
+  "maj": "2026-08-04T19:42:35.435Z"
 }
