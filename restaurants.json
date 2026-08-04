@@ -125,15 +125,6 @@
       "address": "14 Rue de l'Arrivée, 75015 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T17:07:31.022Z"
-    },
-    {
-      "id": "r_msf2eh01_qdmyv0",
-      "lat": 48.8339331293717,
-      "lon": 2.295537171506401,
-      "name": "Nouveau restaurant",
-      "address": "5 Rue Robert Lindet, 75015 Paris",
-      "liste": "Paris",
-      "maj": "2026-08-04T19:42:34.233Z"
     }
   ],
   "suppressions": [
@@ -332,6 +323,10 @@
     {
       "id": "r_mseukd34_j736s6",
       "maj": "2026-08-04T16:08:27.235Z"
+    },
+    {
+      "id": "r_msf2eh01_qdmyv0",
+      "maj": "2026-08-04T20:09:30.913Z"
     }
   ],
   "listes": [
@@ -341,5 +336,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T19:43:35.257Z"
+  "maj": "2026-08-04T20:09:30.919Z"
 }
