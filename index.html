@@ -201,6 +201,41 @@
     min-width:0;
   }
 
+  /* Panneau de debug (temporaire) — pleine largeur, sous #main. Reste visible même en mode
+     plein écran carte : c'est justement ce cas qu'il sert à déboguer. */
+  #debugLogPanel{
+    flex:0 0 auto;
+    width:100%;
+    box-sizing:border-box;
+    border-top:2px solid #d97706;
+    background:#1e1e1e;
+    color:#d4d4d4;
+  }
+  #debugLogHeader{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:6px 10px;
+    font-size:12px;
+    font-weight:600;
+    color:#facc15;
+    background:#111;
+  }
+  #debugLogHeader button{
+    margin-left:auto;
+  }
+  #debugLogBody{
+    height:22vh;
+    overflow-y:auto;
+    padding:6px 10px 10px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+    font-size:11px;
+    line-height:1.5;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  #debugLogBody.flash{ background:#2b2b1a; }
+
   /* Mode plein écran de la carte (basculé au double-clic/double-tap sur la carte) */
   body.map-fullscreen header,
   body.map-fullscreen #statusLine,
@@ -518,6 +553,17 @@
   </div>
 </div>
 
+<!-- Panneau de debug (temporaire) : journalise chaque clic/tap sur l'écran avec des informations
+     utiles au diagnostic. Double-clic/double-tap dedans pour copier tout le journal dans le
+     presse-papier. Reste visible même en plein écran carte (utile pour déboguer justement ce cas). -->
+<div id="debugLogPanel">
+  <div id="debugLogHeader">
+    🐞 Debug — <span id="debugLogCount">0</span> ligne(s) — double-clic pour copier
+    <button class="btn-ghost btn-small" id="btnDebugLogClear">Effacer</button>
+  </div>
+  <div id="debugLogBody"></div>
+</div>
+
 <div class="modal-overlay" id="attenteOverlay">
   <div class="modal-box modal-box-attente">
     <div class="spinner" aria-hidden="true"></div>
@@ -582,7 +628,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V21";
+  const VERSION = "V22";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -679,6 +725,9 @@
     ]},
     { v:"V21", resume:[
       "Correction : ce clic à proximité d'une icône ne fonctionnait pas sur iPhone (fonctionnait sur Mac). Cause probable — la position du clic était mémorisée en pixels écran, mais sur iOS Safari la barre d'adresse peut se réduire/apparaître pendant le court délai d'attente (350 ms, le temps de vérifier qu'il ne s'agit pas d'un double-tap), décalant les coordonnées écran de la carte. La position du clic est désormais mémorisée en coordonnées géographiques (latitude/longitude, invariantes) et reconvertie en pixels seulement au moment de la vérification, dans le même référentiel que les icônes à cet instant."
+    ]},
+    { v:"V22", resume:[
+      "Ajout (temporaire) d'un panneau de debug pleine largeur sous la liste des restaurants : chaque clic/tap sur l'écran y ajoute une ligne numérotée et horodatée avec des informations de diagnostic (élément visé, position, taille de fenêtre/viewport visuel ; pour les clics sur la carte : latlng, point écran, position/taille du conteneur carte, distance à chaque icône visible, seuil de sélection). Un double-clic/double-tap dans le panneau copie tout le journal dans le presse-papier ; un bouton « Effacer » vide le journal. Reste visible même en mode plein écran carte."
     ]}
   ];
 
@@ -808,6 +857,66 @@
     sel.value = listeActuelle;
   }
 
+  // ---------- Journal de debug ----------
+  // Panneau temporaire pleine largeur sous la liste : une ligne numérotée à chaque clic/tap
+  // sur l'écran, avec les informations utiles au diagnostic du bug "clic proche d'une icône
+  // sans effet sur iPhone". Double-clic/double-tap dans le panneau pour copier tout le journal.
+  let debugLogCompteur = 0;
+  function debugLog(msg){
+    debugLogCompteur++;
+    const d = new Date();
+    const heure = d.toTimeString().slice(0,8) + "." + String(d.getMilliseconds()).padStart(3,"0");
+    const ligne = `#${debugLogCompteur} [${heure}] ${msg}`;
+    const zone = document.getElementById("debugLogBody");
+    if(zone){
+      zone.textContent += (zone.textContent ? "\n" : "") + ligne;
+      zone.scrollTop = zone.scrollHeight;
+    }
+    const cpt = document.getElementById("debugLogCount");
+    if(cpt) cpt.textContent = debugLogCompteur;
+  }
+  document.addEventListener("click", (ev)=>{
+    const cible = ev.target;
+    const idOuClasse = cible.id ? "#" + cible.id : (cible.className && typeof cible.className === "string" && cible.className.trim() ? "." + cible.className.trim().split(/\s+/)[0] : "");
+    const vv = window.visualViewport;
+    debugLog(
+      `clic DOM sur <${(cible.tagName||"?").toLowerCase()}${idOuClasse ? " " + idOuClasse : ""}> @ (${Math.round(ev.clientX)},${Math.round(ev.clientY)})` +
+      ` — fenêtre ${window.innerWidth}x${window.innerHeight}` +
+      (vv ? `, visualViewport ${Math.round(vv.width)}x${Math.round(vv.height)} décalage(${Math.round(vv.offsetLeft)},${Math.round(vv.offsetTop)})` : "") +
+      `, scroll(${Math.round(window.scrollX)},${Math.round(window.scrollY)}), dpr=${window.devicePixelRatio}`
+    );
+  }, true);
+  document.getElementById("debugLogBody").addEventListener("dblclick", async ()=>{
+    const zone = document.getElementById("debugLogBody");
+    const texte = zone.textContent || "";
+    try{
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(texte);
+      }else{
+        // Repli pour les contextes sans Clipboard API (ex. page non servie en HTTPS)
+        const ta = document.createElement("textarea");
+        ta.value = texte;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      }
+      zone.classList.add("flash");
+      setTimeout(()=> zone.classList.remove("flash"), 400);
+      debugLog("(journal copié dans le presse-papier)");
+    }catch(e){
+      debugLog("(échec de la copie : " + e.message + ")");
+    }
+  });
+  document.getElementById("btnDebugLogClear").addEventListener("click", ()=>{
+    debugLogCompteur = 0;
+    document.getElementById("debugLogBody").textContent = "";
+    document.getElementById("debugLogCount").textContent = "0";
+  });
+
   // ---------- Statut ----------
   let statusTimer = null;
   function statut(msg, type){
@@ -842,6 +951,7 @@
       clearTimeout(mapClicTimer);
       mapClicTimer = null;
       mapClicLatLng = null;
+      debugLog("clic carte : 2e clic confirmé → double-clic → bascule plein écran");
       document.body.classList.toggle("map-fullscreen");
       // Laisser le temps au reflow (en-tête/liste masqués ou réaffichés) avant de recalculer
       // la taille interne de la carte, sinon Leaflet garde l'ancienne taille et affiche des tuiles manquantes.
@@ -855,6 +965,13 @@
       // bouge pas : on reconvertit tout en pixels au moment de l'exécution, dans le même
       // référentiel que les icônes à cet instant-là.
       mapClicLatLng = ev.latlng;
+      const rectAuClic = map.getContainer().getBoundingClientRect();
+      debugLog(
+        `clic carte : 1er clic — latlng=(${ev.latlng.lat.toFixed(6)},${ev.latlng.lng.toFixed(6)}), ` +
+        `containerPoint=(${ev.containerPoint.x.toFixed(0)},${ev.containerPoint.y.toFixed(0)}), ` +
+        `conteneur carte @ (${rectAuClic.left.toFixed(0)},${rectAuClic.top.toFixed(0)}) ${rectAuClic.width.toFixed(0)}x${rectAuClic.height.toFixed(0)} — ` +
+        `attente ${MAP_DBLCLIC_DELAI}ms pour confirmer clic simple…`
+      );
       mapClicTimer = setTimeout(()=>{
         mapClicTimer = null;
         selectionnerRestoProcheDuClic(mapClicLatLng);
@@ -890,20 +1007,37 @@
   // icônes sont proches les unes des autres (on ouvre alors celle la plus proche du clic).
   const RAYON_CLIC_PROCHE_PX = 40; // tolérance en pixels écran autour du point cliqué
   function selectionnerRestoProcheDuClic(latlngClic){
-    if(!latlngClic) return;
+    if(!latlngClic){
+      debugLog("clic carte (différé) : pas de latlng mémorisé, abandon.");
+      return;
+    }
     const pointClic = map.latLngToContainerPoint(latlngClic);
+    const rect = map.getContainer().getBoundingClientRect();
+    const nbMarqueurs = Object.keys(markers).length;
     let meilleurId = null;
     let meilleureDistance = Infinity;
+    const detail = [];
     Object.keys(markers).forEach(id=>{
       const pointMarqueur = map.latLngToContainerPoint(markers[id].getLatLng());
       const d = pointClic.distanceTo(pointMarqueur);
+      const r = restaurants.find(x=>x.id===id);
+      detail.push(`"${(r && r.name) || id}"=${d.toFixed(0)}px`);
       if(d < meilleureDistance){
         meilleureDistance = d;
         meilleurId = id;
       }
     });
+    const meilleurResto = meilleurId ? restaurants.find(x=>x.id===meilleurId) : null;
+    debugLog(
+      `clic carte (différé, ${MAP_DBLCLIC_DELAI}ms plus tard) : point écran recalculé=(${pointClic.x.toFixed(0)},${pointClic.y.toFixed(0)}), ` +
+      `conteneur carte @ (${rect.left.toFixed(0)},${rect.top.toFixed(0)}) ${rect.width.toFixed(0)}x${rect.height.toFixed(0)}, ` +
+      `${nbMarqueurs} icône(s) affichée(s)` + (detail.length ? ` [${detail.join(", ")}]` : "")
+    );
     if(meilleurId && meilleureDistance <= RAYON_CLIC_PROCHE_PX){
+      debugLog(`→ sélection retenue : "${(meilleurResto && meilleurResto.name) || meilleurId}" à ${meilleureDistance.toFixed(0)}px (seuil ${RAYON_CLIC_PROCHE_PX}px)`);
       definirSelection(meilleurId);
+    }else{
+      debugLog(`→ aucune icône retenue (plus proche : "${(meilleurResto && meilleurResto.name) || "—"}" à ${isFinite(meilleureDistance) ? meilleureDistance.toFixed(0)+"px" : "∞"}, seuil ${RAYON_CLIC_PROCHE_PX}px)`);
     }
   }
 
@@ -972,7 +1106,10 @@
       m = L.marker([r.lat, r.lon], {icon: iconResto(r.id===selectedId, r.id===deplacableId), draggable:false}).addTo(map);
       markers[r.id] = m;
       m.on("popupopen", ()=> brancherEditionPopup(r.id));
-      m.on("click", ()=> definirSelection(r.id));
+      m.on("click", ()=>{
+        debugLog(`clic direct sur l'icône "${r.name || r.id}" (marker.click Leaflet)`);
+        definirSelection(r.id);
+      });
       m.on("dragend", ()=> gererDeplacement(r.id));
       m.on("drag", ()=> relancerMinuteurDeplacement(r.id));
       if(r.id === deplacableId && m.dragging) m.dragging.enable();
