@@ -83,12 +83,12 @@
     },
     {
       "id": "r_msenypfp_ac9610",
-      "lat": 48.83454979446853,
-      "lon": 2.297637462615954,
+      "lat": 48.83521828640809,
+      "lon": 2.29971885681151,
       "name": "Nouveau restaurant",
       "address": "",
       "liste": "Province",
-      "maj": "2026-08-04T13:01:18.619Z"
+      "maj": "2026-08-04T13:01:22.605Z"
     }
   ],
   "suppressions": [
@@ -240,5 +240,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T12:08:53.716Z",
-  "maj": "2026-08-04T13:01:19.822Z"
+  "maj": "2026-08-04T13:01:23.806Z"
 }
