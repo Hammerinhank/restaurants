@@ -5,8 +5,8 @@
       "lat": 48.835189545257755,
       "lon": 2.296078205108643,
       "name": "Le Mûrier",
-      "address": "Rue Eugène Gibez, 75015 Paris",
-      "maj": "2026-08-03T20:28:03.783Z",
+      "address": "42 Rue Olivier de Serres, 75015 Paris",
+      "maj": "2026-08-04T16:31:32.173Z",
       "liste": "Paris"
     },
     {
@@ -314,5 +314,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T16:30:02.294Z"
+  "maj": "2026-08-04T16:31:33.377Z"
 }
