@@ -82,15 +82,6 @@
       "maj": "2026-08-04T12:41:32.793Z"
     },
     {
-      "id": "r_mserq2i4_lbbvsk",
-      "lat": 48.83393883973587,
-      "lon": 2.2954940909060664,
-      "name": "Art Sushi",
-      "address": "5 Rue Robert Lindet, 75015 Paris",
-      "liste": "Province",
-      "maj": "2026-08-04T14:43:30.952Z"
-    },
-    {
       "id": "r_mseskz9w_edvc2m",
       "lat": 48.8417701,
       "lon": 2.3290046,
@@ -280,6 +271,10 @@
     {
       "id": "r_mserqj4z_lyq6qm",
       "maj": "2026-08-04T15:24:18.712Z"
+    },
+    {
+      "id": "r_mserq2i4_lbbvsk",
+      "maj": "2026-08-04T15:24:21.681Z"
     }
   ],
   "listes": [
@@ -289,5 +284,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T15:24:05.741Z",
-  "maj": "2026-08-04T15:24:18.715Z"
+  "maj": "2026-08-04T15:24:21.682Z"
 }
