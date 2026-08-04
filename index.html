@@ -133,6 +133,15 @@
     color:#fff;
     border-color:var(--accent);
   }
+  .btn-locate{
+    background:transparent;
+    color:var(--muted);
+    border:1px solid var(--line);
+    padding:5px 9px;
+    font-size:12px;
+    flex:none;
+  }
+  .btn-locate:disabled{opacity:.55;cursor:default;}
   .list-edit-input{
     width:100%;
     display:block;
@@ -1583,6 +1592,7 @@
         <div class="actions">
           <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}">Edit</button>
           <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
+          <button class="btn-locate" data-locate="${r.id}" title="Déplacer l'icône sur la carte à l'adresse saisie"${(r.address||"").trim() ? "" : " disabled"}>📍 Adresse</button>
           <button class="btn-danger" data-del="${r.id}">✕</button>
         </div>
       </div>
@@ -1605,6 +1615,12 @@
       el.addEventListener("click",(ev)=>{
         ev.stopPropagation();
         activerDeplacement(el.getAttribute("data-move"));
+      });
+    });
+    body.querySelectorAll("[data-locate]").forEach(el=>{
+      el.addEventListener("click",(ev)=>{
+        ev.stopPropagation();
+        localiserSurCarte(el.getAttribute("data-locate"));
       });
     });
     body.querySelectorAll("[data-del]").forEach(el=>{
@@ -1699,6 +1715,59 @@
     Object.keys(markers).forEach(supprimerMarqueur);
     restaurants.filter(r => (r.liste||"") === listeActuelle).forEach(redessinerMarqueur);
     rafraichirListe();
+  }
+
+  // ---------- Localisation d'une icône à partir de l'adresse saisie (mode Modifier) ----------
+  // Géocodage "direct" (adresse → coordonnées), via Nominatim, à l'inverse de reverseGeocode
+  // ci-dessous qui fait l'opération inverse (coordonnées → adresse). Retourne {lat, lon} du
+  // premier résultat, ou null si l'adresse n'a pu être localisée.
+  async function geocodeAdresse(adresse, signal){
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(adresse)}&limit=1&accept-language=fr`;
+    const res = await fetchAvecDelai(url, { headers: { "Accept": "application/json" } }, 8000, signal);
+    if(!res.ok) throw new Error("Nominatim HTTP " + res.status);
+    const data = await res.json();
+    if(!Array.isArray(data) || data.length === 0) return null;
+    const lat = parseFloat(data[0].lat);
+    const lon = parseFloat(data[0].lon);
+    if(!isFinite(lat) || !isFinite(lon)) return null;
+    return { lat, lon };
+  }
+
+  // Bouton "📍 Adresse" de la liste (visible en mode Modifier) : géocode l'adresse actuellement
+  // saisie pour ce restaurant et, si elle est identifiable, déplace son icône sur la carte à
+  // l'emplacement trouvé — sans passer par le glisser-déposer manuel du bouton "Déplacer".
+  async function localiserSurCarte(id){
+    const r = restaurants.find(x=>x.id===id);
+    if(!r) return;
+    const adresse = (r.address||"").trim();
+    if(!adresse){
+      statut("Aucune adresse saisie pour ce restaurant.", "err");
+      return;
+    }
+    const btn = document.querySelector(`[data-locate="${id}"]`);
+    if(btn) btn.disabled = true;
+    statut(`Recherche de « ${adresse} »…`);
+    try{
+      const pos = await geocodeAdresse(adresse);
+      if(!pos){
+        statut("Adresse introuvable sur la carte (Nominatim n'a renvoyé aucun résultat).", "err");
+        return;
+      }
+      r.lat = pos.lat;
+      r.lon = pos.lon;
+      r.maj = new Date().toISOString();
+      sauverLocal();
+      redessinerMarqueur(r);
+      rafraichirListe();
+      pousserVersGithubDifféré();
+      const m = markers[id];
+      if(m) map.setView(m.getLatLng(), Math.max(map.getZoom(), 16), {animate:true});
+      statut("Icône déplacée à l'adresse trouvée.", "ok");
+    }catch(e){
+      statut("Échec de la recherche d'adresse : " + e.message, "err");
+    }finally{
+      if(btn) btn.disabled = !adresse;
+    }
   }
 
   // ---------- Reverse geocoding (Nominatim) ----------
