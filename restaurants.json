@@ -71,6 +71,15 @@
       "address": "25 Rue Le Peletier, 75009 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T11:11:50.048Z"
+    },
+    {
+      "id": "r_msek6a1l_wzz7qe",
+      "lat": 48.87306526473138,
+      "lon": 2.3395255208015313,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Paris",
+      "maj": "2026-08-04T11:12:07.257Z"
     }
   ],
   "suppressions": [
@@ -205,5 +214,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T11:11:51.254Z"
+  "maj": "2026-08-04T11:12:08.486Z"
 }
