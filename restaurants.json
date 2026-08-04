@@ -103,10 +103,10 @@
       "id": "r_mseve5no_dxe7we",
       "lat": 48.8359233,
       "lon": 2.2940579,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Le Cambodge",
+      "address": "2 Rue Leriche, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T16:26:10.596Z"
+      "maj": "2026-08-04T16:26:18.315Z"
     }
   ],
   "suppressions": [
@@ -314,5 +314,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T16:26:11.826Z"
+  "maj": "2026-08-04T16:26:19.521Z"
 }
