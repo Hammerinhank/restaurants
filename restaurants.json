@@ -71,15 +71,6 @@
       "address": "25 Rue Le Peletier, 75009 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T11:12:26.048Z"
-    },
-    {
-      "id": "r_msem2mq8_iuo2m4",
-      "lat": 48.85193371832403,
-      "lon": 2.340173721313477,
-      "name": "Sétopa",
-      "address": "12 Rue de l'École de Médecine, 75006 Paris",
-      "liste": "Paris",
-      "maj": "2026-08-04T12:05:28.383Z"
     }
   ],
   "suppressions": [
@@ -210,6 +201,10 @@
     {
       "id": "r_msek6a1l_wzz7qe",
       "maj": "2026-08-04T11:12:13.346Z"
+    },
+    {
+      "id": "r_msem2mq8_iuo2m4",
+      "maj": "2026-08-04T12:05:41.022Z"
     }
   ],
   "listes": [
@@ -218,5 +213,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T12:05:29.587Z"
+  "maj": "2026-08-04T12:05:41.025Z"
 }
