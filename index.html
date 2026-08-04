@@ -1016,10 +1016,17 @@
   // Affiche/masque le bouton "Modifier" selon les conditions d'accès, et referme le mode
   // Modifier s'il était actif alors que les conditions ne sont plus remplies (ex. jeton
   // effacé ou invalide sur cet appareil).
-  function majAccesModifier(){
+  // fermerSiRefuse=false : ne PAS refermer mode-modif même si l'accès n'est pas (encore) autorisé.
+  // Utilisé uniquement pour l'appel initial au démarrage (voir plus bas), où tokenFonctionnel
+  // vaut encore false par défaut le temps que la vérification asynchrone auprès de GitHub
+  // aboutisse — sans ça, sur iPhone, l'état "Modifier" tout juste restauré après le rechargement
+  // de page (voir reappliquerEtatModifApresRechargement) était aussitôt refermé par cet appel,
+  // avant même que le jeton n'ait pu être confirmé valide (effet de bord observé : le mode
+  // Modifier s'affichait une fraction de seconde puis se refermait tout seul).
+  function majAccesModifier(fermerSiRefuse = true){
     const autorise = tokenFonctionnel || accesModifDebloque;
     document.body.classList.toggle("peut-modifier", autorise);
-    if(!autorise && document.body.classList.contains("mode-modif")){
+    if(!autorise && fermerSiRefuse && document.body.classList.contains("mode-modif")){
       document.body.classList.remove("mode-modif");
       const btnMod = document.getElementById("btnModifier");
       if(btnMod) btnMod.classList.remove("active");
@@ -2893,7 +2900,10 @@
 
   // ---------- Démarrage ----------
   verifierDeblocageParNom(); // au cas où un restaurant "github" existait déjà avant cette fonctionnalité
-  majAccesModifier();        // état initial du bouton "Modifier" (sera re-vérifié via l'API ci-dessous si un jeton est configuré)
+  majAccesModifier(false);   // état initial du bouton "Modifier" (sera re-vérifié via l'API ci-dessous si
+                              // un jeton est configuré) — fermerSiRefuse=false pour ne pas annuler un
+                              // mode-modif tout juste restauré après le rechargement iPhone (voir
+                              // reappliquerEtatModifApresRechargement et le commentaire de majAccesModifier).
   remplirSelectListeActuelle();
   recalerTailleCarteDifféré("démarrage");
   toutRedessiner();
