@@ -98,6 +98,15 @@
       "address": "Allée Joseph Récamier, 75015 Paris",
       "liste": "Province",
       "maj": "2026-08-04T14:47:59.949Z"
+    },
+    {
+      "id": "r_msesb4qr_4dudtv",
+      "lat": 48.83393883973587,
+      "lon": 2.2954940909060664,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "",
+      "maj": "2026-08-04T14:59:50.595Z"
     }
   ],
   "suppressions": [
@@ -261,5 +270,5 @@
   ],
   "listeActuelle": "",
   "listeActuelleMaj": "2026-08-04T14:54:30.820Z",
-  "maj": "2026-08-04T14:59:44.077Z"
+  "maj": "2026-08-04T14:59:51.808Z"
 }
