@@ -40,10 +40,10 @@
       "id": "r_mseg6kdw_9jm3m3",
       "lat": 48.84348564724833,
       "lon": 2.293642078620906,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Gioco",
+      "address": "3 Rue Mademoiselle, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T09:20:22.196Z"
+      "maj": "2026-08-04T09:20:28.472Z"
     }
   ],
   "suppressions": [
@@ -154,5 +154,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T09:20:23.423Z"
+  "maj": "2026-08-04T09:20:29.673Z"
 }
