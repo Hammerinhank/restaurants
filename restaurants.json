@@ -31,9 +31,9 @@
       "id": "r_msd0ybgh_23mpkv",
       "lat": 48.8341716,
       "lon": 2.2954608,
-      "name": "Art Sushi",
+      "name": "",
       "address": "53 Rue Olivier de Serres, 75015 Paris",
-      "maj": "2026-08-04T16:28:25.795Z",
+      "maj": "2026-08-04T16:33:44.785Z",
       "liste": "Paris"
     },
     {
@@ -314,5 +314,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T16:31:35.522Z"
+  "maj": "2026-08-04T16:33:45.997Z"
 }
