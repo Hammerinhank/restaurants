@@ -89,15 +89,6 @@
       "address": "1 Rue Delambre, 75014 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T15:08:00.228Z"
-    },
-    {
-      "id": "r_mseu66wn_ydi1bv",
-      "lat": 51.6015239,
-      "lon": 113.0474762,
-      "name": "Nouveau restaurant",
-      "address": "",
-      "liste": "Province",
-      "maj": "2026-08-04T15:51:59.351Z"
     }
   ],
   "suppressions": [
@@ -288,6 +279,10 @@
     {
       "id": "r_msetb5oi_23ycoz",
       "maj": "2026-08-04T15:28:04.480Z"
+    },
+    {
+      "id": "r_mseu66wn_ydi1bv",
+      "maj": "2026-08-04T15:52:30.850Z"
     }
   ],
   "listes": [
@@ -297,5 +292,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T15:24:05.741Z",
-  "maj": "2026-08-04T15:52:00.669Z"
+  "maj": "2026-08-04T15:52:30.851Z"
 }
