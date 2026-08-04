@@ -62,15 +62,6 @@
       "address": "16 Boulevard Saint-Germain, 75005 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T10:29:13.670Z"
-    },
-    {
-      "id": "r_msek2anf_avfbed",
-      "lat": 48.873037626095076,
-      "lon": 2.3394209146499505,
-      "name": "Au Petit Riche",
-      "address": "75009 Paris",
-      "liste": "Paris",
-      "maj": "2026-08-04T11:09:13.284Z"
     }
   ],
   "suppressions": [
@@ -189,6 +180,10 @@
     {
       "id": "r_msegin31_ujuxd0",
       "maj": "2026-08-04T09:30:06.107Z"
+    },
+    {
+      "id": "r_msek2anf_avfbed",
+      "maj": "2026-08-04T11:09:24.853Z"
     }
   ],
   "listes": [
@@ -197,5 +192,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T11:09:14.487Z"
+  "maj": "2026-08-04T11:09:24.855Z"
 }
