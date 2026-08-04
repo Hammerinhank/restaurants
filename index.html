@@ -81,8 +81,8 @@
     color:var(--ink);
     border:1px solid var(--line);
   }
-  #btnSettings, #btnDiagTest{display:none;}
-  body.mode-modif #btnSettings, body.mode-modif #btnDiagTest{display:inline-block;}
+  #btnSettings, #btnDiagTest, #btnPresseCollePapier{display:none;}
+  body.mode-modif #btnSettings, body.mode-modif #btnDiagTest, body.mode-modif #btnPresseCollePapier{display:inline-block;}
   #chkAfficherLogWrap{
     display:none;
     align-items:center;
@@ -444,7 +444,8 @@
     #hbreak2{order:7;}
     #btnSettings{order:8;}
     #btnDiagTest{order:9;}
-    #chkAfficherLogWrap{order:10;}
+    #btnPresseCollePapier{order:10;}
+    #chkAfficherLogWrap{order:11;}
   }
 
   /* Marker */
@@ -563,9 +564,10 @@
     font-size:12px;color:var(--muted);
     margin-bottom:10px;
   }
-  .modal-box input, .modal-box select{
+  .modal-box input, .modal-box select, .modal-box textarea{
     font:inherit;padding:8px 9px;border:1px solid var(--line);border-radius:7px;background:#fff;
   }
+  .modal-box textarea{resize:vertical;min-height:70px;}
   .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px;}
   .modal-actions-centre{justify-content:center;margin-top:14px;}
 
@@ -611,6 +613,7 @@
   <div class="spacer"></div>
   <button class="btn-ghost" id="btnSettings">⚙️ GitHub</button>
   <button class="btn-ghost" id="btnDiagTest" title="Diagnostic réseau détaillé (Overpass, géolocalisation, etc.)">🔧 Test</button>
+  <button class="btn-ghost" id="btnPresseCollePapier" title="Créer un restaurant à partir d'une adresse copiée dans le presse-papier">📋 Depuis presse-papier</button>
   <button class="btn-ghost" id="btnModifier">✏️ Modifier</button>
   <label id="chkAfficherLogWrap" title="Afficher/masquer le panneau de debug en bas de l'écran">
     <input type="checkbox" id="chkAfficherLog"> 🐞 Log
@@ -702,6 +705,20 @@
   </div>
 </div>
 
+<div class="modal-overlay" id="adresseModalOverlay">
+  <div class="modal-box">
+    <h3>Adresse non reconnue</h3>
+    <div class="modal-hint" id="adresseModalHint">Le contenu du presse-papier n'a pas été reconnu comme une adresse.</div>
+    <label>Texte
+      <textarea id="adresseModalTexte" rows="4"></textarea>
+    </label>
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="adresseModalAnnuler">Annuler</button>
+      <button class="btn-primary btn-small" id="adresseModalResoumettre">Réessayer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Bloc TEST/DIAGNOSTIC : modale de rapport (ajoutée) ===== -->
 <div class="modal-overlay" id="diagOverlay">
   <div class="modal-box modal-box-diag">
@@ -734,7 +751,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V31";
+  const VERSION = "V33";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -862,6 +879,14 @@
     ]},
     { v:"V31", resume:[
       "L'appui long (iPhone) / clic long (iMac) sur la carte pour ajouter un restaurant n'est désormais actif qu'en mode Modifier ; hors mode Modifier, un appui/clic prolongé sur la carte reste sans aucun effet (aucun minuteur ne démarre)."
+    ]},
+    { v:"V32", resume:[
+      "La case « 🐞 Log » n'est plus mémorisée entre sessions : elle repart systématiquement décochée à chaque chargement de la page."
+    ]},
+    { v:"V33", resume:[
+      "Nouveau bouton « 📋 Depuis presse-papier » (visible en mode Modifier) : lit le contenu du presse-papier et tente de le géocoder comme une adresse.",
+      "Si l'adresse est reconnue : recherche des 5 restaurants les plus proches (comme pour le bouton « Nouveau restaurant ») et boîte de dialogue de confirmation habituelle ; le restaurant choisi (nom + adresse) crée la nouvelle entrée, ou « Nouveau restaurant » avec l'adresse seule si aucun nom n'est trouvé à proximité.",
+      "Si le contenu n'est pas reconnu comme une adresse (ou en cas d'échec réseau) : boîte de dialogue dédiée affichant le texte, modifiable, avec un bouton « Réessayer » (resoumet le texte corrigé) et un bouton « Annuler » (abandonne complètement, aucune entrée créée)."
     ]}
   ];
 
@@ -1786,6 +1811,108 @@
     if(!isFinite(lat) || !isFinite(lon)) return null;
     return { lat, lon };
   }
+
+  // ---------- Création d'un restaurant à partir du presse-papier ----------
+  // Boîte de dialogue affichée quand le contenu du presse-papier n'a pas été reconnu comme une
+  // adresse (ou que la recherche a échoué) : le texte est affiché, modifiable, avec un bouton
+  // pour resoumettre la version corrigée et un bouton pour tout annuler.
+  function ouvrirModalAdresseNonReconnue(texte, indice){
+    return new Promise((resolve)=>{
+      const overlay = document.getElementById("adresseModalOverlay");
+      const zone = document.getElementById("adresseModalTexte");
+      const hint = document.getElementById("adresseModalHint");
+      const btnResoumettre = document.getElementById("adresseModalResoumettre");
+      const btnAnnuler = document.getElementById("adresseModalAnnuler");
+
+      zone.value = texte || "";
+      hint.textContent = indice || "Le contenu du presse-papier n'a pas été reconnu comme une adresse.";
+      overlay.classList.add("open");
+      setTimeout(()=>{ zone.focus(); zone.select(); }, 60);
+
+      const nettoyer = () => {
+        overlay.classList.remove("open");
+        btnResoumettre.removeEventListener("click", onResoumettre);
+        btnAnnuler.removeEventListener("click", onAnnuler);
+        overlay.removeEventListener("keydown", onKey);
+      };
+      const onResoumettre = () => {
+        const v = zone.value.trim();
+        nettoyer();
+        resolve({ok:true, texte:v});
+      };
+      const onAnnuler = () => { nettoyer(); resolve({ok:false}); };
+      const onKey = (ev) => {
+        // Pas de soumission sur Entrée (zone multi-lignes) : seule Échap ferme la boîte.
+        if(ev.key === "Escape") onAnnuler();
+      };
+      btnResoumettre.addEventListener("click", onResoumettre);
+      btnAnnuler.addEventListener("click", onAnnuler);
+      overlay.addEventListener("keydown", onKey);
+    });
+  }
+
+  // Tente de géocoder le texte fourni. S'il est reconnu comme une adresse, crée un restaurant
+  // à la position trouvée (recherche des restaurants les plus proches + confirmation, comme le
+  // bouton "Nouveau restaurant"). Sinon, propose de corriger le texte et de resoumettre, ou
+  // d'annuler complètement.
+  async function traiterAdresseDepuisTexte(texteInitial){
+    const btn = document.getElementById("btnPresseCollePapier");
+    let texte = texteInitial;
+    while(true){
+      if(btn) btn.disabled = true;
+      statut(`Recherche de « ${texte} »…`);
+      let pos = null;
+      let erreur = null;
+      try{
+        pos = await geocodeAdresse(texte);
+      }catch(e){
+        erreur = e;
+      }
+      if(btn) btn.disabled = false;
+
+      if(pos){
+        statut("Adresse reconnue, recherche des restaurants à proximité…");
+        await creerRestaurantALaPosition(pos.lat, pos.lon);
+        return;
+      }
+
+      const indice = erreur
+        ? `Échec de la recherche d'adresse : ${erreur.message}`
+        : "Le contenu du presse-papier n'a pas été reconnu comme une adresse.";
+      statut(indice, "err");
+      const choix = await ouvrirModalAdresseNonReconnue(texte, indice);
+      if(!choix.ok){
+        statut("Création annulée.", "");
+        return;
+      }
+      if(!choix.texte){
+        statut("Texte vide, création annulée.", "");
+        return;
+      }
+      texte = choix.texte;
+      // on reboucle avec le texte corrigé
+    }
+  }
+
+  document.getElementById("btnPresseCollePapier").addEventListener("click", async ()=>{
+    if(!navigator.clipboard || !navigator.clipboard.readText){
+      statut("La lecture du presse-papier n'est pas disponible sur cet appareil/navigateur.", "err");
+      return;
+    }
+    let texte;
+    try{
+      texte = await navigator.clipboard.readText();
+    }catch(e){
+      statut("Impossible de lire le presse-papier : " + e.message, "err");
+      return;
+    }
+    texte = (texte || "").trim();
+    if(!texte){
+      statut("Le presse-papier est vide.", "err");
+      return;
+    }
+    await traiterAdresseDepuisTexte(texte);
+  });
 
   // Bouton "📍 Adresse" de la liste (visible en mode Modifier) : géocode l'adresse actuellement
   // saisie pour ce restaurant et, si elle est identifiable, déplace son icône sur la carte à
