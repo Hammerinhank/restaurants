@@ -1354,7 +1354,7 @@
     const estNonIdentifie = (r.name || "Nouveau restaurant") === "Nouveau restaurant";
     const lienMaps = estNonIdentifie
       ? urlGoogleMapsRestaurantsProches(r.lat, r.lon)
-      : urlGoogleMaps(r.name, r.lat, r.lon);
+      : urlGoogleMaps(r.name, r.lat, r.lon, r.address);
     const texteLienMaps = estNonIdentifie
       ? "Voir les restaurants à proximité sur Google Maps ↗"
       : "Voir la fiche sur Google Maps ↗";
@@ -1383,10 +1383,29 @@
       .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
   }
 
-  // Construit l'URL de recherche Google Maps d'un restaurant à partir de son nom et de ses
-  // coordonnées (on ne dispose pas d'identifiant de fiche Google via OpenStreetMap/Overpass).
-  // Utilisée à la fois par le popup de la carte et par la fenêtre de confirmation.
-  function urlGoogleMaps(nom, lat, lon){
+  // Construit l'URL de recherche Google Maps d'un restaurant. Si une adresse est disponible,
+  // on l'utilise telle quelle comme requête : Google Maps positionne alors la carte sur cette
+  // adresse précise plutôt que sur les coordonnées de l'icône (qui peuvent être légèrement
+  // décalées, par ex. après un déplacement manuel sur la carte). À défaut d'adresse, on retombe
+  // sur l'ancien comportement (nom + coordonnées), faute de disposer d'un identifiant de fiche
+  // Google via OpenStreetMap/Overpass. Utilisée à la fois par le popup de la carte et par la
+  // fenêtre de confirmation.
+  // Construit l'URL de recherche Google Maps d'un restaurant. On combine le nom ET l'adresse
+  // dans la requête quand les deux sont disponibles : le nom permet à Google Maps de retrouver
+  // la fiche de l'établissement (avis, photos, horaires) plutôt qu'un simple point sur la carte,
+  // tandis que l'adresse garantit un positionnement précis même si les coordonnées de l'icône
+  // sont légèrement décalées (par ex. après un déplacement manuel sur la carte). Si l'adresse
+  // n'est pas renseignée, on retombe sur nom + coordonnées ; faute de disposer d'un identifiant
+  // de fiche Google via OpenStreetMap/Overpass, on ne peut pas faire mieux qu'une recherche
+  // textuelle. Utilisée à la fois par le popup de la carte et par la fenêtre de confirmation.
+  function urlGoogleMaps(nom, lat, lon, adresse){
+    const adr = (adresse || "").trim();
+    if(adr && nom){
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nom + ", " + adr)}`;
+    }
+    if(adr){
+      return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(adr)}`;
+    }
     if(!nom || lat == null || lon == null) return null;
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nom + " " + lat + "," + lon)}`;
   }
@@ -2169,14 +2188,14 @@
       // Lien vers la fiche Google Maps du restaurant identifié : construit à partir de son nom
       // et de ses coordonnées (recherche Google Maps, faute de disposer d'un identifiant de
       // fiche Google). Masqué si on n'a ni coordonnées ni nom exploitables (aucun restaurant trouvé).
-      const majLienMaps = (n, la, lo) => {
+      const majLienMaps = (n, la, lo, adr) => {
         // Comme dans le popup de la carte : tant que le restaurant n'est pas identifié (nom
         // encore égal au nom par défaut "Nouveau restaurant"), une recherche par nom n'a aucun
         // sens ; on propose à la place une recherche des restaurants à proximité de la position.
         const estNonIdentifie = !n || n === "Nouveau restaurant";
         const url = estNonIdentifie
           ? urlGoogleMapsRestaurantsProches(la, lo)
-          : urlGoogleMaps(n, la, lo);
+          : urlGoogleMaps(n, la, lo, adr);
         if(url){
           lienMaps.href = url;
           lienMaps.textContent = estNonIdentifie
@@ -2187,7 +2206,7 @@
           lienMaps.style.display = "none";
         }
       };
-      majLienMaps(nom, lat, lon);
+      majLienMaps(nom, lat, lon, adresse);
 
       overlay.classList.add("open");
       setTimeout(()=> inputNom.focus(), 60);
@@ -2197,9 +2216,13 @@
         // Choisir une suggestion alternative ne remplace que le nom, jamais l'adresse.
         if(idx !== "" && listeAlt[idx]){
           inputNom.value = listeAlt[idx].nom;
-          majLienMaps(listeAlt[idx].nom, listeAlt[idx].lat, listeAlt[idx].lon);
+          // L'adresse affichée dans le champ n'est volontairement pas modifiée (voir commentaire
+          // ci-dessus), mais on garde le lien Google Maps cohérent avec elle : il pointe donc
+          // toujours sur l'adresse actuellement affichée dans le champ, pas sur celle de
+          // l'alternative choisie.
+          majLienMaps(listeAlt[idx].nom, listeAlt[idx].lat, listeAlt[idx].lon, inputAdr.value);
         }else{
-          majLienMaps(nom, lat, lon);
+          majLienMaps(nom, lat, lon, inputAdr.value);
         }
       };
       const nettoyer = () => {
