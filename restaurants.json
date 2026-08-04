@@ -53,15 +53,6 @@
       "address": "25 Av. de Ségur, 75007 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T09:25:18.859Z"
-    },
-    {
-      "id": "r_msege10p_zfb8qj",
-      "lat": 48.860235179888285,
-      "lon": 2.311449050903334,
-      "name": "Nouveau restaurant",
-      "address": "",
-      "liste": "Paris",
-      "maj": "2026-08-04T09:26:10.345Z"
     }
   ],
   "suppressions": [
@@ -172,6 +163,10 @@
     {
       "id": "r_mseg95tk_8iffq8",
       "maj": "2026-08-04T09:22:42.818Z"
+    },
+    {
+      "id": "r_msege10p_zfb8qj",
+      "maj": "2026-08-04T09:26:14.920Z"
     }
   ],
   "listes": [
@@ -180,5 +175,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T09:26:11.563Z"
+  "maj": "2026-08-04T09:26:14.923Z"
 }
