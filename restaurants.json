@@ -107,6 +107,15 @@
       "address": "2 Rue Leriche, 75015 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T16:26:18.315Z"
+    },
+    {
+      "id": "r_msewpb2b_q01kuw",
+      "lat": 48.8423062,
+      "lon": 2.3280803,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Paris",
+      "maj": "2026-08-04T17:02:50.435Z"
     }
   ],
   "suppressions": [
@@ -314,5 +323,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T16:47:15.596Z"
+  "maj": "2026-08-04T17:02:51.656Z"
 }
