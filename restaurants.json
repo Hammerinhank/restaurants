@@ -62,15 +62,6 @@
       "address": "16 Boulevard Saint-Germain, 75005 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T10:29:13.670Z"
-    },
-    {
-      "id": "r_msek3aii_hlafzs",
-      "lat": 48.87308525862899,
-      "lon": 2.3392912745475773,
-      "name": "Nouveau restaurant",
-      "address": "",
-      "liste": "Paris",
-      "maj": "2026-08-04T11:09:47.898Z"
     }
   ],
   "suppressions": [
@@ -193,6 +184,10 @@
     {
       "id": "r_msek2anf_avfbed",
       "maj": "2026-08-04T11:09:37.150Z"
+    },
+    {
+      "id": "r_msek3aii_hlafzs",
+      "maj": "2026-08-04T11:10:03.429Z"
     }
   ],
   "listes": [
@@ -201,5 +196,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T11:09:49.111Z"
+  "maj": "2026-08-04T11:10:03.432Z"
 }
