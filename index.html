@@ -211,6 +211,7 @@
   #map{
     flex:1 1 auto;
     min-width:0;
+    -webkit-touch-callout:none; /* évite le menu contextuel/la loupe iOS pendant l'appui long (ajout de restaurant) */
   }
 
   /* Panneau de debug (temporaire) — pleine largeur, sous #main. Reste visible même en mode
@@ -670,7 +671,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V28";
+  const VERSION = "V29";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -789,6 +790,9 @@
     ]},
     { v:"V28", resume:[
       "Un clic sur la ligne de titre « Liste (N) nom de la liste » (hors mode Modifier) remplace désormais le nom de la liste par une combo box permettant d'en changer directement, sans passer par le mode Modifier. La substitution se fait en place dans le même titre (juste le nom de la liste est remplacé par la combo, le reste du texte ne bouge pas), sans ajouter de bloc ni changer la hauteur du panneau."
+    ]},
+    { v:"V29", resume:[
+      "Un appui long (doigt, sur iPhone) ou un clic long (souris, sur iMac) sur la carte ajoute désormais un nouveau restaurant exactement comme le bouton « Nouveau restaurant », mais à l'emplacement désigné sur la carte plutôt qu'à la position géolocalisée de l'appareil. Détection volontairement stricte pour ne jamais être confondue avec un clic/tap normal : il faut environ 550 ms d'appui sans relâchement ni déplacement significatif (au delà, c'est considéré comme un pan/scroll et annulé) ; le clic de relâchement qui suit un appui long confirmé est explicitement ignoré, pour ne perturber ni la sélection au clic proche ni le double-clic plein écran."
     ]}
   ];
 
@@ -1041,6 +1045,15 @@
   let mapClicLatLng = null;
   const MAP_DBLCLIC_DELAI = 350; // ms — fenêtre de tolérance entre les deux taps/clics
   map.on("click", (ev)=>{
+    // Un appui/clic long vient d'être traité (voir plus bas) : le relâchement du doigt/bouton
+    // qui suit génère quand même un "click" — on l'ignore ici pour qu'il ne soit jamais confondu
+    // avec un clic normal (ni sélection d'icône proche, ni comptabilisé comme 1er/2e clic du
+    // double-clic plein écran).
+    if(appuiLongVientDeSeDeclencher){
+      appuiLongVientDeSeDeclencher = false;
+      debugLog("clic carte ignoré (suite à un appui long déjà traité juste avant)");
+      return;
+    }
     if(mapClicTimer){
       clearTimeout(mapClicTimer);
       mapClicTimer = null;
@@ -1073,6 +1086,59 @@
       }, MAP_DBLCLIC_DELAI);
     }
   });
+
+  // Appui long (doigt, iPhone) / clic long (souris, iMac) sur la carte : ajoute un nouveau
+  // restaurant exactement comme le bouton "Nouveau restaurant", mais à la position désignée sur
+  // la carte plutôt qu'à la position géolocalisée de l'appareil.
+  //
+  // Détection volontairement stricte pour ne JAMAIS être confondue avec un clic/tap normal :
+  // - basée sur les Pointer Events (unifie souris et tactile, coordonnées clientX/clientY
+  //   disponibles directement dans les deux cas, contrairement aux événements tactiles natifs) ;
+  // - un minuteur de APPUI_LONG_DELAI ms doit s'écouler SANS relâchement ET sans déplacement au
+  //   delà de APPUI_LONG_TOLERANCE_PX avant de déclencher quoi que ce soit ; tout relâchement
+  //   avant l'échéance (clic/tap normal, même long en apparence) n'a donc strictement aucun effet
+  //   ici et suit son cours normal (sélection au clic, double-clic plein écran, etc.) ;
+  // - tout déplacement (glisser/pan de la carte) au delà de la tolérance annule immédiatement le
+  //   minuteur ;
+  // - une fois le minuteur écoulé et l'appui long confirmé, le "click" de relâchement qui suit
+  //   est explicitement ignoré par le gestionnaire ci-dessus (appuiLongVientDeSeDeclencher), pour
+  //   qu'il ne déclenche jamais en plus une sélection d'icône proche ni un comptage de double-clic.
+  const APPUI_LONG_DELAI = 550;          // ms — durée d'appui/clic sans déplacement avant déclenchement
+  const APPUI_LONG_TOLERANCE_PX = 12;    // px — déplacement toléré avant annulation (au delà : pan/scroll, pas un appui long)
+  let appuiLongTimer = null;
+  let appuiLongDepart = null;            // {x,y} en coordonnées écran (clientX/clientY) au moment du pointerdown
+  const mapEl = map.getContainer();
+
+  function annulerAppuiLong(){
+    if(appuiLongTimer){ clearTimeout(appuiLongTimer); appuiLongTimer = null; }
+    appuiLongDepart = null;
+  }
+
+  mapEl.addEventListener("pointerdown", (ev)=>{
+    if(ev.button !== undefined && ev.button !== 0) return; // ignore clic droit / bouton secondaire
+    annulerAppuiLong();
+    appuiLongDepart = {x:ev.clientX, y:ev.clientY};
+    const rect = mapEl.getBoundingClientRect();
+    const latlng = map.containerPointToLatLng(L.point(ev.clientX - rect.left, ev.clientY - rect.top));
+    appuiLongTimer = setTimeout(()=>{
+      appuiLongTimer = null;
+      appuiLongDepart = null;
+      appuiLongVientDeSeDeclencher = true;
+      debugLog(`appui long confirmé sur la carte @ (${latlng.lat.toFixed(6)},${latlng.lng.toFixed(6)}) — ajout d'un nouveau restaurant à cette position`);
+      if(navigator.vibrate) navigator.vibrate(30);
+      statut("Nouveau restaurant ajouté à l'emplacement désigné sur la carte…");
+      creerRestaurantALaPosition(latlng.lat, latlng.lng, null);
+    }, APPUI_LONG_DELAI);
+  });
+  mapEl.addEventListener("pointermove", (ev)=>{
+    if(!appuiLongDepart) return;
+    const dx = ev.clientX - appuiLongDepart.x, dy = ev.clientY - appuiLongDepart.y;
+    if(Math.sqrt(dx*dx + dy*dy) > APPUI_LONG_TOLERANCE_PX) annulerAppuiLong();
+  });
+  ["pointerup","pointercancel","pointerleave"].forEach(nom=> mapEl.addEventListener(nom, annulerAppuiLong));
+  map.on("movestart dragstart zoomstart", annulerAppuiLong); // tout début de pan/zoom annule l'appui long en cours
+  mapEl.addEventListener("contextmenu", (ev)=> ev.preventDefault()); // évite le menu contextuel au clic long (desktop)
+
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
     maxZoom: 19,
     attribution: "&copy; contributeurs OpenStreetMap"
@@ -1934,6 +2000,28 @@
     });
   })();
 
+  // Crée un nouveau restaurant à la position (lat, lon) donnée : ajoute le marqueur, le
+  // sélectionne, sauvegarde/synchronise, puis lance la recherche d'identification (nom/adresse
+  // suggérés). Commune au bouton "Nouveau restaurant" (position = géolocalisation de l'appareil)
+  // et à l'appui/clic long sur la carte (position = point désigné sur la carte).
+  async function creerRestaurantALaPosition(lat, lon, precision){
+    const r = {
+      id: idUnique(),
+      lat, lon,
+      name: "Nouveau restaurant",
+      address: "",
+      liste: listeActuelle,
+      maj: new Date().toISOString()
+    };
+    restaurants.push(r);
+    sauverLocal();
+    redessinerMarqueur(r);
+    definirSelection(r.id);
+    pousserVersGithubDifféré();
+    await identifierEtConfirmer(r, {precision});
+    return r;
+  }
+
   document.getElementById("btnNouveau").addEventListener("click", async ()=>{
     if(!navigator.geolocation){
       statut("La géolocalisation n'est pas disponible sur cet appareil.", "err");
@@ -1944,26 +2032,8 @@
     statut("Localisation en cours…");
 
     navigator.geolocation.getCurrentPosition(async (pos)=>{
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
-      const precision = pos.coords.accuracy;
-      const r = {
-        id: idUnique(),
-        lat, lon,
-        name: "Nouveau restaurant",
-        address: "",
-        liste: listeActuelle,
-        maj: new Date().toISOString()
-      };
-      restaurants.push(r);
-      sauverLocal();
-      redessinerMarqueur(r);
-      definirSelection(r.id);
       btn.disabled = false;
-      pousserVersGithubDifféré();
-
-      await identifierEtConfirmer(r, {precision});
-
+      await creerRestaurantALaPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
     }, (err)=>{
       btn.disabled = false;
       statut("Localisation refusée ou indisponible : " + err.message, "err");
