@@ -94,10 +94,10 @@
       "id": "r_mseuhr48_wrk3zm",
       "lat": 48.4443975,
       "lon": 1.4831709,
-      "name": "Nouveau restaurant",
+      "name": "La Cour Brasserie Chartres",
       "address": "22 Place des Épars, 28000 Chartres",
       "liste": "Province",
-      "maj": "2026-08-04T16:01:22.516Z"
+      "maj": "2026-08-04T16:02:48.825Z"
     }
   ],
   "suppressions": [
@@ -301,5 +301,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T15:24:05.741Z",
-  "maj": "2026-08-04T16:01:28.253Z"
+  "maj": "2026-08-04T16:02:50.029Z"
 }
