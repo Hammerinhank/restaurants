@@ -11,11 +11,11 @@
     },
     {
       "id": "r_msbmjdea_1bfbfc",
-      "lat": 48.845485488309286,
-      "lon": 2.35856294631958,
+      "lat": 48.8446805,
+      "lon": 2.3570893,
       "name": "Les Belles Plantes",
       "address": "Cour Cuvier, 75005 Paris",
-      "maj": "2026-08-03T20:28:10.993Z",
+      "maj": "2026-08-04T16:31:34.317Z",
       "liste": "Paris"
     },
     {
@@ -314,5 +314,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T16:31:33.377Z"
+  "maj": "2026-08-04T16:31:35.522Z"
 }
