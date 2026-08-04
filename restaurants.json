@@ -105,8 +105,8 @@
       "lon": 2.3290046,
       "name": "Le Bistrot du Dôme",
       "address": "1 Rue Delambre, 75014 Paris",
-      "liste": "",
-      "maj": "2026-08-04T15:07:44.442Z"
+      "liste": "Paris",
+      "maj": "2026-08-04T15:08:00.228Z"
     }
   ],
   "suppressions": [
@@ -286,5 +286,5 @@
   ],
   "listeActuelle": "",
   "listeActuelleMaj": "2026-08-04T14:54:30.820Z",
-  "maj": "2026-08-04T15:07:45.644Z"
+  "maj": "2026-08-04T15:08:01.429Z"
 }
