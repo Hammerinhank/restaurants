@@ -95,9 +95,9 @@
       "lat": 48.835171264991125,
       "lon": 2.297015190124499,
       "name": "Les Animés Restaurant",
-      "address": "26 Rue Leriche, 75015 Paris",
+      "address": "Allée Joseph Récamier, 75015 Paris",
       "liste": "Province",
-      "maj": "2026-08-04T14:47:19.584Z"
+      "maj": "2026-08-04T14:47:41.373Z"
     }
   ],
   "suppressions": [
@@ -257,5 +257,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T13:13:03.982Z",
-  "maj": "2026-08-04T14:47:20.785Z"
+  "maj": "2026-08-04T14:47:42.577Z"
 }
