@@ -582,7 +582,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V20";
+  const VERSION = "V21";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -676,6 +676,9 @@
     ]},
     { v:"V20", resume:[
       "Un clic (ou tap) sur la carte à proximité immédiate d'une ou plusieurs icônes de restaurant (sans viser précisément l'icône) ouvre désormais le popup du restaurant le plus proche du point cliqué."
+    ]},
+    { v:"V21", resume:[
+      "Correction : ce clic à proximité d'une icône ne fonctionnait pas sur iPhone (fonctionnait sur Mac). Cause probable — la position du clic était mémorisée en pixels écran, mais sur iOS Safari la barre d'adresse peut se réduire/apparaître pendant le court délai d'attente (350 ms, le temps de vérifier qu'il ne s'agit pas d'un double-tap), décalant les coordonnées écran de la carte. La position du clic est désormais mémorisée en coordonnées géographiques (latitude/longitude, invariantes) et reconvertie en pixels seulement au moment de la vérification, dans le même référentiel que les icônes à cet instant."
     ]}
   ];
 
@@ -832,23 +835,30 @@
   // l'ouverture du popup du restaurant le plus proche du point cliqué, si un ou plusieurs se
   // trouvent à proximité immédiate — pratique pour viser une icône sans avoir à taper pile dessus.
   let mapClicTimer = null;
-  let mapClicEvenement = null;
+  let mapClicLatLng = null;
   const MAP_DBLCLIC_DELAI = 350; // ms — fenêtre de tolérance entre les deux taps/clics
   map.on("click", (ev)=>{
     if(mapClicTimer){
       clearTimeout(mapClicTimer);
       mapClicTimer = null;
-      mapClicEvenement = null;
+      mapClicLatLng = null;
       document.body.classList.toggle("map-fullscreen");
       // Laisser le temps au reflow (en-tête/liste masqués ou réaffichés) avant de recalculer
       // la taille interne de la carte, sinon Leaflet garde l'ancienne taille et affiche des tuiles manquantes.
       requestAnimationFrame(()=> requestAnimationFrame(()=> map.invalidateSize()));
     }else{
-      mapClicEvenement = ev;
+      // On mémorise la position géographique (latlng) du clic, pas sa position en pixels écran
+      // (containerPoint) : sur iOS Safari, la barre d'adresse peut se réduire/apparaître entre le
+      // clic et l'exécution différée ci-dessous (350 ms plus tard), ce qui décale les coordonnées
+      // écran du conteneur de la carte — un containerPoint capturé au moment du clic ne
+      // correspondrait alors plus au même point une fois ce délai écoulé. Le latlng, lui, ne
+      // bouge pas : on reconvertit tout en pixels au moment de l'exécution, dans le même
+      // référentiel que les icônes à cet instant-là.
+      mapClicLatLng = ev.latlng;
       mapClicTimer = setTimeout(()=>{
         mapClicTimer = null;
-        selectionnerRestoProcheDuClic(mapClicEvenement);
-        mapClicEvenement = null;
+        selectionnerRestoProcheDuClic(mapClicLatLng);
+        mapClicLatLng = null;
       }, MAP_DBLCLIC_DELAI);
     }
   });
@@ -879,13 +889,14 @@
   // viser précisément la petite icône, en particulier au doigt sur mobile ou quand plusieurs
   // icônes sont proches les unes des autres (on ouvre alors celle la plus proche du clic).
   const RAYON_CLIC_PROCHE_PX = 40; // tolérance en pixels écran autour du point cliqué
-  function selectionnerRestoProcheDuClic(ev){
-    if(!ev || !ev.containerPoint) return;
+  function selectionnerRestoProcheDuClic(latlngClic){
+    if(!latlngClic) return;
+    const pointClic = map.latLngToContainerPoint(latlngClic);
     let meilleurId = null;
     let meilleureDistance = Infinity;
     Object.keys(markers).forEach(id=>{
       const pointMarqueur = map.latLngToContainerPoint(markers[id].getLatLng());
-      const d = ev.containerPoint.distanceTo(pointMarqueur);
+      const d = pointClic.distanceTo(pointMarqueur);
       if(d < meilleureDistance){
         meilleureDistance = d;
         meilleurId = id;
