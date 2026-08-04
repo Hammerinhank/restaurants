@@ -58,10 +58,10 @@
       "id": "r_mseimj9d_rkw2l3",
       "lat": 48.8496157354296,
       "lon": 2.351514101028443,
-      "name": "Nouveau restaurant",
-      "address": "Boulevard Saint-Germain, 75005 Paris",
+      "name": "Bar à iode saint germain",
+      "address": "34 Bd Saint-Germain, 75005 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T12:02:49.471Z"
+      "maj": "2026-08-04T12:04:17.698Z"
     },
     {
       "id": "r_msek3o3c_yqcolm",
@@ -209,5 +209,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T12:02:56.132Z"
+  "maj": "2026-08-04T12:04:18.904Z"
 }
