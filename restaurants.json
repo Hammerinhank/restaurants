@@ -97,7 +97,7 @@
       "name": "Les Animés Restaurant",
       "address": "Allée Joseph Récamier, 75015 Paris",
       "liste": "Province",
-      "maj": "2026-08-04T14:47:46.119Z"
+      "maj": "2026-08-04T14:47:57.439Z"
     }
   ],
   "suppressions": [
@@ -257,5 +257,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T13:13:03.982Z",
-  "maj": "2026-08-04T14:47:47.321Z"
+  "maj": "2026-08-04T14:47:58.641Z"
 }
