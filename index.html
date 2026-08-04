@@ -83,6 +83,11 @@
   }
   #btnSettings, #btnDiagTest, #btnPresseCollePapier{display:none;}
   body.mode-modif #btnSettings, body.mode-modif #btnDiagTest, body.mode-modif #btnPresseCollePapier{display:inline-block;}
+  /* Le bouton "Modifier" lui-même n'est proposé que si l'accès a été débloqué sur cet appareil
+     (jeton GitHub fonctionnel, vérifié dynamiquement auprès de l'API, ou restaurant secret
+     nommé "github" déjà créé — voir majAccesModifier()/verifierDeblocageParNom() dans le JS). */
+  #btnModifier{display:none;}
+  body.peut-modifier #btnModifier{display:inline-block;}
   #chkAfficherLogWrap{
     display:none;
     align-items:center;
@@ -914,6 +919,7 @@
   const LS_LISTES_KEY = "restaurantsListes.v1";
   const LS_LISTE_ACTUELLE_KEY = "restaurantsListeActuelle.v1";
   const LS_AFFICHER_LOG_KEY = "restaurantsAfficherLog.v1";
+  const LS_ACCES_MODIF_KEY = "restaurantsAccesModifDebloque.v1";
   const SS_MODIF_KEY = "restaurantsModifApresRechargement";
   const FILE_NAME = "restaurants.json";
 
@@ -938,6 +944,15 @@
   let attenteControleur = null;       // AbortController de la recherche en cours (annulable)
   let attenteIntervalId = null;       // intervalle du chronomètre affiché dans la fenêtre d'attente
 
+  // Accès au bouton "Modifier" : débloqué soit par un jeton GitHub fonctionnel (vérifié
+  // dynamiquement auprès de l'API, voir chargerDepuisGithub/pousserVersGithub), soit
+  // définitivement sur cet appareil via un restaurant secret nommé exactement "github"
+  // (voir verifierDeblocageParNom()).
+  let accesModifDebloque = (function(){
+    try{ return localStorage.getItem(LS_ACCES_MODIF_KEY) === "1"; }catch(e){ return false; }
+  })();
+  let tokenFonctionnel = false;
+
   // ---------- Persistance locale ----------
   function chargerLocal(){
     try{
@@ -947,6 +962,35 @@
   }
   function sauverLocal(){
     localStorage.setItem(LS_DATA_KEY, JSON.stringify(restaurants));
+    verifierDeblocageParNom();
+  }
+
+  // ---------- Accès au bouton "Modifier" ----------
+  // Repère un restaurant nommé exactement "github" (espaces et casse ignorés) : sa seule
+  // existence débloque définitivement le bouton "Modifier" sur cet appareil, sans avoir besoin
+  // d'un jeton GitHub — un mot de passe caché pratique à partager oralement en famille.
+  function verifierDeblocageParNom(){
+    if(accesModifDebloque) return; // déjà débloqué, inutile de rescanner à chaque sauvegarde
+    const trouve = restaurants.some(r => (r.name || "").trim().toLowerCase() === "github");
+    if(trouve){
+      accesModifDebloque = true;
+      try{ localStorage.setItem(LS_ACCES_MODIF_KEY, "1"); }catch(e){}
+      majAccesModifier();
+    }
+  }
+
+  // Affiche/masque le bouton "Modifier" selon les conditions d'accès, et referme le mode
+  // Modifier s'il était actif alors que les conditions ne sont plus remplies (ex. jeton
+  // effacé ou invalide sur cet appareil).
+  function majAccesModifier(){
+    const autorise = tokenFonctionnel || accesModifDebloque;
+    document.body.classList.toggle("peut-modifier", autorise);
+    if(!autorise && document.body.classList.contains("mode-modif")){
+      document.body.classList.remove("mode-modif");
+      const btnMod = document.getElementById("btnModifier");
+      if(btnMod) btnMod.classList.remove("active");
+      try{ sessionStorage.removeItem(SS_MODIF_KEY); }catch(e){}
+    }
   }
   function chargerSuppressionsLocal(){
     try{
@@ -2479,6 +2523,8 @@
     sauverCfg();
     remplirChampsCfg();
     dernierSha = null;
+    tokenFonctionnel = false;
+    majAccesModifier();
     statut("Identifiants effacés.", "ok");
   });
 
@@ -2518,12 +2564,23 @@
           "Accept": "application/vnd.github+json"
         }
       });
+      if(res.status === 401 || res.status === 403){
+        tokenFonctionnel = false;
+        majAccesModifier();
+        throw new Error("HTTP " + res.status + " — jeton invalide ou droits insuffisants");
+      }
       if(res.status === 404){
+        // Le dépôt/la branche a répondu (juste pas encore de fichier) : le jeton lui-même a
+        // donc bien été accepté par l'API GitHub, on peut le considérer comme fonctionnel.
+        tokenFonctionnel = true;
+        majAccesModifier();
         dernierSha = null;
         if(feedback) statut("Aucun fichier distant pour l'instant sur " + cible + " (il sera créé au premier envoi).", "ok");
         return;
       }
       if(!res.ok) throw new Error("HTTP " + res.status);
+      tokenFonctionnel = true;
+      majAccesModifier();
       const data = await res.json();
       dernierSha = data.sha;
       const contenu = JSON.parse(b64DecodeUnicode(data.content.replace(/\n/g,"")));
@@ -2662,6 +2719,11 @@
         body: JSON.stringify(body)
       });
 
+      if(res.status === 401 || res.status === 403){
+        tokenFonctionnel = false;
+        majAccesModifier();
+        throw new Error("HTTP " + res.status + " — jeton invalide ou droits insuffisants");
+      }
       if(res.status === 409 || (res.status === 422 && dernierSha)){
         // conflit : on relit puis on retente une fois
         await chargerDepuisGithub(false);
@@ -2671,6 +2733,8 @@
         const errTxt = await res.text();
         throw new Error("HTTP " + res.status + " " + errTxt.slice(0,120));
       }
+      tokenFonctionnel = true;
+      majAccesModifier();
       const data = await res.json();
       dernierSha = data.content.sha;
       if(feedback) statut("Envoyé vers GitHub (" + cible + ").", "ok");
@@ -2743,6 +2807,8 @@
   })();
 
   // ---------- Démarrage ----------
+  verifierDeblocageParNom(); // au cas où un restaurant "github" existait déjà avant cette fonctionnalité
+  majAccesModifier();        // état initial du bouton "Modifier" (sera re-vérifié via l'API ci-dessous si un jeton est configuré)
   remplirSelectListeActuelle();
   recalerTailleCarteDifféré("démarrage");
   toutRedessiner();
