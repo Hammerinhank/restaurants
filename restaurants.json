@@ -74,12 +74,12 @@
     },
     {
       "id": "r_msemfxa3_wfkzgk",
-      "lat": 48.83386738692782,
-      "lon": 2.2954519962259923,
+      "lat": 46.5590547,
+      "lon": 4.9143174,
       "name": "Aux terrasses",
       "address": "18 Av. du 23 Janvier, 71700 Tournus",
       "liste": "Province",
-      "maj": "2026-08-04T12:16:03.665Z"
+      "maj": "2026-08-04T12:41:32.793Z"
     }
   ],
   "suppressions": [
@@ -227,5 +227,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T12:08:53.716Z",
-  "maj": "2026-08-04T12:16:23.137Z"
+  "maj": "2026-08-04T12:41:33.995Z"
 }
