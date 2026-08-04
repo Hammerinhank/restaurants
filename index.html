@@ -671,7 +671,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V29";
+  const VERSION = "V30";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -793,6 +793,9 @@
     ]},
     { v:"V29", resume:[
       "Un appui long (doigt, sur iPhone) ou un clic long (souris, sur iMac) sur la carte ajoute désormais un nouveau restaurant exactement comme le bouton « Nouveau restaurant », mais à l'emplacement désigné sur la carte plutôt qu'à la position géolocalisée de l'appareil. Détection volontairement stricte pour ne jamais être confondue avec un clic/tap normal : il faut environ 550 ms d'appui sans relâchement ni déplacement significatif (au delà, c'est considéré comme un pan/scroll et annulé) ; le clic de relâchement qui suit un appui long confirmé est explicitement ignoré, pour ne perturber ni la sélection au clic proche ni le double-clic plein écran."
+    ]},
+    { v:"V30", resume:[
+      "Correction d'une régression introduite en V29 : la variable utilisée pour ignorer le clic de relâchement suivant un appui long n'était en fait jamais déclarée, ce qui provoquait une erreur JavaScript à CHAQUE clic sur la carte (long ou normal) — expliquant que plus rien ne fonctionnait, ni sur iMac ni sur iPhone. Corrigé. Journal de debug très détaillé ajouté sur toute la détection d'appui/clic long (pointerdown, déplacement mesuré, annulations avec leur motif précis, événements de relâchement/annulation, mouvements de carte interrompant la détection) pour pouvoir diagnostiquer précisément la suite si besoin."
     ]}
   ];
 
@@ -1107,19 +1110,29 @@
   const APPUI_LONG_TOLERANCE_PX = 12;    // px — déplacement toléré avant annulation (au delà : pan/scroll, pas un appui long)
   let appuiLongTimer = null;
   let appuiLongDepart = null;            // {x,y} en coordonnées écran (clientX/clientY) au moment du pointerdown
+  let appuiLongVientDeSeDeclencher = false;
   const mapEl = map.getContainer();
 
-  function annulerAppuiLong(){
-    if(appuiLongTimer){ clearTimeout(appuiLongTimer); appuiLongTimer = null; }
+  function annulerAppuiLong(motif){
+    if(appuiLongTimer){
+      clearTimeout(appuiLongTimer);
+      appuiLongTimer = null;
+      debugLog(`appui long annulé (${motif || "?"})`);
+    }
     appuiLongDepart = null;
   }
 
   mapEl.addEventListener("pointerdown", (ev)=>{
-    if(ev.button !== undefined && ev.button !== 0) return; // ignore clic droit / bouton secondaire
-    annulerAppuiLong();
+    debugLog(`pointerdown sur la carte — type=${ev.pointerType}, bouton=${ev.button}, pos=(${ev.clientX.toFixed(0)},${ev.clientY.toFixed(0)})`);
+    if(ev.button !== undefined && ev.button !== 0){
+      debugLog("pointerdown ignoré (bouton secondaire)");
+      return;
+    }
+    annulerAppuiLong("nouveau pointerdown");
     appuiLongDepart = {x:ev.clientX, y:ev.clientY};
     const rect = mapEl.getBoundingClientRect();
     const latlng = map.containerPointToLatLng(L.point(ev.clientX - rect.left, ev.clientY - rect.top));
+    debugLog(`appui long : minuteur de ${APPUI_LONG_DELAI}ms démarré @ latlng=(${latlng.lat.toFixed(6)},${latlng.lng.toFixed(6)})`);
     appuiLongTimer = setTimeout(()=>{
       appuiLongTimer = null;
       appuiLongDepart = null;
@@ -1133,10 +1146,17 @@
   mapEl.addEventListener("pointermove", (ev)=>{
     if(!appuiLongDepart) return;
     const dx = ev.clientX - appuiLongDepart.x, dy = ev.clientY - appuiLongDepart.y;
-    if(Math.sqrt(dx*dx + dy*dy) > APPUI_LONG_TOLERANCE_PX) annulerAppuiLong();
+    const d = Math.sqrt(dx*dx + dy*dy);
+    if(d > APPUI_LONG_TOLERANCE_PX) annulerAppuiLong(`déplacement ${d.toFixed(0)}px > seuil ${APPUI_LONG_TOLERANCE_PX}px`);
   });
-  ["pointerup","pointercancel","pointerleave"].forEach(nom=> mapEl.addEventListener(nom, annulerAppuiLong));
-  map.on("movestart dragstart zoomstart", annulerAppuiLong); // tout début de pan/zoom annule l'appui long en cours
+  ["pointerup","pointercancel","pointerleave"].forEach(nom=> mapEl.addEventListener(nom, ()=>{
+    if(appuiLongTimer) debugLog(`événement "${nom}" reçu — annulation du minuteur d'appui long en cours`);
+    annulerAppuiLong(nom);
+  }));
+  map.on("movestart dragstart zoomstart", (ev)=>{
+    if(appuiLongTimer) debugLog(`événement Leaflet "${ev.type}" reçu — annulation du minuteur d'appui long en cours`);
+    annulerAppuiLong("mouvement/zoom carte : " + ev.type);
+  });
   mapEl.addEventListener("contextmenu", (ev)=> ev.preventDefault()); // évite le menu contextuel au clic long (desktop)
 
   L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
