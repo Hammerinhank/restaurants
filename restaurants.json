@@ -98,6 +98,15 @@
       "address": "22 Place des Épars, 28000 Chartres",
       "liste": "Province",
       "maj": "2026-08-04T16:02:48.825Z"
+    },
+    {
+      "id": "r_mseukd34_j736s6",
+      "lat": 48.4444266,
+      "lon": 1.4830932,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Province",
+      "maj": "2026-08-04T16:03:00.544Z"
     }
   ],
   "suppressions": [
@@ -301,5 +310,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T15:24:05.741Z",
-  "maj": "2026-08-04T16:02:50.029Z"
+  "maj": "2026-08-04T16:03:01.781Z"
 }
