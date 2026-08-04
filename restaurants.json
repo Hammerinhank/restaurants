@@ -59,9 +59,9 @@
       "lat": 48.849471207112536,
       "lon": 2.354036798169546,
       "name": "Nouveau restaurant",
-      "address": "",
+      "address": "16 Boulevard Saint-Germain, 75005 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T10:28:46.465Z"
+      "maj": "2026-08-04T10:29:13.670Z"
     }
   ],
   "suppressions": [
@@ -188,5 +188,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T10:28:48.445Z"
+  "maj": "2026-08-04T10:29:14.872Z"
 }
