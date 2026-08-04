@@ -650,7 +650,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V26";
+  const VERSION = "V27";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -763,6 +763,9 @@
     ]},
     { v:"V26", resume:[
       "La taille de la carte était bien corrigée (V25 confirmé par le journal), mais le popup se fermait quand même aussitôt ouvert : cause identifiée — Leaflet tente lui-même de repositionner la vue pour garder un popup visible à l'ouverture (autoPan), ce qui entrait en conflit avec notre propre recentrage explicite (map.setView) juste après. L'autoPan interne de Leaflet est désormais désactivé sur les popups, puisque notre code recentre déjà la carte sur le marqueur à chaque sélection."
+    ]},
+    { v:"V27", resume:[
+      "Cause racine trouvée grâce au journal transmis sur Mac : chaque marqueur avait DEUX gestionnaires de clic actifs — le nôtre (qui ouvre le popup via definirSelection) et un gestionnaire interne ajouté automatiquement par Leaflet lors du bindPopup() (qui bascule ouverture/fermeture). Les deux s'exécutaient l'un juste après l'autre sur le même clic : le nôtre ouvrait le popup, puis celui de Leaflet le voyait déjà ouvert et le refermait aussitôt (confirmé dans le journal : openPopup() réussi suivi d'un popupclose ~1 ms plus tard) — le popup clignotait et disparaissait. Un clic à proximité de l'icône (plutôt que dessus) ne déclenchait pas ce gestionnaire interne et fonctionnait donc normalement, d'où la différence observée. Ce gestionnaire interne est désormais retiré au profit du seul gestionnaire de l'app, pour un point de contrôle unique de l'ouverture du popup — ce bug expliquant aussi très probablement l'échec quasi systématique sur iPhone, où le doigt tape en général directement sur l'icône."
     ]}
   ];
 
@@ -1196,6 +1199,17 @@
     // ajustements de vue simultanés faisaient refermer le popup aussitôt ouvert (constaté dans le
     // journal de debug : popupclose ~2ms après popupopen, quelle que soit la taille de la carte).
     m.bindPopup(popupHTML(r), {autoPan:false});
+    // bindPopup() ajoute automatiquement (une seule fois, en interne) un gestionnaire de clic
+    // Leaflet qui BASCULE le popup (ouvre/ferme). Notre propre gestionnaire "click" ci-dessus
+    // (m.on("click", ...)) ouvre déjà le popup via definirSelection(). Les deux s'exécutant sur
+    // le même clic, l'un juste après l'autre (le nôtre étant ajouté en premier, donc exécuté en
+    // premier), le gestionnaire interne de Leaflet voyait ensuite le popup déjà ouvert et le
+    // refermait aussitôt : constaté dans le journal de debug (openPopup() réussi puis
+    // "popupclose" ~1 ms plus tard — le popup clignote et se referme). On retire ce gestionnaire
+    // interne pour ne garder qu'un seul point de contrôle de l'ouverture du popup. Le clic direct
+    // sur une icône ne fonctionnait donc jamais de façon fiable, contrairement au clic à
+    // proximité qui passe par le clic sur la carte elle-même et ne déclenche pas ce handler.
+    m.off("click", m._openPopup, m);
   }
 
   // Sélectionne un restaurant : met en surbrillance dans la liste et sur la carte,
