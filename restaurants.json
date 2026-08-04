@@ -67,10 +67,10 @@
       "id": "r_msek2anf_avfbed",
       "lat": 48.873037626095076,
       "lon": 2.3394209146499505,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Au Petit Riche",
+      "address": "75009 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T11:09:01.419Z"
+      "maj": "2026-08-04T11:09:13.284Z"
     }
   ],
   "suppressions": [
@@ -197,5 +197,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T11:09:02.655Z"
+  "maj": "2026-08-04T11:09:14.487Z"
 }
