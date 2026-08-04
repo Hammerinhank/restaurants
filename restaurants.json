@@ -112,10 +112,10 @@
       "id": "r_msesidd1_dfxwgd",
       "lat": 48.8417701,
       "lon": 2.3290046,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Le bistrot du dôme",
+      "address": "1 Rue Delambre, 75014 Paris",
       "liste": "",
-      "maj": "2026-08-04T15:05:28.357Z"
+      "maj": "2026-08-04T15:05:50.952Z"
     }
   ],
   "suppressions": [
@@ -279,5 +279,5 @@
   ],
   "listeActuelle": "",
   "listeActuelleMaj": "2026-08-04T14:54:30.820Z",
-  "maj": "2026-08-04T15:05:29.656Z"
+  "maj": "2026-08-04T15:05:52.153Z"
 }
