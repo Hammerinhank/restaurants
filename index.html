@@ -382,6 +382,19 @@
     border-left:3px solid var(--accent);
     padding-left:9px;
   }
+  /* En mode Modifier, les boutons d'action passent sur leur propre ligne, sous le nom/adresse :
+     avec 4 boutons (Edit, Déplacer, Adresse, ✕) côte à côte du texte, ce dernier n'avait quasiment
+     plus de place et le nom/l'adresse du restaurant devenaient illisibles (tronqués à l'extrême).
+     En mode normal, les boutons sont masqués (voir .actions{display:none} ci-dessous) donc ce
+     changement de disposition n'a aucun effet visible. */
+  body.mode-modif .resto-item{
+    flex-direction:column;
+    align-items:stretch;
+  }
+  body.mode-modif .resto-item .actions{
+    margin-top:8px;
+    flex-wrap:wrap;
+  }
   .resto-item .txt{min-width:0;}
   .resto-item .actions{display:none;gap:6px;align-items:center;flex:none;}
   body.mode-modif .resto-item .actions{display:flex;}
