@@ -440,10 +440,26 @@
   .resto-pin.selected{
     box-shadow:0 0 0 4px rgba(193,80,46,.4), 0 1px 4px rgba(0,0,0,.35);
   }
+  /* Icône déplaçable (bouton "Déplacer" actif / en attente du timeout de 10 s) : clignote entre
+     le vert (couleur "déplaçable") et le rouge/orangé (couleur normale) pour signaler clairement
+     qu'on est dans la période d'attente du timeout de 10 s, plutôt que de rester fixement verte
+     (ce qui laissait penser à tort que le mode restait actif indéfiniment). Transitions abruptes
+     (pas de fondu) via des paliers de pourcentage très proches (49.99%/50%), pour un vrai
+     clignotement plutôt qu'un dégradé progressif de couleur.
+  */
+  @keyframes clignotementDeplacable{
+    0%, 49.99%{
+      background:var(--ok);
+      box-shadow:0 0 0 4px rgba(47,122,79,.4), 0 1px 4px rgba(0,0,0,.35);
+    }
+    50%, 100%{
+      background:var(--accent);
+      box-shadow:0 0 0 4px rgba(193,80,46,.4), 0 1px 4px rgba(0,0,0,.35);
+    }
+  }
   .resto-pin.movable{
-    background:var(--ok);
-    box-shadow:0 0 0 4px rgba(47,122,79,.4), 0 1px 4px rgba(0,0,0,.35);
     cursor:grab;
+    animation: clignotementDeplacable 1s infinite;
   }
 
   /* Popup */
