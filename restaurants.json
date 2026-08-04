@@ -116,6 +116,15 @@
       "address": "102 Boulevard du Montparnasse, 75014 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T17:03:15.796Z"
+    },
+    {
+      "id": "r_msewv76w_3mn2b1",
+      "lat": 48.8432892,
+      "lon": 2.3217021,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Paris",
+      "maj": "2026-08-04T17:07:25.352Z"
     }
   ],
   "suppressions": [
@@ -323,5 +332,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T17:03:16.999Z"
+  "maj": "2026-08-04T17:07:26.586Z"
 }
