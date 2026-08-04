@@ -671,7 +671,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V32";
+  const VERSION = "V31";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -799,9 +799,6 @@
     ]},
     { v:"V31", resume:[
       "L'appui long (iPhone) / clic long (iMac) sur la carte pour ajouter un restaurant n'est désormais actif qu'en mode Modifier ; hors mode Modifier, un appui/clic prolongé sur la carte reste sans aucun effet (aucun minuteur ne démarre)."
-    ]},
-    { v:"V32", resume:[
-      "La case à cocher « 🐞 Log » (affichage du panneau de debug) n'est plus mémorisée d'une session à l'autre : elle repart systématiquement décochée à chaque chargement de la page."
     ]}
   ];
 
@@ -827,6 +824,7 @@
   const LS_CFG_KEY = "restaurantsGithubConfig.v1";
   const LS_LISTES_KEY = "restaurantsListes.v1";
   const LS_LISTE_ACTUELLE_KEY = "restaurantsListeActuelle.v1";
+  const LS_AFFICHER_LOG_KEY = "restaurantsAfficherLog.v1";
   const SS_MODIF_KEY = "restaurantsModifApresRechargement";
   const FILE_NAME = "restaurants.json";
 
@@ -1261,7 +1259,16 @@
   // ---------- Rendu ----------
   function popupHTML(r){
     const dateAff = new Date(r.maj).toLocaleString("fr-FR");
-    const lienMaps = urlGoogleMaps(r.name, r.lat, r.lon);
+    // Tant que le restaurant n'a pas encore été identifié (nom encore égal au nom par défaut
+    // "Nouveau restaurant"), une recherche Google Maps par nom n'a aucun sens : on propose à la
+    // place une recherche des restaurants à proximité de l'emplacement de l'icône sur la carte.
+    const estNonIdentifie = (r.name || "Nouveau restaurant") === "Nouveau restaurant";
+    const lienMaps = estNonIdentifie
+      ? urlGoogleMapsRestaurantsProches(r.lat, r.lon)
+      : urlGoogleMaps(r.name, r.lat, r.lon);
+    const texteLienMaps = estNonIdentifie
+      ? "Voir les restaurants à proximité sur Google Maps ↗"
+      : "Voir la fiche sur Google Maps ↗";
     return `
       <div class="popup-field">
         <div class="popup-label">Nom</div>
@@ -1271,7 +1278,7 @@
         <div class="popup-label">Adresse</div>
         <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "(adresse non définie, double-cliquez pour saisir)")}</div>
       </div>
-      ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">Voir la fiche sur Google Maps ↗</a>` : ""}
+      ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">${texteLienMaps}</a>` : ""}
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
         <button class="btn-danger" data-del="${r.id}">Supprimer</button>
@@ -1290,6 +1297,15 @@
   function urlGoogleMaps(nom, lat, lon){
     if(!nom || lat == null || lon == null) return null;
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nom + " " + lat + "," + lon)}`;
+  }
+
+  // Construit l'URL Google Maps d'une recherche des restaurants à proximité d'une position
+  // donnée (sans nom précis) : utilisée quand le restaurant n'a pas encore été identifié
+  // (nom encore égal à "Nouveau restaurant"), pour permettre de repérer directement sur Google
+  // Maps l'établissement qui correspond à l'icône posée sur la carte.
+  function urlGoogleMapsRestaurantsProches(lat, lon){
+    if(lat == null || lon == null) return null;
+    return `https://www.google.com/maps/search/restaurants/@${lat},${lon},18z`;
   }
 
   function redessinerMarqueur(r){
@@ -2018,14 +2034,16 @@
   })();
 
   // Case à cocher (visible seulement en mode Modifier) qui affiche/masque le panneau de
-  // debug en bas de l'écran. Toujours décochée au chargement de la page (pas de préférence
-  // mémorisée entre sessions) : le panneau de debug ne doit pas rester actif sans y penser.
+  // debug en bas de l'écran. Préférence mémorisée dans localStorage.
   (function initChkAfficherLog(){
     const chk = document.getElementById("chkAfficherLog");
-    chk.checked = false;
-    document.body.classList.toggle("show-debug-log", false);
+    let coche = false;
+    try{ coche = localStorage.getItem(LS_AFFICHER_LOG_KEY) === "1"; }catch(e){}
+    chk.checked = coche;
+    document.body.classList.toggle("show-debug-log", coche);
     chk.addEventListener("change", ()=>{
       document.body.classList.toggle("show-debug-log", chk.checked);
+      try{ localStorage.setItem(LS_AFFICHER_LOG_KEY, chk.checked ? "1" : "0"); }catch(e){}
     });
   })();
 
