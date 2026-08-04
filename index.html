@@ -629,7 +629,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V23";
+  const VERSION = "V24";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -732,6 +732,9 @@
     ]},
     { v:"V23", resume:[
       "Le double-clic pour copier le journal de debug est remplacé par un bouton dédié « 📋 Copier »."
+    ]},
+    { v:"V24", resume:[
+      "D'après le premier journal transmis, les 3 taps testés étaient en fait des taps directs sur l'icône (pas des taps à proximité) : le clic Leaflet direct fonctionne bien (icône sélectionnée), mais aucun popup n'apparaît visuellement — signe d'un problème distinct de celui initialement supposé. Diagnostics ajoutés dans le journal de debug : état isPopupOpen() juste après l'appel, taille de la carte connue par Leaflet vs taille réelle du conteneur, présence/position/taille/opacité du popup dans le DOM une fois inséré, et les événements Leaflet popupopen/popupclose."
     ]}
   ];
 
@@ -1109,7 +1112,11 @@
     if(!m){
       m = L.marker([r.lat, r.lon], {icon: iconResto(r.id===selectedId, r.id===deplacableId), draggable:false}).addTo(map);
       markers[r.id] = m;
-      m.on("popupopen", ()=> brancherEditionPopup(r.id));
+      m.on("popupopen", ()=>{
+        debugLog(`événement Leaflet "popupopen" reçu pour "${r.name || r.id}"`);
+        brancherEditionPopup(r.id);
+      });
+      m.on("popupclose", ()=> debugLog(`événement Leaflet "popupclose" reçu pour "${r.name || r.id}"`));
       m.on("click", ()=>{
         debugLog(`clic direct sur l'icône "${r.name || r.id}" (marker.click Leaflet)`);
         definirSelection(r.id);
@@ -1128,21 +1135,42 @@
   // centre toujours la carte sur son icône et ouvre le popup. N'a aucun effet sur la
   // possibilité de déplacer l'icône (voir activerDeplacement / le bouton "Déplacer" de la liste).
   function definirSelection(id){
-    const precedent = selectedId;
-    selectedId = id;
-    if(precedent && precedent !== id && markers[precedent]){
-      markers[precedent].setIcon(iconResto(false, precedent===deplacableId));
+    try{
+      const precedent = selectedId;
+      selectedId = id;
+      if(precedent && precedent !== id && markers[precedent]){
+        markers[precedent].setIcon(iconResto(false, precedent===deplacableId));
+      }
+      if(id && markers[id]){
+        markers[id].setIcon(iconResto(true, id===deplacableId));
+        // L'ouverture du popup se fait AVANT le setView : Leaflet déclenche son propre
+        // "auto-pan" pour rendre le popup visible, ce qui peut décentrer le marqueur.
+        // Le setView explicite ci-dessous, exécuté après, a donc toujours le dernier mot
+        // et garantit que le marqueur reste bien au centre de la carte.
+        markers[id].openPopup();
+        const tailleCarte = map.getSize();
+        const rectCarte = map.getContainer().getBoundingClientRect();
+        debugLog(`definirSelection("${id}") : openPopup() appelé — isPopupOpen()=${markers[id].isPopupOpen()}, taille carte connue de Leaflet=${tailleCarte.x}x${tailleCarte.y}, taille réelle du conteneur=${rectCarte.width.toFixed(0)}x${rectCarte.height.toFixed(0)}`);
+        // Vérification différée (le temps que Leaflet insère/anime le DOM du popup) : la
+        // dimension réelle du popup permet de distinguer "jamais créé" de "créé mais invisible
+        // (taille nulle, hors-écran, recouvert)".
+        requestAnimationFrame(()=> requestAnimationFrame(()=>{
+          const elPopup = document.querySelector(".leaflet-popup");
+          if(elPopup){
+            const rect = elPopup.getBoundingClientRect();
+            const style = getComputedStyle(elPopup);
+            debugLog(`.leaflet-popup trouvé dans le DOM — rect=(${rect.left.toFixed(0)},${rect.top.toFixed(0)}) ${rect.width.toFixed(0)}x${rect.height.toFixed(0)}, display=${style.display}, visibility=${style.visibility}, opacity=${style.opacity}, z-index=${style.zIndex}`);
+          }else{
+            debugLog(".leaflet-popup absent du DOM après openPopup() — le popup n'a pas été créé.");
+          }
+        }));
+        map.setView(markers[id].getLatLng(), Math.max(map.getZoom(), 16), {animate:true});
+      }
+      rafraichirListe();
+    }catch(e){
+      debugLog("definirSelection: EXCEPTION — " + e.message);
+      throw e;
     }
-    if(id && markers[id]){
-      markers[id].setIcon(iconResto(true, id===deplacableId));
-      // L'ouverture du popup se fait AVANT le setView : Leaflet déclenche son propre
-      // "auto-pan" pour rendre le popup visible, ce qui peut décentrer le marqueur.
-      // Le setView explicite ci-dessous, exécuté après, a donc toujours le dernier mot
-      // et garantit que le marqueur reste bien au centre de la carte.
-      markers[id].openPopup();
-      map.setView(markers[id].getLatLng(), Math.max(map.getZoom(), 16), {animate:true});
-    }
-    rafraichirListe();
   }
 
   // Active le mode déplacement pour un restaurant : rend son icône déplaçable (glisser-déposer)
