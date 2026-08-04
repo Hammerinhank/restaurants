@@ -76,10 +76,10 @@
       "id": "r_msem2mq8_iuo2m4",
       "lat": 48.85193371832403,
       "lon": 2.340173721313477,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Sétopa",
+      "address": "12 Rue de l'École de Médecine, 75006 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T12:05:16.304Z"
+      "maj": "2026-08-04T12:05:28.383Z"
     }
   ],
   "suppressions": [
@@ -218,5 +218,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T12:05:17.525Z"
+  "maj": "2026-08-04T12:05:29.587Z"
 }
