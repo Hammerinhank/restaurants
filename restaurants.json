@@ -20,11 +20,11 @@
     },
     {
       "id": "r_msca73zb_ktn8bf",
-      "lat": 48.8356838,
-      "lon": 2.2968058,
+      "lat": 48.8342467,
+      "lon": 2.2953395,
       "name": "Senso",
       "address": "58 Rue Olivier de Serres, 75015 Paris",
-      "maj": "2026-08-04T16:29:50.288Z",
+      "maj": "2026-08-04T16:30:01.087Z",
       "liste": "Paris"
     },
     {
@@ -314,5 +314,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T16:29:51.493Z"
+  "maj": "2026-08-04T16:30:02.294Z"
 }
