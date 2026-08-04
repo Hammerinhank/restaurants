@@ -89,15 +89,6 @@
       "address": "",
       "liste": "Province",
       "maj": "2026-08-04T13:01:25.906Z"
-    },
-    {
-      "id": "r_mseoca1a_ylnl3i",
-      "lat": 48.8339010731349,
-      "lon": 2.2953409671360467,
-      "name": "Nouveau restaurant",
-      "address": "",
-      "liste": "Province",
-      "maj": "2026-08-04T13:08:45.646Z"
     }
   ],
   "suppressions": [
@@ -240,6 +231,10 @@
     {
       "id": "r_msenqm1l_y1nfkd",
       "maj": "2026-08-04T12:55:21.982Z"
+    },
+    {
+      "id": "r_mseoca1a_ylnl3i",
+      "maj": "2026-08-04T13:12:32.821Z"
     }
   ],
   "listes": [
@@ -249,5 +244,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T12:08:53.716Z",
-  "maj": "2026-08-04T13:08:46.856Z"
+  "maj": "2026-08-04T13:12:32.824Z"
 }
