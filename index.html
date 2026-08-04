@@ -278,12 +278,32 @@
     color:var(--muted);
     margin:0;
     padding:12px 12px 6px;
+    cursor:pointer;
   }
   #listeNomLbl{
     text-transform:none;
     letter-spacing:normal;
     font-weight:600;
     color:var(--ink);
+  }
+  /* Sélecteur rapide de liste : remplace #listeNomLbl en place au clic sur la ligne du titre,
+     sans ajouter de bloc ni changer la hauteur du panneau (contrairement à #listeHeaderCombo,
+     réservé au mode Modifier). Dimensions volontairement proches de #listeNomLbl. */
+  #selectListeInline{
+    display:none;
+    font:inherit;
+    font-size:12px;
+    text-transform:none;
+    letter-spacing:normal;
+    font-weight:600;
+    color:var(--ink);
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:5px;
+    padding:0 3px;
+    max-width:150px;
+    vertical-align:baseline;
+    cursor:pointer;
   }
   /* Combo box "liste actuelle" + bouton "Nouvelle liste", affichés uniquement en mode Modifier,
      à la place du titre "Liste (N)". */
@@ -565,7 +585,7 @@
 <div id="main">
   <div id="map"></div>
   <div id="listPanel">
-    <h2>Liste (<span id="countLbl">0</span>) <span id="listeNomLbl"></span></h2>
+    <h2 id="listeTitreH2" title="Cliquer pour changer de liste">Liste (<span id="countLbl">0</span>) <span id="listeNomLbl"></span><select id="selectListeInline"></select></h2>
     <div id="listeHeaderCombo">
       <select id="selectListeActuelle" title="Liste affichée"></select>
       <button class="btn-ghost" id="btnNouvelleListe">+ Nouvelle liste</button>
@@ -650,7 +670,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V27";
+  const VERSION = "V28";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -766,6 +786,9 @@
     ]},
     { v:"V27", resume:[
       "Cause racine trouvée grâce au journal transmis sur Mac : chaque marqueur avait DEUX gestionnaires de clic actifs — le nôtre (qui ouvre le popup via definirSelection) et un gestionnaire interne ajouté automatiquement par Leaflet lors du bindPopup() (qui bascule ouverture/fermeture). Les deux s'exécutaient l'un juste après l'autre sur le même clic : le nôtre ouvrait le popup, puis celui de Leaflet le voyait déjà ouvert et le refermait aussitôt (confirmé dans le journal : openPopup() réussi suivi d'un popupclose ~1 ms plus tard) — le popup clignotait et disparaissait. Un clic à proximité de l'icône (plutôt que dessus) ne déclenchait pas ce gestionnaire interne et fonctionnait donc normalement, d'où la différence observée. Ce gestionnaire interne est désormais retiré au profit du seul gestionnaire de l'app, pour un point de contrôle unique de l'ouverture du popup — ce bug expliquant aussi très probablement l'échec quasi systématique sur iPhone, où le doigt tape en général directement sur l'icône."
+    ]},
+    { v:"V28", resume:[
+      "Un clic sur la ligne de titre « Liste (N) nom de la liste » (hors mode Modifier) remplace désormais le nom de la liste par une combo box permettant d'en changer directement, sans passer par le mode Modifier. La substitution se fait en place dans le même titre (juste le nom de la liste est remplacé par la combo, le reste du texte ne bouge pas), sans ajouter de bloc ni changer la hauteur du panneau."
     ]}
   ];
 
@@ -2211,6 +2234,43 @@
     toutRedessiner();
     pousserVersGithubDifféré();
   });
+
+  // ---------- Sélecteur rapide de liste (clic sur la ligne "Liste (N) nom") ----------
+  // Hors mode Modifier, un clic sur la ligne de titre remplace juste le nom de la liste
+  // (#listeNomLbl) par une combo box (#selectListeInline) en place, dans le même <h2> :
+  // pas de nouveau bloc, pas de changement de hauteur du panneau, contrairement à la
+  // combo box dédiée du mode Modifier (#listeHeaderCombo).
+  (function(){
+    const h2 = document.getElementById("listeTitreH2");
+    const lbl = document.getElementById("listeNomLbl");
+    const sel = document.getElementById("selectListeInline");
+    function ouvrirSelecteurListe(){
+      sel.innerHTML = optionsListesHtml(listeActuelle);
+      sel.value = listeActuelle;
+      lbl.style.display = "none";
+      sel.style.display = "inline-block";
+      sel.focus();
+    }
+    function refermerSelecteurListe(){
+      sel.style.display = "none";
+      lbl.style.display = "";
+    }
+    h2.addEventListener("click", (ev)=>{
+      if(ev.target === sel) return; // laisser le select gérer son propre clic (menu déroulant)
+      if(sel.style.display !== "inline-block") ouvrirSelecteurListe();
+    });
+    sel.addEventListener("click", (ev)=> ev.stopPropagation());
+    sel.addEventListener("change", ()=>{
+      listeActuelle = sel.value;
+      listeActuelleMaj = new Date().toISOString();
+      sauverListeActuelle();
+      remplirSelectListeActuelle();
+      toutRedessiner();
+      pousserVersGithubDifféré();
+      refermerSelecteurListe();
+    });
+    sel.addEventListener("blur", refermerSelecteurListe);
+  })();
 
   // ---------- Démarrage ----------
   remplirSelectListeActuelle();
