@@ -94,10 +94,10 @@
       "id": "r_mserqj4z_lyq6qm",
       "lat": 48.83477105507405,
       "lon": 2.2953701019287114,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Les Animés Restaurant",
+      "address": "26 Rue Leriche, 75015 Paris",
       "liste": "Province",
-      "maj": "2026-08-04T14:46:40.921Z"
+      "maj": "2026-08-04T14:47:01.742Z"
     }
   ],
   "suppressions": [
@@ -257,5 +257,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T13:13:03.982Z",
-  "maj": "2026-08-04T14:46:42.124Z"
+  "maj": "2026-08-04T14:47:02.949Z"
 }
