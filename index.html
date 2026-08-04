@@ -57,6 +57,10 @@
     user-select:none;
   }
   .spacer{flex:1 1 auto;}
+  /* Élément invisible servant uniquement, sur iPhone (voir media query plus bas), à forcer un
+     retour à la ligne dans le header (flex-wrap) à un endroit précis, sans toucher à l'ordre ni
+     à la disposition du header sur les écrans plus larges (display:none par défaut ci-dessous). */
+  .hbreak{display:none;}
 
   button{
     font:inherit;
@@ -422,6 +426,25 @@
       border-left:none;
       border-top:1px solid var(--line);
     }
+    /* Sur iPhone, le header passe sur plusieurs rangées grâce à des "order" CSS (la position dans
+       le HTML ne change pas, seul l'ordre visuel est modifié) :
+       - Rangée 1 : titre + badge de version (inchangé).
+       - Rangée 2 : bouton "Modifier" à gauche, bouton "Nouveau restaurant" à droite — cette
+         rangée reste la même qu'on soit en mode normal ou en mode Modifier.
+       - Rangée 3 (mode Modifier uniquement, les autres boutons étant sinon masqués) : boutons
+         "GitHub", "Test" et la case "Log", qui passent donc sur une nouvelle rangée sous la
+         rangée 2 au lieu de s'intercaler avant le bouton "Modifier". */
+    header h1{order:1;}
+    #versionBadge{order:2;}
+    .hbreak{display:block;flex-basis:100%;height:0;}
+    #hbreak1{order:3;}
+    #btnModifier{order:4;}
+    header .spacer{order:5;}
+    #btnNouveau{order:6;}
+    #hbreak2{order:7;}
+    #btnSettings{order:8;}
+    #btnDiagTest{order:9;}
+    #chkAfficherLogWrap{order:10;}
   }
 
   /* Marker */
@@ -584,6 +607,7 @@
 <header>
   <h1>🍽️ Restaurants</h1>
   <span class="badge" id="versionBadge" title="Historique des versions">V1</span>
+  <div class="hbreak" id="hbreak1"></div>
   <div class="spacer"></div>
   <button class="btn-ghost" id="btnSettings">⚙️ GitHub</button>
   <button class="btn-ghost" id="btnDiagTest" title="Diagnostic réseau détaillé (Overpass, géolocalisation, etc.)">🔧 Test</button>
@@ -592,6 +616,7 @@
     <input type="checkbox" id="chkAfficherLog"> 🐞 Log
   </label>
   <button class="btn-primary" id="btnNouveau">📍 Nouveau restaurant</button>
+  <div class="hbreak" id="hbreak2"></div>
 </header>
 
 <div id="statusLine"></div>
