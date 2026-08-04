@@ -44,6 +44,15 @@
       "address": "3 Rue Mademoiselle, 75015 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T09:20:28.472Z"
+    },
+    {
+      "id": "r_msegatf2_q0yz01",
+      "lat": 48.851015987328374,
+      "lon": 2.309385325061158,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Paris",
+      "maj": "2026-08-04T09:23:40.526Z"
     }
   ],
   "suppressions": [
@@ -162,5 +171,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T09:22:42.822Z"
+  "maj": "2026-08-04T09:23:42.563Z"
 }
