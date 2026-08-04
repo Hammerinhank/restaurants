@@ -629,7 +629,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V24";
+  const VERSION = "V25";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -735,6 +735,10 @@
     ]},
     { v:"V24", resume:[
       "D'après le premier journal transmis, les 3 taps testés étaient en fait des taps directs sur l'icône (pas des taps à proximité) : le clic Leaflet direct fonctionne bien (icône sélectionnée), mais aucun popup n'apparaît visuellement — signe d'un problème distinct de celui initialement supposé. Diagnostics ajoutés dans le journal de debug : état isPopupOpen() juste après l'appel, taille de la carte connue par Leaflet vs taille réelle du conteneur, présence/position/taille/opacité du popup dans le DOM une fois inséré, et les événements Leaflet popupopen/popupclose."
+    ]},
+    { v:"V25", resume:[
+      "Cause racine trouvée grâce au journal : Leaflet mesure la taille de la carte une seule fois à la création et met cette valeur en cache pour tous ses calculs de position — sur iOS Safari, la hauteur réellement disponible change ensuite (barre d'adresse qui apparaît/disparaît) sans que Leaflet en soit informé (constaté : carte mesurée à 471px de haut par Leaflet alors que son conteneur ne faisait plus que 82px), d'où popups mal positionnés puis aussitôt refermés, et sans doute aussi le mauvais calcul de distance du clic proche.",
+      "Correctif : la taille de la carte est désormais recalée (map.invalidateSize()) automatiquement à chaque changement de fenêtre/orientation/viewport visuel, au retour au premier plan, au démarrage, et juste avant chaque sélection ou calcul de clic proche — avec une ligne de journal si un écart a effectivement été corrigé."
     ]}
   ];
 
@@ -939,6 +943,38 @@
   // ---------- Carte ----------
   const map = L.map("map", {zoomControl:true, doubleClickZoom:false}).setView([46.6, 2.4], 6);
 
+  // Correctif majeur : Leaflet mesure la taille de son conteneur une seule fois (à la création),
+  // puis met en cache cette valeur pour tous ses calculs de position (popups, distances en
+  // pixels...). Or sur iOS Safari, la hauteur réellement disponible change après coup (barre
+  // d'adresse qui apparaît/disparaît), sans que Leaflet en soit informé — le journal de debug l'a
+  // confirmé noir sur blanc : la carte y était mesurée à 471px de haut par Leaflet alors que son
+  // conteneur ne faisait plus réellement que 82px, provoquant l'ouverture puis la fermeture
+  // immédiate des popups, et sans doute aussi le mauvais calcul de distance pour la sélection
+  // d'une icône par clic proche. On force donc explicitement map.invalidateSize() à chaque
+  // occasion où cette hauteur peut avoir changé.
+  function recalerTailleCarte(motif){
+    const avant = map.getSize();
+    map.invalidateSize({pan:false});
+    const apres = map.getSize();
+    if(avant.x !== apres.x || avant.y !== apres.y){
+      debugLog(`recalage taille carte (${motif}) : ${avant.x}x${avant.y} → ${apres.x}x${apres.y}`);
+    }
+  }
+  let recalageTimer = null;
+  function recalerTailleCarteDifféré(motif){
+    if(recalageTimer) clearTimeout(recalageTimer);
+    recalageTimer = setTimeout(()=>{ recalageTimer = null; recalerTailleCarte(motif); }, 120);
+  }
+  window.addEventListener("resize", ()=> recalerTailleCarteDifféré("resize"));
+  window.addEventListener("orientationchange", ()=> recalerTailleCarteDifféré("orientationchange"));
+  if(window.visualViewport){
+    window.visualViewport.addEventListener("resize", ()=> recalerTailleCarteDifféré("visualViewport resize"));
+    window.visualViewport.addEventListener("scroll", ()=> recalerTailleCarteDifféré("visualViewport scroll"));
+  }
+  document.addEventListener("visibilitychange", ()=>{
+    if(document.visibilityState === "visible") recalerTailleCarteDifféré("visibilitychange");
+  });
+
   // Double-clic/double-tap sur la carte : bascule en plein écran (masque l'en-tête et la liste),
   // un nouveau double-clic revient à la présentation initiale.
   // Détection manuelle (deux "click" rapprochés) plutôt que l'événement natif "dblclick" :
@@ -1018,6 +1054,7 @@
       debugLog("clic carte (différé) : pas de latlng mémorisé, abandon.");
       return;
     }
+    recalerTailleCarte("avant calcul clic proche");
     const pointClic = map.latLngToContainerPoint(latlngClic);
     const rect = map.getContainer().getBoundingClientRect();
     const nbMarqueurs = Object.keys(markers).length;
@@ -1136,6 +1173,7 @@
   // possibilité de déplacer l'icône (voir activerDeplacement / le bouton "Déplacer" de la liste).
   function definirSelection(id){
     try{
+      recalerTailleCarte("avant sélection/popup");
       const precedent = selectedId;
       selectedId = id;
       if(precedent && precedent !== id && markers[precedent]){
@@ -2118,6 +2156,7 @@
 
   // ---------- Démarrage ----------
   remplirSelectListeActuelle();
+  recalerTailleCarteDifféré("démarrage");
   toutRedessiner();
   if(restaurants.length){
     const dernier = restaurants[restaurants.length - 1];
