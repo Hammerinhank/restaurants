@@ -116,6 +116,15 @@
       "address": "",
       "liste": "",
       "maj": "2026-08-04T15:08:09.582Z"
+    },
+    {
+      "id": "r_msesyd12_mehc86",
+      "lat": 48.83390765165704,
+      "lon": 2.2954731904946257,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "",
+      "maj": "2026-08-04T15:17:54.422Z"
     }
   ],
   "suppressions": [
@@ -295,5 +304,5 @@
   ],
   "listeActuelle": "",
   "listeActuelleMaj": "2026-08-04T14:54:30.820Z",
-  "maj": "2026-08-04T15:08:46.511Z"
+  "maj": "2026-08-04T15:17:55.632Z"
 }
