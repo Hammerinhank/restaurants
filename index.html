@@ -1895,23 +1895,32 @@
   }
 
   document.getElementById("btnPresseCollePapier").addEventListener("click", async ()=>{
-    if(!navigator.clipboard || !navigator.clipboard.readText){
-      statut("La lecture du presse-papier n'est pas disponible sur cet appareil/navigateur.", "err");
+    let texte = null;
+    if(navigator.clipboard && navigator.clipboard.readText){
+      try{
+        texte = (await navigator.clipboard.readText() || "").trim();
+      }catch(e){
+        texte = null; // on bascule sur le repli manuel ci-dessous (cf. commentaire)
+      }
+    }
+    if(texte){
+      await traiterAdresseDepuisTexte(texte);
       return;
     }
-    let texte;
-    try{
-      texte = await navigator.clipboard.readText();
-    }catch(e){
-      statut("Impossible de lire le presse-papier : " + e.message, "err");
+    // Repli : lecture programmatique indisponible, refusée, ou presse-papier vide/non-texte.
+    // Fréquent sur iOS Safari, qui restreint fortement l'API Clipboard asynchrone (échec
+    // possible même sur un appui direct sur ce bouton). On demande alors à l'utilisateur de
+    // coller manuellement (appui long > "Coller") dans le champ de la boîte de dialogue
+    // existante : le collage natif (événement "paste") n'est lui jamais bloqué par iOS.
+    const choix = await ouvrirModalAdresseNonReconnue(
+      "",
+      "Lecture automatique indisponible : appuyez ci-dessous puis appui long > « Coller »."
+    );
+    if(!choix.ok || !choix.texte){
+      statut("Création annulée.", "");
       return;
     }
-    texte = (texte || "").trim();
-    if(!texte){
-      statut("Le presse-papier est vide.", "err");
-      return;
-    }
-    await traiterAdresseDepuisTexte(texte);
+    await traiterAdresseDepuisTexte(choix.texte);
   });
 
   // Bouton "📍 Adresse" de la liste (visible en mode Modifier) : géocode l'adresse actuellement
