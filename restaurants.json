@@ -89,6 +89,15 @@
       "address": "5 Rue Robert Lindet, 75015 Paris",
       "liste": "Province",
       "maj": "2026-08-04T14:43:30.952Z"
+    },
+    {
+      "id": "r_mserqj4z_lyq6qm",
+      "lat": 48.83393883973587,
+      "lon": 2.2954940909060664,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Province",
+      "maj": "2026-08-04T14:43:49.476Z"
     }
   ],
   "suppressions": [
@@ -248,5 +257,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T13:13:03.982Z",
-  "maj": "2026-08-04T14:43:32.159Z"
+  "maj": "2026-08-04T14:43:50.683Z"
 }
