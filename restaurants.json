@@ -97,7 +97,7 @@
       "name": "La Cour Brasserie Chartres",
       "address": "22 Place des Épars, 28000 Chartres",
       "liste": "Province",
-      "maj": "2026-08-04T16:02:48.825Z"
+      "maj": "2026-08-04T16:12:08.232Z"
     }
   ],
   "suppressions": [
@@ -305,5 +305,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T15:24:05.741Z",
-  "maj": "2026-08-04T16:08:27.238Z"
+  "maj": "2026-08-04T16:12:09.444Z"
 }
