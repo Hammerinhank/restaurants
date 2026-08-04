@@ -221,7 +221,7 @@
     color:#facc15;
     background:#111;
   }
-  #debugLogHeader button{
+  #debugLogHeader button:first-of-type{
     margin-left:auto;
   }
   #debugLogBody{
@@ -554,11 +554,12 @@
 </div>
 
 <!-- Panneau de debug (temporaire) : journalise chaque clic/tap sur l'écran avec des informations
-     utiles au diagnostic. Double-clic/double-tap dedans pour copier tout le journal dans le
-     presse-papier. Reste visible même en plein écran carte (utile pour déboguer justement ce cas). -->
+     utiles au diagnostic. Bouton « Copier » pour copier tout le journal dans le presse-papier.
+     Reste visible même en plein écran carte (utile pour déboguer justement ce cas). -->
 <div id="debugLogPanel">
   <div id="debugLogHeader">
-    🐞 Debug — <span id="debugLogCount">0</span> ligne(s) — double-clic pour copier
+    🐞 Debug — <span id="debugLogCount">0</span> ligne(s)
+    <button class="btn-ghost btn-small" id="btnDebugLogCopier">📋 Copier</button>
     <button class="btn-ghost btn-small" id="btnDebugLogClear">Effacer</button>
   </div>
   <div id="debugLogBody"></div>
@@ -628,7 +629,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V22";
+  const VERSION = "V23";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -728,6 +729,9 @@
     ]},
     { v:"V22", resume:[
       "Ajout (temporaire) d'un panneau de debug pleine largeur sous la liste des restaurants : chaque clic/tap sur l'écran y ajoute une ligne numérotée et horodatée avec des informations de diagnostic (élément visé, position, taille de fenêtre/viewport visuel ; pour les clics sur la carte : latlng, point écran, position/taille du conteneur carte, distance à chaque icône visible, seuil de sélection). Un double-clic/double-tap dans le panneau copie tout le journal dans le presse-papier ; un bouton « Effacer » vide le journal. Reste visible même en mode plein écran carte."
+    ]},
+    { v:"V23", resume:[
+      "Le double-clic pour copier le journal de debug est remplacé par un bouton dédié « 📋 Copier »."
     ]}
   ];
 
@@ -860,7 +864,7 @@
   // ---------- Journal de debug ----------
   // Panneau temporaire pleine largeur sous la liste : une ligne numérotée à chaque clic/tap
   // sur l'écran, avec les informations utiles au diagnostic du bug "clic proche d'une icône
-  // sans effet sur iPhone". Double-clic/double-tap dans le panneau pour copier tout le journal.
+  // sans effet sur iPhone". Bouton « Copier » dans le panneau pour copier tout le journal.
   let debugLogCompteur = 0;
   function debugLog(msg){
     debugLogCompteur++;
@@ -886,7 +890,7 @@
       `, scroll(${Math.round(window.scrollX)},${Math.round(window.scrollY)}), dpr=${window.devicePixelRatio}`
     );
   }, true);
-  document.getElementById("debugLogBody").addEventListener("dblclick", async ()=>{
+  document.getElementById("btnDebugLogCopier").addEventListener("click", async ()=>{
     const zone = document.getElementById("debugLogBody");
     const texte = zone.textContent || "";
     try{
