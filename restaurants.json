@@ -67,10 +67,10 @@
       "id": "r_msek3o3c_yqcolm",
       "lat": 48.873054679723516,
       "lon": 2.339509427547442,
-      "name": "Nouveau restaurant",
-      "address": "8 Rue Rossini, 75009 Paris",
+      "name": "Au petit riche",
+      "address": "25 Rue Le Peletier, 75009 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T11:10:17.668Z"
+      "maj": "2026-08-04T11:11:50.048Z"
     }
   ],
   "suppressions": [
@@ -205,5 +205,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T11:10:22.453Z"
+  "maj": "2026-08-04T11:11:51.254Z"
 }
