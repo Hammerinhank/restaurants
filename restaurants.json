@@ -85,10 +85,10 @@
       "id": "r_mserq2i4_lbbvsk",
       "lat": 48.83393883973587,
       "lon": 2.2954940909060664,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Art Sushi",
+      "address": "5 Rue Robert Lindet, 75015 Paris",
       "liste": "Province",
-      "maj": "2026-08-04T14:43:27.916Z"
+      "maj": "2026-08-04T14:43:30.952Z"
     }
   ],
   "suppressions": [
@@ -248,5 +248,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T13:13:03.982Z",
-  "maj": "2026-08-04T14:43:29.132Z"
+  "maj": "2026-08-04T14:43:32.159Z"
 }
