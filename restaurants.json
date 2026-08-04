@@ -65,12 +65,12 @@
     },
     {
       "id": "r_msek3o3c_yqcolm",
-      "lat": 48.87316875406027,
-      "lon": 2.3387423157691822,
+      "lat": 48.87311230493647,
+      "lon": 2.3386108875274525,
       "name": "Au petit riche",
       "address": "25 Rue Le Peletier, 75009 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T11:12:23.697Z"
+      "maj": "2026-08-04T11:12:26.048Z"
     }
   ],
   "suppressions": [
@@ -209,5 +209,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-03T21:09:08.569Z",
-  "maj": "2026-08-04T11:12:24.901Z"
+  "maj": "2026-08-04T11:12:27.251Z"
 }
