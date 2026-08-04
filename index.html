@@ -2099,9 +2099,18 @@
       // et de ses coordonnées (recherche Google Maps, faute de disposer d'un identifiant de
       // fiche Google). Masqué si on n'a ni coordonnées ni nom exploitables (aucun restaurant trouvé).
       const majLienMaps = (n, la, lo) => {
-        const url = urlGoogleMaps(n, la, lo);
+        // Comme dans le popup de la carte : tant que le restaurant n'est pas identifié (nom
+        // encore égal au nom par défaut "Nouveau restaurant"), une recherche par nom n'a aucun
+        // sens ; on propose à la place une recherche des restaurants à proximité de la position.
+        const estNonIdentifie = !n || n === "Nouveau restaurant";
+        const url = estNonIdentifie
+          ? urlGoogleMapsRestaurantsProches(la, lo)
+          : urlGoogleMaps(n, la, lo);
         if(url){
           lienMaps.href = url;
+          lienMaps.textContent = estNonIdentifie
+            ? "Voir les restaurants à proximité sur Google Maps ↗"
+            : "Voir la fiche sur Google Maps ↗";
           lienMaps.style.display = "inline-block";
         }else{
           lienMaps.style.display = "none";
