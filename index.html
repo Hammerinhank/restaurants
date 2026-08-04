@@ -79,6 +79,18 @@
   }
   #btnSettings, #btnDiagTest{display:none;}
   body.mode-modif #btnSettings, body.mode-modif #btnDiagTest{display:inline-block;}
+  #chkAfficherLogWrap{
+    display:none;
+    align-items:center;
+    gap:5px;
+    font-size:12px;
+    color:var(--muted);
+    user-select:none;
+    cursor:pointer;
+    flex:0 0 auto;
+  }
+  body.mode-modif #chkAfficherLogWrap{display:inline-flex;}
+  #chkAfficherLogWrap input{margin:0;cursor:pointer;}
   #btnModifier.active{
     background:var(--accent);
     color:#fff;
@@ -204,6 +216,7 @@
   /* Panneau de debug (temporaire) — pleine largeur, sous #main. Reste visible même en mode
      plein écran carte : c'est justement ce cas qu'il sert à déboguer. */
   #debugLogPanel{
+    display:none;
     flex:0 0 auto;
     width:100%;
     box-sizing:border-box;
@@ -211,6 +224,7 @@
     background:#1e1e1e;
     color:#d4d4d4;
   }
+  body.show-debug-log #debugLogPanel{display:block;}
   #debugLogHeader{
     display:flex;
     align-items:center;
@@ -511,6 +525,9 @@
   <button class="btn-ghost" id="btnSettings">⚙️ GitHub</button>
   <button class="btn-ghost" id="btnDiagTest" title="Diagnostic réseau détaillé (Overpass, géolocalisation, etc.)">🔧 Test</button>
   <button class="btn-ghost" id="btnModifier">✏️ Modifier</button>
+  <label id="chkAfficherLogWrap" title="Afficher/masquer le panneau de debug en bas de l'écran">
+    <input type="checkbox" id="chkAfficherLog"> 🐞 Log
+  </label>
   <button class="btn-primary" id="btnNouveau">📍 Nouveau restaurant</button>
 </header>
 
@@ -767,6 +784,7 @@
   const LS_CFG_KEY = "restaurantsGithubConfig.v1";
   const LS_LISTES_KEY = "restaurantsListes.v1";
   const LS_LISTE_ACTUELLE_KEY = "restaurantsListeActuelle.v1";
+  const LS_AFFICHER_LOG_KEY = "restaurantsAfficherLog.v1";
   const SS_MODIF_KEY = "restaurantsModifApresRechargement";
   const FILE_NAME = "restaurants.json";
 
@@ -1859,6 +1877,20 @@
         document.getElementById("btnModifier").classList.add("active");
       }
     }catch(e){}
+  })();
+
+  // Case à cocher (visible seulement en mode Modifier) qui affiche/masque le panneau de
+  // debug en bas de l'écran. Préférence mémorisée dans localStorage.
+  (function initChkAfficherLog(){
+    const chk = document.getElementById("chkAfficherLog");
+    let coche = false;
+    try{ coche = localStorage.getItem(LS_AFFICHER_LOG_KEY) === "1"; }catch(e){}
+    chk.checked = coche;
+    document.body.classList.toggle("show-debug-log", coche);
+    chk.addEventListener("change", ()=>{
+      document.body.classList.toggle("show-debug-log", chk.checked);
+      try{ localStorage.setItem(LS_AFFICHER_LOG_KEY, chk.checked ? "1" : "0"); }catch(e){}
+    });
   })();
 
   document.getElementById("btnNouveau").addEventListener("click", async ()=>{
