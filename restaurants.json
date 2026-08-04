@@ -80,6 +80,15 @@
       "address": "18 Av. du 23 Janvier, 71700 Tournus",
       "liste": "Province",
       "maj": "2026-08-04T12:41:32.793Z"
+    },
+    {
+      "id": "r_mserq2i4_lbbvsk",
+      "lat": 48.83393883973587,
+      "lon": 2.2954940909060664,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Province",
+      "maj": "2026-08-04T14:43:27.916Z"
     }
   ],
   "suppressions": [
@@ -239,5 +248,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T13:13:03.982Z",
-  "maj": "2026-08-04T13:13:18.724Z"
+  "maj": "2026-08-04T14:43:29.132Z"
 }
