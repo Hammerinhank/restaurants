@@ -71,15 +71,6 @@
       "address": "25 Rue Le Peletier, 75009 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T11:12:26.048Z"
-    },
-    {
-      "id": "r_msemedg2_qxrqyg",
-      "lat": 46.562165208028674,
-      "lon": 4.896354675292956,
-      "name": "Aux terrasses",
-      "address": "18 Av. du 23 Janvier, 71700 Tournus",
-      "liste": "Province",
-      "maj": "2026-08-04T12:15:22.119Z"
     }
   ],
   "suppressions": [
@@ -214,6 +205,10 @@
     {
       "id": "r_msem2mq8_iuo2m4",
       "maj": "2026-08-04T12:05:41.022Z"
+    },
+    {
+      "id": "r_msemedg2_qxrqyg",
+      "maj": "2026-08-04T12:15:29.155Z"
     }
   ],
   "listes": [
@@ -223,5 +218,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-08-04T12:08:53.716Z",
-  "maj": "2026-08-04T12:15:23.324Z"
+  "maj": "2026-08-04T12:15:29.157Z"
 }
