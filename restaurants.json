@@ -107,15 +107,6 @@
       "address": "",
       "liste": "",
       "maj": "2026-08-04T14:59:50.595Z"
-    },
-    {
-      "id": "r_msesidd1_dfxwgd",
-      "lat": 48.8417701,
-      "lon": 2.3290046,
-      "name": "Le bistrot du dôme",
-      "address": "1 Rue Delambre, 75014 Paris",
-      "liste": "",
-      "maj": "2026-08-04T15:05:50.952Z"
     }
   ],
   "suppressions": [
@@ -270,6 +261,10 @@
     {
       "id": "r_mses4dky_ftmlcd",
       "maj": "2026-08-04T14:59:44.072Z"
+    },
+    {
+      "id": "r_msesidd1_dfxwgd",
+      "maj": "2026-08-04T15:06:08.340Z"
     }
   ],
   "listes": [
@@ -279,5 +274,5 @@
   ],
   "listeActuelle": "",
   "listeActuelleMaj": "2026-08-04T14:54:30.820Z",
-  "maj": "2026-08-04T15:05:52.153Z"
+  "maj": "2026-08-04T15:06:08.340Z"
 }
