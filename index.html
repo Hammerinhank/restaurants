@@ -671,7 +671,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V30";
+  const VERSION = "V31";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -796,6 +796,9 @@
     ]},
     { v:"V30", resume:[
       "Correction d'une régression introduite en V29 : la variable utilisée pour ignorer le clic de relâchement suivant un appui long n'était en fait jamais déclarée, ce qui provoquait une erreur JavaScript à CHAQUE clic sur la carte (long ou normal) — expliquant que plus rien ne fonctionnait, ni sur iMac ni sur iPhone. Corrigé. Journal de debug très détaillé ajouté sur toute la détection d'appui/clic long (pointerdown, déplacement mesuré, annulations avec leur motif précis, événements de relâchement/annulation, mouvements de carte interrompant la détection) pour pouvoir diagnostiquer précisément la suite si besoin."
+    ]},
+    { v:"V31", resume:[
+      "L'appui long (iPhone) / clic long (iMac) sur la carte pour ajouter un restaurant n'est désormais actif qu'en mode Modifier ; hors mode Modifier, un appui/clic prolongé sur la carte reste sans aucun effet (aucun minuteur ne démarre)."
     ]}
   ];
 
@@ -1092,7 +1095,9 @@
 
   // Appui long (doigt, iPhone) / clic long (souris, iMac) sur la carte : ajoute un nouveau
   // restaurant exactement comme le bouton "Nouveau restaurant", mais à la position désignée sur
-  // la carte plutôt qu'à la position géolocalisée de l'appareil.
+  // la carte plutôt qu'à la position géolocalisée de l'appareil. Actif uniquement en mode
+  // Modifier (comme les autres actions destructives/structurantes de l'app), pour éviter tout
+  // ajout accidentel en usage courant.
   //
   // Détection volontairement stricte pour ne JAMAIS être confondue avec un clic/tap normal :
   // - basée sur les Pointer Events (unifie souris et tactile, coordonnées clientX/clientY
@@ -1126,6 +1131,10 @@
     debugLog(`pointerdown sur la carte — type=${ev.pointerType}, bouton=${ev.button}, pos=(${ev.clientX.toFixed(0)},${ev.clientY.toFixed(0)})`);
     if(ev.button !== undefined && ev.button !== 0){
       debugLog("pointerdown ignoré (bouton secondaire)");
+      return;
+    }
+    if(!document.body.classList.contains("mode-modif")){
+      debugLog("pointerdown : appui long ignoré (hors mode Modifier)");
       return;
     }
     annulerAppuiLong("nouveau pointerdown");
