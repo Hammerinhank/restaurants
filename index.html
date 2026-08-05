@@ -787,7 +787,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V35";
+  const VERSION = "V36";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -931,6 +931,10 @@
     { v:"V35", resume:[
       "Nouvelle option : cliquer sur l'icône 🍽️ devant le titre « Restaurants » bascule le tri de la liste latérale entre ordre alphabétique (par nom) et ordre par date de modification (comportement par défaut, le plus récemment modifié en premier).",
       "L'icône est mise en surbrillance quand le tri alphabétique est actif ; la préférence est mémorisée sur l'appareil (survit au rechargement de la page)."
+    ]},
+    { v:"V36", resume:[
+      "Correction : le déblocage du bouton « Modifier » via un restaurant secret nommé « github » restait actif pour toujours sur l'appareil, même après suppression de ce restaurant et rechargement de la page.",
+      "L'accès suit désormais la présence réelle du restaurant « github » dans la liste : sa suppression retire l'accès (immédiatement si l'app est déjà ouverte, ou dès le prochain chargement sinon), sauf si un jeton GitHub fonctionnel est configuré par ailleurs."
     ]}
   ];
 
@@ -1001,8 +1005,8 @@
   let attenteIntervalId = null;       // intervalle du chronomètre affiché dans la fenêtre d'attente
 
   // Accès au bouton "Modifier" : débloqué soit par un jeton GitHub fonctionnel (vérifié
-  // dynamiquement auprès de l'API, voir chargerDepuisGithub/pousserVersGithub), soit
-  // définitivement sur cet appareil via un restaurant secret nommé exactement "github"
+  // dynamiquement auprès de l'API, voir chargerDepuisGithub/pousserVersGithub), soit tant qu'un
+  // restaurant secret nommé exactement "github" existe sur cet appareil
   // (voir verifierDeblocageParNom()).
   let accesModifDebloque = (function(){
     try{ return localStorage.getItem(LS_ACCES_MODIF_KEY) === "1"; }catch(e){ return false; }
@@ -1023,16 +1027,25 @@
 
   // ---------- Accès au bouton "Modifier" ----------
   // Repère un restaurant nommé exactement "github" (espaces et casse ignorés) : sa seule
-  // existence débloque définitivement le bouton "Modifier" sur cet appareil, sans avoir besoin
-  // d'un jeton GitHub — un mot de passe caché pratique à partager oralement en famille.
-  function verifierDeblocageParNom(){
-    if(accesModifDebloque) return; // déjà débloqué, inutile de rescanner à chaque sauvegarde
+  // existence débloque le bouton "Modifier" sur cet appareil, sans avoir besoin d'un jeton
+  // GitHub — un mot de passe caché pratique à partager oralement en famille. L'accès suit
+  // désormais la présence réelle de ce restaurant dans la liste (et pas seulement sa première
+  // apparition) : s'il est supprimé, l'accès est retiré (immédiatement si l'app est déjà
+  // ouverte, ou dès le prochain chargement de la page sinon).
+  // notifier=false : ne pas répercuter le changement sur l'affichage (bouton "Modifier",
+  // fermeture du mode Modifier) — utilisé uniquement lors du tout premier appel au démarrage
+  // (voir plus bas), où l'appel explicite à majAccesModifier(false) qui suit already s'en charge
+  // sans risquer de refermer prématurément un mode Modifier tout juste restauré après le
+  // rechargement iPhone, avant même que la vérification du jeton GitHub n'ait abouti.
+  function verifierDeblocageParNom(notifier = true){
     const trouve = restaurants.some(r => (r.name || "").trim().toLowerCase() === "github");
-    if(trouve){
-      accesModifDebloque = true;
-      try{ localStorage.setItem(LS_ACCES_MODIF_KEY, "1"); }catch(e){}
-      majAccesModifier();
-    }
+    if(trouve === accesModifDebloque) return; // aucun changement
+    accesModifDebloque = trouve;
+    try{
+      if(trouve) localStorage.setItem(LS_ACCES_MODIF_KEY, "1");
+      else localStorage.removeItem(LS_ACCES_MODIF_KEY);
+    }catch(e){}
+    if(notifier) majAccesModifier();
   }
 
   // Affiche/masque le bouton "Modifier" selon les conditions d'accès, et referme le mode
@@ -2946,7 +2959,10 @@
   })();
 
   // ---------- Démarrage ----------
-  verifierDeblocageParNom(); // au cas où un restaurant "github" existait déjà avant cette fonctionnalité
+  verifierDeblocageParNom(false); // recalcule l'accès selon la présence actuelle du restaurant
+                              // "github" (notifier=false : c'est le majAccesModifier(false)
+                              // ci-dessous qui applique le résultat à l'affichage, en évitant de
+                              // refermer prématurément un mode Modifier tout juste restauré).
   majAccesModifier(false);   // état initial du bouton "Modifier" (sera re-vérifié via l'API ci-dessous si
                               // un jeton est configuré) — fermerSiRefuse=false pour ne pas annuler un
                               // mode-modif tout juste restauré après le rechargement iPhone (voir
