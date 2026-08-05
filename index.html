@@ -777,7 +777,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V33";
+  const VERSION = "V34";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -913,6 +913,10 @@
       "Nouveau bouton « 📋 Depuis presse-papier » (visible en mode Modifier) : lit le contenu du presse-papier et tente de le géocoder comme une adresse.",
       "Si l'adresse est reconnue : recherche des 5 restaurants les plus proches (comme pour le bouton « Nouveau restaurant ») et boîte de dialogue de confirmation habituelle ; le restaurant choisi (nom + adresse) crée la nouvelle entrée, ou « Nouveau restaurant » avec l'adresse seule si aucun nom n'est trouvé à proximité.",
       "Si le contenu n'est pas reconnu comme une adresse (ou en cas d'échec réseau) : boîte de dialogue dédiée affichant le texte, modifiable, avec un bouton « Réessayer » (resoumet le texte corrigé) et un bouton « Annuler » (abandonne complètement, aucune entrée créée)."
+    ]},
+    { v:"V34", resume:[
+      "Correction : après validation de la boîte de dialogue « nom/adresse » d'un nouveau restaurant, le popup rouvert sur la carte affichait parfois encore les anciennes informations (« Nouveau restaurant », adresse vide) au lieu de celles tout juste validées — notamment en l'absence de jeton GitHub valide.",
+      "Le popup est désormais rouvert via definirSelection(), le même mécanisme utilisé partout ailleurs dans l'app pour sélectionner un restaurant et afficher son popup à jour, garantissant que les champs « Nom » et « Adresse » affichés correspondent toujours à ce qui vient d'être validé, indépendamment de l'état de la synchronisation GitHub."
     ]}
   ];
 
@@ -2445,11 +2449,13 @@
       r.maj = new Date().toISOString();
       sauverLocal();
       redessinerMarqueur(r);
-      if(markers[r.id] && markers[r.id].isPopupOpen()){
-        markers[r.id].openPopup();
-        brancherEditionPopup(r.id);
-      }
-      rafraichirListe();
+      // Réaffiche le popup via definirSelection() — le même chemin déjà utilisé partout
+      // ailleurs dans l'app pour sélectionner un restaurant et ouvrir son popup — plutôt que
+      // de se fier à un éventuel isPopupOpen() sur l'ancien marqueur : ça garantit que le
+      // popup rouvert correspond bien au marqueur tout juste redessiné avec les informations
+      // validées (nom/adresse), quel que soit l'état d'un éventuel envoi GitHub en parallèle
+      // (jeton absent ou invalide notamment).
+      definirSelection(r.id);
       pousserVersGithubDifféré();
       statut("Informations confirmées.", "ok");
     }else{
