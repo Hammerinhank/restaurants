@@ -121,10 +121,10 @@
       "id": "r_msfp0to8_fea9hf",
       "lat": 48.83393883973587,
       "lon": 2.2954940909060664,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "FgggNouveau restaurant",
+      "address": "5 Rue Robertvggg Lindet, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-08-05T06:15:37.016Z"
+      "maj": "2026-08-05T06:15:50.792Z"
     }
   ],
   "suppressions": [
@@ -344,5 +344,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-05T06:15:38.235Z"
+  "maj": "2026-08-05T06:15:51.998Z"
 }
