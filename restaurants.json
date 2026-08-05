@@ -125,15 +125,6 @@
       "address": "5 Rue Robertvggg Lindet, 75015 Paris",
       "liste": "Paris",
       "maj": "2026-08-05T06:15:50.792Z"
-    },
-    {
-      "id": "r_msfpj7jx_rxfyp4",
-      "lat": 48.83392881604153,
-      "lon": 2.2955190088391597,
-      "name": "Nouveau restaurantjjjjjj",
-      "address": "5 Rue Robert Lindet, 75015 Pjjjjjaris",
-      "liste": "Paris",
-      "maj": "2026-08-05T06:30:10.470Z"
     }
   ],
   "suppressions": [
@@ -344,6 +335,10 @@
     {
       "id": "r_msewv76w_3mn2b1",
       "maj": "2026-08-05T06:12:19.321Z"
+    },
+    {
+      "id": "r_msfpj7jx_rxfyp4",
+      "maj": "2026-08-05T06:31:13.127Z"
     }
   ],
   "listes": [
@@ -353,5 +348,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-05T06:30:11.695Z"
+  "maj": "2026-08-05T06:31:13.130Z"
 }
