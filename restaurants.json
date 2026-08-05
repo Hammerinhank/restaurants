@@ -125,6 +125,15 @@
       "address": "14 Rue de l'Arrivée, 75015 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T17:07:31.022Z"
+    },
+    {
+      "id": "r_msfovxxa_a5fdtr",
+      "lat": 48.83387340819228,
+      "lon": 2.2954693022707646,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Paris",
+      "maj": "2026-08-05T06:11:49.246Z"
     }
   ],
   "suppressions": [
@@ -336,5 +345,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-04T20:09:30.919Z"
+  "maj": "2026-08-05T06:11:50.454Z"
 }
