@@ -116,15 +116,6 @@
       "address": "102 Boulevard du Montparnasse, 75014 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T17:03:15.796Z"
-    },
-    {
-      "id": "r_msewv76w_3mn2b1",
-      "lat": 48.8432892,
-      "lon": 2.3217021,
-      "name": "Tonkatsu-Tombo",
-      "address": "14 Rue de l'Arrivée, 75015 Paris",
-      "liste": "Paris",
-      "maj": "2026-08-04T17:07:31.022Z"
     }
   ],
   "suppressions": [
@@ -331,6 +322,10 @@
     {
       "id": "r_msfovxxa_a5fdtr",
       "maj": "2026-08-05T06:12:16.110Z"
+    },
+    {
+      "id": "r_msewv76w_3mn2b1",
+      "maj": "2026-08-05T06:12:19.321Z"
     }
   ],
   "listes": [
@@ -340,5 +335,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-05T06:12:16.113Z"
+  "maj": "2026-08-05T06:12:19.325Z"
 }
