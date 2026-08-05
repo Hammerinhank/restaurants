@@ -116,15 +116,6 @@
       "address": "102 Boulevard du Montparnasse, 75014 Paris",
       "liste": "Paris",
       "maj": "2026-08-04T17:03:15.796Z"
-    },
-    {
-      "id": "r_msfp0to8_fea9hf",
-      "lat": 48.83393883973587,
-      "lon": 2.2954940909060664,
-      "name": "FgggNouveau restaurant",
-      "address": "5 Rue Robertvggg Lindet, 75015 Paris",
-      "liste": "Paris",
-      "maj": "2026-08-05T06:15:50.792Z"
     }
   ],
   "suppressions": [
@@ -339,6 +330,10 @@
     {
       "id": "r_msfpj7jx_rxfyp4",
       "maj": "2026-08-05T06:31:13.127Z"
+    },
+    {
+      "id": "r_msfp0to8_fea9hf",
+      "maj": "2026-08-05T06:32:47.103Z"
     }
   ],
   "listes": [
@@ -348,5 +343,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-05T06:31:13.130Z"
+  "maj": "2026-08-05T06:32:47.105Z"
 }
