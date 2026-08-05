@@ -105,6 +105,16 @@
     color:#fff;
     border-color:var(--accent);
   }
+  /* Icône cliquable devant le titre "Restaurants" : bascule le tri de la liste latérale entre
+     ordre alphabétique et ordre par date de modification (comportement par défaut). */
+  #btnTriAlpha{
+    cursor:pointer;
+    padding:1px 5px;
+    border-radius:7px;
+    user-select:none;
+  }
+  #btnTriAlpha:hover{background:var(--line);}
+  #btnTriAlpha.active{background:var(--accent);}
   .btn-danger{
     background:transparent;
     color:var(--err);
@@ -633,7 +643,7 @@
 <body>
 
 <header>
-  <h1>🍽️ Restaurants</h1>
+  <h1><span id="btnTriAlpha" title="Trier la liste par ordre alphabétique">🍽️</span> Restaurants</h1>
   <span class="badge" id="versionBadge" title="Historique des versions">V1</span>
   <div class="hbreak" id="hbreak1"></div>
   <div class="spacer"></div>
@@ -777,7 +787,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V34";
+  const VERSION = "V35";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -917,6 +927,10 @@
     { v:"V34", resume:[
       "Correction : après validation de la boîte de dialogue « nom/adresse » d'un nouveau restaurant, le popup rouvert sur la carte affichait parfois encore les anciennes informations (« Nouveau restaurant », adresse vide) au lieu de celles tout juste validées — notamment en l'absence de jeton GitHub valide.",
       "Le popup est désormais rouvert via definirSelection(), le même mécanisme utilisé partout ailleurs dans l'app pour sélectionner un restaurant et afficher son popup à jour, garantissant que les champs « Nom » et « Adresse » affichés correspondent toujours à ce qui vient d'être validé, indépendamment de l'état de la synchronisation GitHub."
+    ]},
+    { v:"V35", resume:[
+      "Nouvelle option : cliquer sur l'icône 🍽️ devant le titre « Restaurants » bascule le tri de la liste latérale entre ordre alphabétique (par nom) et ordre par date de modification (comportement par défaut, le plus récemment modifié en premier).",
+      "L'icône est mise en surbrillance quand le tri alphabétique est actif ; la préférence est mémorisée sur l'appareil (survit au rechargement de la page)."
     ]}
   ];
 
@@ -951,6 +965,7 @@
   const LS_LISTE_ACTUELLE_KEY = "restaurantsListeActuelle.v1";
   const LS_AFFICHER_LOG_KEY = "restaurantsAfficherLog.v1";
   const LS_ACCES_MODIF_KEY = "restaurantsAccesModifDebloque.v1";
+  const LS_TRI_ALPHA_KEY = "restaurantsTriAlpha.v1";
   const SS_MODIF_KEY = "restaurantsModifApresRechargement";
   const FILE_NAME = "restaurants.json";
 
@@ -974,6 +989,9 @@
   // "Modifier", car ils ne sont pas encore récupérables depuis un autre appareil et leur
   // suppression ne dépend d'aucune synchronisation.
   let idsConnusGithub = chargerIdsGithubLocal();
+  let triAlphabetique = (function(){   // tri de la liste latérale : alphabétique (true) ou par date de modif (false, défaut)
+    try{ return localStorage.getItem(LS_TRI_ALPHA_KEY) === "1"; }catch(e){ return false; }
+  })();
   let selectedId = null;              // id du restaurant sélectionné (surbrillance liste/carte)
   let deplacableId = null;            // id du restaurant actuellement déplaçable (bouton "Déplacer" activé)
   const editingIds = new Set();       // ids des restaurants actuellement en édition dans la liste latérale
@@ -1847,7 +1865,9 @@
       body.innerHTML = '<div class="empty-hint">Aucun restaurant dans cette liste. Utilisez le bouton « Nouveau restaurant ».</div>';
       return;
     }
-    const tries = [...restosListe].sort((a,b)=> (b.maj||"").localeCompare(a.maj||""));
+    const tries = triAlphabetique
+      ? [...restosListe].sort((a,b)=> (a.name||"Nouveau restaurant").localeCompare(b.name||"Nouveau restaurant", "fr", {sensitivity:"base"}))
+      : [...restosListe].sort((a,b)=> (b.maj||"").localeCompare(a.maj||""));
     body.innerHTML = tries.map(r => {
       const enEdition = editingIds.has(r.id);
       const txtHtml = enEdition
@@ -2514,6 +2534,27 @@
     chk.addEventListener("change", ()=>{
       document.body.classList.toggle("show-debug-log", chk.checked);
       try{ localStorage.setItem(LS_AFFICHER_LOG_KEY, chk.checked ? "1" : "0"); }catch(e){}
+    });
+  })();
+
+  // Icône 🍽️ devant le titre "Restaurants" : bascule le tri de la liste latérale entre ordre
+  // alphabétique (par nom) et ordre par date de modification (comportement par défaut,
+  // le plus récemment modifié en premier). Préférence mémorisée dans localStorage, comme les
+  // autres réglages persistants de l'app.
+  (function initTriAlpha(){
+    const icone = document.getElementById("btnTriAlpha");
+    const majApparence = () => {
+      icone.classList.toggle("active", triAlphabetique);
+      icone.title = triAlphabetique
+        ? "Tri alphabétique actif — cliquer pour revenir au tri par date de modification"
+        : "Trier la liste par ordre alphabétique";
+    };
+    majApparence();
+    icone.addEventListener("click", ()=>{
+      triAlphabetique = !triAlphabetique;
+      try{ localStorage.setItem(LS_TRI_ALPHA_KEY, triAlphabetique ? "1" : "0"); }catch(e){}
+      majApparence();
+      rafraichirListe();
     });
   })();
 
