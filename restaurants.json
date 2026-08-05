@@ -130,10 +130,10 @@
       "id": "r_msfovxxa_a5fdtr",
       "lat": 48.83387340819228,
       "lon": 2.2954693022707646,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Gggggg",
+      "address": "5 Rue dffxxRobert Lindet, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-08-05T06:11:49.246Z"
+      "maj": "2026-08-05T06:12:03.826Z"
     }
   ],
   "suppressions": [
@@ -345,5 +345,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-08-05T06:11:50.454Z"
+  "maj": "2026-08-05T06:12:05.029Z"
 }
