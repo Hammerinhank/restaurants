@@ -624,21 +624,32 @@
   /* Bouton appareil photo de chaque item de la liste : volontairement TOUJOURS visible
      (contrairement aux boutons Edit/Déplacer/Adresse/✕ réservés au mode Modifier), pour
      pouvoir consulter les photos d'un restaurant sans passer en mode Modifier. */
-  /* L'icône 📷 occupe le maximum de place dans le bouton : la taille de police est nettement
-     augmentée et le remplissage (padding) réduit d'autant, pour que le bouton lui-même garde
-     exactement les mêmes dimensions extérieures qu'avant (env. 33 x 27 px). */
+  /* L'icône du bouton n'est plus l'émoji 📷 (rendu par iOS en un petit appareil photo noir,
+     illisible à cette taille) mais un dessin vectoriel tracé au trait, à la couleur du bouton :
+     silhouette d'appareil photo (boîtier + bossage du viseur + objectif) reconnaissable au
+     premier coup d'œil. Le bouton garde les mêmes dimensions extérieures qu'avant. */
   .btn-photo{
     background:transparent;
     color:var(--accent);
     border:1px solid var(--accent);
     padding:2px 5px;
-    font-size:21px;
+    font-size:11px;
     line-height:1;
     flex:none;
     display:inline-flex;
     align-items:center;
     justify-content:center;
     gap:3px;
+  }
+  .btn-photo svg{
+    width:21px;
+    height:21px;
+    display:block;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:1.7;
+    stroke-linejoin:round;
+    stroke-linecap:round;
   }
   .btn-photo .photo-nb{
     font-size:10.5px;
@@ -912,7 +923,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V38";
+  const VERSION = "V39";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1071,6 +1082,9 @@
     ]},
     { v:"V38", resume:[
       "L'icône 📷 du bouton photo était trop petite pour être reconnaissable sur iPhone : elle est nettement agrandie (13 px → 21 px) et occupe désormais presque toute la surface du bouton, dont les dimensions extérieures restent inchangées (le remplissage intérieur a été réduit d'autant)."
+    ]},
+    { v:"V39", resume:[
+      "L'émoji 📷 restait rendu par iOS en une petite masse noire indéchiffrable, même agrandi : il est remplacé par une véritable icône vectorielle dessinée au trait (boîtier, bossage du viseur, objectif et témoin de flash), à la couleur orangée du bouton, immédiatement identifiable comme un appareil photo. Dimensions du bouton toujours inchangées."
     ]}
   ];
 
@@ -1108,6 +1122,16 @@
   const LS_TRI_ALPHA_KEY = "restaurantsTriAlpha.v1";
   const SS_MODIF_KEY = "restaurantsModifApresRechargement";
   const FILE_NAME = "restaurants.json";
+
+  // Icône d'appareil photo dessinée en SVG (boîtier, bossage du viseur, objectif), utilisée
+  // pour le bouton de chaque restaurant : l'émoji 📷 était rendu par iOS en une petite masse
+  // noire indéchiffrable à cette taille. Le tracé suit la couleur du bouton (currentColor).
+  const ICONE_APPAREIL_PHOTO = `
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9.2 4.6h5.6l1.3 2.2h3.4A2 2 0 0 1 21.5 8.8v8.6a2 2 0 0 1-2 2H4.5a2 2 0 0 1-2-2V8.8a2 2 0 0 1 2-2h3.4z"/>
+      <circle cx="12" cy="13.1" r="3.6"/>
+      <circle cx="18.4" cy="9.9" r="0.85" fill="currentColor" stroke="none"/>
+    </svg>`;
 
   // ---------- État ----------
   let restaurants = chargerLocal();   // [{id, lat, lon, name, address, maj}]
@@ -2035,7 +2059,7 @@
           </div>
         </div>
         <div class="actions">
-          <button class="btn-photo" data-photo="${r.id}" title="Photos de ce restaurant (prendre, choisir, voir)">📷${nbPhotos ? `<span class="photo-nb">${nbPhotos}</span>` : ""}</button>
+          <button class="btn-photo" data-photo="${r.id}" title="Photos de ce restaurant (prendre, choisir, voir)">${ICONE_APPAREIL_PHOTO}${nbPhotos ? `<span class="photo-nb">${nbPhotos}</span>` : ""}</button>
           <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}">Edit</button>
           <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
           <button class="btn-locate" data-locate="${r.id}" title="Déplacer l'icône sur la carte à l'adresse saisie"${(r.address||"").trim() ? "" : " disabled"}>📍 Adresse</button>
