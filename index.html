@@ -152,6 +152,17 @@
     color:#fff;
     border-color:var(--accent);
   }
+  /* Bouton « Annuler » affiché à côté du bouton « ✅ Valider » pendant l'édition d'un
+     restaurant : volontairement neutre (gris), pour que le bouton de validation reste le
+     bouton mis en avant. */
+  .btn-annuler{
+    background:transparent;
+    color:var(--muted);
+    border:1px dashed var(--line);
+    padding:5px 9px;
+    font-size:12px;
+    flex:none;
+  }
   .btn-locate{
     background:transparent;
     color:var(--muted);
@@ -422,10 +433,12 @@
      display:none. Chaque bouton est donc masqué individuellement par défaut, ci-dessous. */
   .resto-item .actions{display:flex;gap:6px;align-items:center;flex:none;}
   .resto-item .actions .btn-edit,
+  .resto-item .actions .btn-annuler,
   .resto-item .actions .btn-move,
   .resto-item .actions .btn-locate,
   .resto-item .actions .btn-danger{display:none;}
   body.mode-modif .resto-item .actions .btn-edit,
+  body.mode-modif .resto-item .actions .btn-annuler,
   body.mode-modif .resto-item .actions .btn-move,
   body.mode-modif .resto-item .actions .btn-locate,
   body.mode-modif .resto-item .actions .btn-danger{display:inline-block;}
@@ -931,7 +944,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V41";
+  const VERSION = "V42";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1104,6 +1117,11 @@
       "Bouton principal de l'en-tête : « ✏️ Modifier » devient « ✅ Valider et terminer » tant que le mode Modifier est actif.",
       "Bouton « Modifier » de chaque restaurant dans la liste : devient « ✅ Valider » pendant l'édition du nom et de l'adresse ; celui du popup de la carte affiche « ✅ Valider » au lieu de « ✅ OK ».",
       "Les infobulles correspondantes ont été ajustées dans le même esprit."
+    ]},
+    { v:"V42", resume:[
+      "Un bouton « ✖️ Annuler » apparaît à côté du bouton « ✅ Valider » pendant l'édition d'un restaurant, aussi bien dans la liste latérale que dans le popup de la carte : il abandonne les modifications en cours et rétablit le nom et l'adresse précédents.",
+      "L'annulation ne touche à rien : le nom et l'adresse ne sont enregistrés qu'au moment de la validation, donc annuler revient simplement à réafficher les valeurs déjà en place (même effet que la touche Échap sur l'iMac, désormais accessible au doigt sur iPhone).",
+      "Le bouton Annuler est volontairement discret (gris, contour pointillé) pour que la validation reste l'action mise en avant."
     ]}
   ];
 
@@ -1996,9 +2014,34 @@
       el.replaceWith(input);
     });
     const btn = popupEl.querySelector(`[data-editpopup="${id}"]`);
-    if(btn) btn.textContent = "✅ Valider";
+    if(btn){
+      btn.textContent = "✅ Valider";
+      // Bouton « Annuler » ajouté juste à côté, le temps de l'édition : il redessine le popup
+      // à partir des données non modifiées du restaurant (rien n'a encore été enregistré).
+      if(!popupEl.querySelector("[data-cancelpopup]")){
+        const btnAnnuler = document.createElement("button");
+        btnAnnuler.className = "btn-annuler";
+        btnAnnuler.setAttribute("data-cancelpopup", id);
+        btnAnnuler.textContent = "✖️ Annuler";
+        btnAnnuler.title = "Abandonner les modifications et revenir aux valeurs précédentes";
+        btnAnnuler.onclick = (ev)=>{ ev.stopPropagation(); annulerEditionPopup(id); };
+        btn.parentElement.insertBefore(btnAnnuler, btn.nextSibling);
+      }
+    }
     const nomInput = popupEl.querySelector('.popup-edit[data-field="name"]');
     if(nomInput){ nomInput.focus(); nomInput.select(); }
+  }
+
+  // Annule l'édition en cours dans le popup de la carte : on redessine le marqueur (donc le
+  // popup) à partir du restaurant tel qu'il est enregistré, ce qui restaure le nom et l'adresse
+  // précédents et fait disparaître les champs de saisie.
+  function annulerEditionPopup(id){
+    const r = restaurants.find(x=>x.id===id);
+    if(!r) return;
+    redessinerMarqueur(r);
+    const m = markers[id];
+    if(m) m.openPopup();
+    statut("Modifications annulées.", "ok");
   }
 
   function passerEnEdition(el){
@@ -2096,6 +2139,7 @@
         <div class="actions">
           <button class="btn-photo" data-photo="${r.id}" title="Photos de ce restaurant (prendre, choisir, voir)">${ICONE_APPAREIL_PHOTO}${nbPhotos ? `<span class="photo-nb">${nbPhotos}</span>` : ""}</button>
           <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}" title="${enEdition ? "Valider les modifications de ce restaurant" : "Modifier le nom et l'adresse"}">${enEdition ? "✅ Valider" : "✏️ Modifier"}</button>
+          ${enEdition ? `<button class="btn-annuler" data-cancel="${r.id}" title="Abandonner les modifications et revenir aux valeurs précédentes">✖️ Annuler</button>` : ""}
           <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
           <button class="btn-locate" data-locate="${r.id}" title="Déplacer l'icône sur la carte à l'adresse saisie"${(r.address||"").trim() ? "" : " disabled"}>📍 Adresse</button>
           <button class="btn-danger${estConnuSurGithub(r.id) ? '' : ' toujours-visible'}" data-del="${r.id}" title="${estConnuSurGithub(r.id) ? '' : 'Restaurant pas encore enregistré sur GitHub — supprimable directement'}">✕</button>
@@ -2105,7 +2149,7 @@
     }).join("");
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
-        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.closest("[data-photo]") || ev.target.closest(".item-liste-select") || ev.target.tagName === "INPUT") return;
+        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.closest("[data-cancel]") || ev.target.closest("[data-photo]") || ev.target.closest(".item-liste-select") || ev.target.tagName === "INPUT") return;
         definirSelection(el.getAttribute("data-goto"));
       });
     });
@@ -2144,6 +2188,12 @@
       el.addEventListener("click",(ev)=>{
         ev.stopPropagation();
         basculerEditionListe(el.getAttribute("data-edit"));
+      });
+    });
+    body.querySelectorAll("[data-cancel]").forEach(el=>{
+      el.addEventListener("click",(ev)=>{
+        ev.stopPropagation();
+        annulerEditionListe(el.getAttribute("data-cancel"));
       });
     });
     body.querySelectorAll(".list-edit-input").forEach(el=>{
@@ -2205,6 +2255,18 @@
       const nomInput = itemEl && itemEl.querySelector('[data-field="name"]');
       if(nomInput){ nomInput.focus(); nomInput.select(); }
     }
+  }
+
+  // Abandonne l'édition en cours d'un restaurant sans rien enregistrer : les champs saisis sont
+  // simplement jetés et la liste est redessinée à partir des données du restaurant, qui n'ont pas
+  // été touchées (elles ne le sont qu'au moment de la validation, dans basculerEditionListe).
+  // C'est exactement ce que faisait déjà la touche Échap sur l'iMac, désormais accessible aussi
+  // au doigt sur iPhone.
+  function annulerEditionListe(id){
+    if(!editingIds.has(id)) return;
+    editingIds.delete(id);
+    rafraichirListe();
+    statut("Modifications annulées.", "ok");
   }
 
   // Change la liste d'appartenance d'un restaurant (combo box affichée sur chaque item en mode
