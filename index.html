@@ -619,6 +619,76 @@
     animation:tourner .8s linear infinite;
   }
   @keyframes tourner{ to{ transform:rotate(360deg); } }
+
+  /* ---------- Photos des restaurants (V37) ---------- */
+  /* Bouton appareil photo de chaque item de la liste : volontairement TOUJOURS visible
+     (contrairement aux boutons Edit/Déplacer/Adresse/✕ réservés au mode Modifier), pour
+     pouvoir consulter les photos d'un restaurant sans passer en mode Modifier. */
+  .btn-photo{
+    background:transparent;
+    color:var(--accent);
+    border:1px solid var(--accent);
+    padding:5px 8px;
+    font-size:13px;
+    line-height:1.15;
+    flex:none;
+    display:inline-flex;
+    align-items:center;
+    gap:4px;
+  }
+  .btn-photo .photo-nb{
+    font-size:10.5px;
+    font-weight:700;
+    background:var(--accent);
+    color:#fff;
+    border-radius:8px;
+    padding:0 5px;
+  }
+  .photo-choix-actions{display:flex;flex-direction:column;gap:8px;margin:6px 0 4px;}
+  .photo-choix-actions button{width:100%;}
+  .photo-progress{font-size:11.5px;color:var(--muted);margin-top:8px;min-height:14px;}
+  .modal-box-photos{max-width:560px;width:96vw;}
+  .photo-grille{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(110px,1fr));
+    gap:8px;
+    max-height:56vh;
+    overflow-y:auto;
+    margin:6px 0 10px;
+  }
+  .photo-vignette{
+    position:relative;
+    border-radius:8px;
+    overflow:hidden;
+    border:1px solid var(--line);
+    background:#f2efe9;
+    min-height:60px;
+  }
+  .photo-vignette img{width:100%;height:110px;object-fit:cover;display:block;cursor:pointer;}
+  .photo-erreur{display:block;font-size:11px;color:var(--err);padding:8px;}
+  /* Suppression d'une photo : action destructive, donc réservée au mode Modifier comme
+     les autres suppressions de l'application. */
+  .photo-supprimer{
+    position:absolute;top:4px;right:4px;
+    display:none;
+    background:rgba(255,255,255,.92);
+    color:var(--err);
+    border:1px solid var(--err);
+    border-radius:6px;
+    padding:1px 6px;
+    font-size:12px;
+    cursor:pointer;
+  }
+  body.mode-modif .photo-supprimer{display:block;}
+  .photo-vide{font-size:12px;color:var(--muted);padding:14px 2px;}
+  #photoVisuOverlay .modal-box{max-width:900px;width:96vw;}
+  .photo-visu-zone{
+    display:flex;align-items:center;justify-content:center;
+    background:#000;border-radius:8px;margin:6px 0 8px;min-height:180px;
+  }
+  .photo-visu-zone img{max-width:100%;max-height:66vh;display:block;}
+  .photo-visu-nav{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .photo-visu-pos{font-size:11.5px;color:var(--muted);text-align:center;flex:1;}
 </style>
 
 <!-- ===== Bloc TEST/DIAGNOSTIC (ajouté, n'affecte pas le reste de l'application) ===== -->
@@ -782,12 +852,63 @@
   </div>
 </div>
 
+<!-- ===== Photos des restaurants (V37) ===== -->
+<!-- Champs de fichier masqués, déclenchés par les boutons de la fenêtre « Photos » :
+     - photoInputCamera porte l'attribut capture : sur iPhone, il ouvre directement
+       l'appareil photo pour prendre une photo sur le champ ;
+     - photoInputBiblio (sans capture, avec multiple) ouvre la bibliothèque de photos. -->
+<input type="file" id="photoInputCamera" accept="image/*" capture="environment" style="display:none">
+<input type="file" id="photoInputBiblio" accept="image/*" multiple style="display:none">
+
+<div class="modal-overlay" id="photoChoixOverlay">
+  <div class="modal-box">
+    <h3>📷 Photos</h3>
+    <div class="modal-hint" id="photoChoixHint"></div>
+    <div class="photo-choix-actions">
+      <button class="btn-primary btn-small" id="photoBtnPrendre">📸 Prendre une photo</button>
+      <button class="btn-ghost btn-small" id="photoBtnBiblio">🖼️ Choisir dans la bibliothèque</button>
+      <button class="btn-ghost btn-small" id="photoBtnVoir">👁️ Voir les photos</button>
+    </div>
+    <div class="photo-progress" id="photoChoixProgress"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="photoChoixFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="photoGalerieOverlay">
+  <div class="modal-box modal-box-photos">
+    <h3>🖼️ Photos du restaurant</h3>
+    <div class="modal-hint" id="photoGalerieHint"></div>
+    <div class="photo-grille" id="photoGrille"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="photoGalerieRetour">← Retour</button>
+      <button class="btn-primary btn-small" id="photoGalerieFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="photoVisuOverlay">
+  <div class="modal-box">
+    <h3 id="photoVisuTitre">Photo</h3>
+    <div class="photo-visu-zone"><img id="photoVisuImg" alt=""></div>
+    <div class="photo-visu-nav">
+      <button class="btn-ghost btn-small" id="photoVisuPrec">‹</button>
+      <span class="photo-visu-pos" id="photoVisuPos"></span>
+      <button class="btn-ghost btn-small" id="photoVisuSuiv">›</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary btn-small" id="photoVisuFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
   "use strict";
 
-  const VERSION = "V36";
+  const VERSION = "V37";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -935,6 +1056,14 @@
     { v:"V36", resume:[
       "Correction : le déblocage du bouton « Modifier » via un restaurant secret nommé « github » restait actif pour toujours sur l'appareil, même après suppression de ce restaurant et rechargement de la page.",
       "L'accès suit désormais la présence réelle du restaurant « github » dans la liste : sa suppression retire l'accès (immédiatement si l'app est déjà ouverte, ou dès le prochain chargement sinon), sauf si un jeton GitHub fonctionnel est configuré par ailleurs."
+    ]},
+    { v:"V37", resume:[
+      "Photos : chaque restaurant de la liste porte désormais, à droite, un bouton 📷 (toujours visible, même hors mode Modifier) affichant le nombre de photos déjà associées.",
+      "Ce bouton ouvre une fenêtre proposant trois actions : « 📸 Prendre une photo » (ouvre directement l'appareil photo sur iPhone), « 🖼️ Choisir dans la bibliothèque » (sélection multiple possible) et « 👁️ Voir les photos ».",
+      "Chaque photo choisie est redimensionnée (1600 px maxi sur le plus grand côté, JPEG qualité 0,82) puis envoyée sur GitHub dans photos/<id du restaurant>/, et sa référence est enregistrée dans le restaurant lui-même : l'association photo ↔ restaurant est donc synchronisée entre l'iPhone et l'iMac comme le reste des données (restaurants.json).",
+      "« Voir les photos » ouvre une galerie de vignettes ; un appui sur une vignette affiche la photo en grand, avec navigation ‹ / › entre toutes les photos du restaurant. Les photos sont lues via l'URL publique du dépôt, avec repli automatique sur l'API GitHub authentifiée (dépôt privé, ou photo tout juste envoyée pas encore propagée).",
+      "En mode Modifier uniquement, chaque vignette porte un bouton ✕ qui supprime la photo du dépôt GitHub et la retire du restaurant (confirmation demandée).",
+      "L'envoi d'une photo nécessite un jeton GitHub valide (Réglages ⚙️ GitHub) ; en son absence, un message explicite le signale et aucune photo n'est associée."
     ]}
   ];
 
@@ -1883,6 +2012,7 @@
       : [...restosListe].sort((a,b)=> (b.maj||"").localeCompare(a.maj||""));
     body.innerHTML = tries.map(r => {
       const enEdition = editingIds.has(r.id);
+      const nbPhotos = Array.isArray(r.photos) ? r.photos.length : 0;
       const txtHtml = enEdition
         ? `<textarea class="list-edit-input nom-input" data-field="name" rows="1" placeholder="Nom du restaurant">${escHtml(r.name || "")}</textarea>
            <textarea class="list-edit-input adr-input" data-field="address" rows="1" placeholder="Adresse">${escHtml(r.address || "")}</textarea>`
@@ -1898,6 +2028,7 @@
           </div>
         </div>
         <div class="actions">
+          <button class="btn-photo" data-photo="${r.id}" title="Photos de ce restaurant (prendre, choisir, voir)">📷${nbPhotos ? `<span class="photo-nb">${nbPhotos}</span>` : ""}</button>
           <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}">Edit</button>
           <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
           <button class="btn-locate" data-locate="${r.id}" title="Déplacer l'icône sur la carte à l'adresse saisie"${(r.address||"").trim() ? "" : " disabled"}>📍 Adresse</button>
@@ -1908,7 +2039,7 @@
     }).join("");
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
-        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.closest(".item-liste-select") || ev.target.tagName === "INPUT") return;
+        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.closest("[data-photo]") || ev.target.closest(".item-liste-select") || ev.target.tagName === "INPUT") return;
         definirSelection(el.getAttribute("data-goto"));
       });
     });
@@ -1917,6 +2048,12 @@
       el.addEventListener("change",(ev)=>{
         ev.stopPropagation();
         changerListeItem(el.getAttribute("data-liste-id"), el.value);
+      });
+    });
+    body.querySelectorAll("[data-photo]").forEach(el=>{
+      el.addEventListener("click",(ev)=>{
+        ev.stopPropagation();
+        ouvrirFenetrePhoto(el.getAttribute("data-photo"));
       });
     });
     body.querySelectorAll("[data-move]").forEach(el=>{
@@ -2018,6 +2155,345 @@
     toutRedessiner();
     pousserVersGithubDifféré();
   }
+
+  // ================= Photos des restaurants (V37) =================
+  // Une photo est stockée comme un fichier image dans le dépôt GitHub, sous
+  // photos/<id du restaurant>/<id de la photo>.jpg ; seule sa RÉFÉRENCE (chemin + sha +
+  // dimensions) est conservée dans le restaurant lui-même (r.photos). Comme le tableau
+  // "restaurants" est intégralement poussé dans restaurants.json, l'association
+  // photo ↔ restaurant se synchronise entre l'iPhone et l'iMac exactement comme le nom,
+  // l'adresse ou la liste d'appartenance — sans mécanisme de fusion supplémentaire
+  // (dernier écrit gagnant par restaurant, cf. fusionner()).
+  const PHOTOS_DIR = "photos";
+  const PHOTO_MAX_PX = 1600;    // plus grand côté après redimensionnement
+  const PHOTO_QUALITE = 0.82;   // qualité JPEG à la ré-encodage
+  let photoRestoId = null;      // restaurant concerné par les fenêtres photo actuellement ouvertes
+  let photoVisuIndex = 0;       // index de la photo affichée en plein écran
+  const photoCacheUrl = new Map(); // id de photo -> URL affichable déjà résolue (cache de session)
+
+  function photosDe(r){
+    if(!r) return [];
+    if(!Array.isArray(r.photos)) r.photos = [];
+    return r.photos;
+  }
+  function nomResto(r){
+    return (r && (r.name || "").trim()) ? r.name : "Nouveau restaurant";
+  }
+
+  // URL publique "brute" d'une photo du dépôt : c'est le chemin le plus rapide (mise en cache
+  // par le navigateur, aucune requête à l'API), mais il ne fonctionne que sur un dépôt public
+  // et seulement une fois le fichier propagé sur le CDN de GitHub.
+  function urlBrutePhoto(photo){
+    const chemin = String(photo.chemin || "").split("/").map(encodeURIComponent).join("/");
+    return `https://raw.githubusercontent.com/${cfg.owner}/${cfg.repo}/${encodeURIComponent(cfg.branch || "main")}/${chemin}`;
+  }
+
+  // Repli : lecture de la photo via l'API GitHub (authentifiée si un jeton est configuré),
+  // utilisée quand l'URL brute échoue — dépôt privé, ou photo tout juste envoyée dont le CDN
+  // ne connaît pas encore le contenu.
+  async function chargerPhotoViaApi(photo){
+    const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${photo.chemin}?ref=${encodeURIComponent(cfg.branch || "main")}`;
+    const headers = { "Accept": "application/vnd.github+json" };
+    if(cfg.token) headers["Authorization"] = `Bearer ${cfg.token}`;
+    const res = await fetch(url, { headers, cache: "no-store" });
+    if(!res.ok) throw new Error("HTTP " + res.status);
+    const data = await res.json();
+    if(data.content) return `data:${photo.mime || "image/jpeg"};base64,${String(data.content).replace(/\s/g, "")}`;
+    if(data.download_url) return data.download_url; // fichier trop gros pour être inclus dans la réponse
+    throw new Error("contenu indisponible");
+  }
+
+  // Branche une photo sur un élément <img> : URL brute d'abord, repli API en cas d'échec.
+  function brancherImagePhoto(img, photo){
+    const parent = img.parentElement;
+    if(parent) parent.querySelectorAll(".photo-erreur").forEach(el=> el.remove());
+    const enCache = photoCacheUrl.get(photo.id);
+    if(enCache){ img.src = enCache; return; }
+    img.onload = ()=> photoCacheUrl.set(photo.id, img.src);
+    img.onerror = async ()=>{
+      img.onerror = null;
+      try{
+        const src = await chargerPhotoViaApi(photo);
+        photoCacheUrl.set(photo.id, src);
+        img.src = src;
+      }catch(e){
+        console.error("photo illisible:", e);
+        img.removeAttribute("src");
+        if(img.parentElement) img.parentElement.insertAdjacentHTML("beforeend", '<span class="photo-erreur">Photo indisponible</span>');
+      }
+    };
+    img.src = urlBrutePhoto(photo);
+  }
+
+  function lireFichierEnDataURL(file){
+    return new Promise((resolve, reject)=>{
+      const fr = new FileReader();
+      fr.onload = ()=> resolve(fr.result);
+      fr.onerror = ()=> reject(new Error("lecture du fichier impossible"));
+      fr.readAsDataURL(file);
+    });
+  }
+
+  // Redimensionne et ré-encode la photo avant envoi : une photo d'iPhone pèse couramment
+  // 3 à 5 Mo, ce qui alourdirait inutilement le dépôt et rendrait l'envoi très lent en 4G.
+  async function preparerPhoto(file){
+    const dataUrl = await lireFichierEnDataURL(file);
+    const img = await new Promise((resolve, reject)=>{
+      const im = new Image();
+      im.onload = ()=> resolve(im);
+      im.onerror = ()=> reject(new Error("image illisible"));
+      im.src = dataUrl;
+    });
+    const ratio = Math.min(1, PHOTO_MAX_PX / Math.max(img.naturalWidth, img.naturalHeight));
+    const largeur = Math.max(1, Math.round(img.naturalWidth * ratio));
+    const hauteur = Math.max(1, Math.round(img.naturalHeight * ratio));
+    const canvas = document.createElement("canvas");
+    canvas.width = largeur;
+    canvas.height = hauteur;
+    canvas.getContext("2d").drawImage(img, 0, 0, largeur, hauteur);
+    const jpeg = canvas.toDataURL("image/jpeg", PHOTO_QUALITE);
+    return { base64: jpeg.split(",")[1], dataUrl: jpeg, largeur, hauteur };
+  }
+
+  // Envoie une photo sur GitHub (API Contents, création d'un nouveau fichier) puis l'associe
+  // au restaurant. L'envoi du fichier image et l'enregistrement de la référence sont bien deux
+  // opérations distinctes : la seconde part avec le prochain push de restaurants.json.
+  async function envoyerPhotoSurGithub(r, file){
+    const prep = await preparerPhoto(file);
+    const idPhoto = idUnique();
+    const chemin = `${PHOTOS_DIR}/${r.id}/${idPhoto}.jpg`;
+    const res = await fetch(`https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${chemin}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `Bearer ${cfg.token}`,
+        "Accept": "application/vnd.github+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        message: `Photo — ${nomResto(r)}`,
+        content: prep.base64,
+        branch: cfg.branch
+      })
+    });
+    if(!res.ok){
+      const txt = await res.text();
+      throw new Error("HTTP " + res.status + " " + txt.slice(0, 140));
+    }
+    const data = await res.json();
+    const photo = {
+      id: idPhoto,
+      chemin,
+      sha: data.content && data.content.sha,
+      mime: "image/jpeg",
+      largeur: prep.largeur,
+      hauteur: prep.hauteur,
+      maj: new Date().toISOString()
+    };
+    // Affichage immédiat garanti, sans attendre la propagation du fichier côté GitHub.
+    photoCacheUrl.set(idPhoto, prep.dataUrl);
+    photosDe(r).push(photo);
+    r.maj = new Date().toISOString();
+    sauverLocal();
+    return photo;
+  }
+
+  // Traite les fichiers choisis (appareil photo : un seul ; bibliothèque : éventuellement
+  // plusieurs), un par un, avec avancement affiché dans la fenêtre et dans la barre d'état.
+  async function traiterFichiersPhoto(fichiers){
+    const r = restaurants.find(x => x.id === photoRestoId);
+    const progress = document.getElementById("photoChoixProgress");
+    if(!r || !fichiers || !fichiers.length) return;
+    if(!cfgComplete()){
+      const msg = "Jeton GitHub non configuré : impossible d'enregistrer la photo (voir ⚙️ GitHub).";
+      progress.textContent = msg;
+      statut(msg, "err");
+      return;
+    }
+    let ok = 0;
+    for(let i = 0; i < fichiers.length; i++){
+      progress.textContent = `Envoi de la photo ${i+1}/${fichiers.length}…`;
+      statut(`Envoi de la photo ${i+1}/${fichiers.length} vers GitHub…`);
+      try{
+        await envoyerPhotoSurGithub(r, fichiers[i]);
+        ok++;
+      }catch(e){
+        console.error("envoi photo:", e);
+        progress.textContent = "Échec : " + e.message;
+        statut("Échec de l'envoi de la photo : " + e.message, "err");
+      }
+    }
+    if(ok){
+      rafraichirListe();
+      pousserVersGithubDifféré(); // enregistre l'association photo ↔ restaurant dans restaurants.json
+      majFenetrePhoto();
+      progress.textContent = ok + " photo(s) enregistrée(s) sur GitHub.";
+      statut(ok + " photo(s) associée(s) à « " + nomResto(r) + " ».", "ok");
+    }
+  }
+
+  function ouvrirFenetrePhoto(id){
+    const r = restaurants.find(x => x.id === id);
+    if(!r) return;
+    photoRestoId = id;
+    document.getElementById("photoChoixProgress").textContent = "";
+    majFenetrePhoto();
+    document.getElementById("photoChoixOverlay").classList.add("open");
+  }
+
+  // Met à jour l'intitulé et l'état des boutons de la fenêtre « Photos » en fonction du
+  // nombre de photos déjà associées au restaurant.
+  function majFenetrePhoto(){
+    const r = restaurants.find(x => x.id === photoRestoId);
+    if(!r) return;
+    const n = photosDe(r).length;
+    document.getElementById("photoChoixHint").textContent =
+      nomResto(r) + " — " + (n ? n + " photo(s) enregistrée(s)" : "aucune photo pour l'instant");
+    const btnVoir = document.getElementById("photoBtnVoir");
+    btnVoir.textContent = "👁️ Voir les photos" + (n ? " (" + n + ")" : "");
+    btnVoir.disabled = (n === 0);
+  }
+
+  function ouvrirGaleriePhotos(){
+    const r = restaurants.find(x => x.id === photoRestoId);
+    if(!r) return;
+    const photos = photosDe(r);
+    const grille = document.getElementById("photoGrille");
+    document.getElementById("photoGalerieHint").textContent = nomResto(r) + " — " + photos.length + " photo(s)";
+    if(!photos.length){
+      grille.innerHTML = '<div class="photo-vide">Aucune photo associée à ce restaurant.</div>';
+    }else{
+      grille.innerHTML = photos.map((p, i) => `
+        <div class="photo-vignette" data-photo-index="${i}">
+          <img alt="Photo ${i+1}" data-photo-img="${escHtml(p.id)}">
+          <button class="photo-supprimer" data-photo-suppr="${escHtml(p.id)}" title="Supprimer cette photo">✕</button>
+        </div>`).join("");
+      grille.querySelectorAll("[data-photo-img]").forEach(img=>{
+        const p = photos.find(x => x.id === img.getAttribute("data-photo-img"));
+        if(p) brancherImagePhoto(img, p);
+        img.addEventListener("click", ()=>{
+          const conteneur = img.closest("[data-photo-index]");
+          ouvrirVisuPhoto(conteneur ? Number(conteneur.getAttribute("data-photo-index")) : 0);
+        });
+      });
+      grille.querySelectorAll("[data-photo-suppr]").forEach(btn=>{
+        btn.addEventListener("click", (ev)=>{
+          ev.stopPropagation();
+          supprimerPhoto(btn.getAttribute("data-photo-suppr"));
+        });
+      });
+    }
+    document.getElementById("photoGalerieOverlay").classList.add("open");
+  }
+
+  function ouvrirVisuPhoto(index){
+    const r = restaurants.find(x => x.id === photoRestoId);
+    if(!r) return;
+    const photos = photosDe(r);
+    if(!photos.length) return;
+    photoVisuIndex = Math.max(0, Math.min(index, photos.length - 1));
+    const p = photos[photoVisuIndex];
+    const img = document.getElementById("photoVisuImg");
+    img.removeAttribute("src");
+    brancherImagePhoto(img, p);
+    document.getElementById("photoVisuTitre").textContent = nomResto(r);
+    document.getElementById("photoVisuPos").textContent =
+      (photoVisuIndex + 1) + " / " + photos.length + (p.maj ? " — " + new Date(p.maj).toLocaleString("fr-FR") : "");
+    document.getElementById("photoVisuPrec").disabled = photos.length < 2;
+    document.getElementById("photoVisuSuiv").disabled = photos.length < 2;
+    document.getElementById("photoVisuOverlay").classList.add("open");
+  }
+
+  function deplacerVisuPhoto(pas){
+    const r = restaurants.find(x => x.id === photoRestoId);
+    if(!r) return;
+    const n = photosDe(r).length;
+    if(n < 2) return;
+    ouvrirVisuPhoto((photoVisuIndex + pas + n) % n);
+  }
+
+  // Supprime la photo du dépôt GitHub (API Contents, DELETE avec le sha du fichier) puis la
+  // retire du restaurant. Si la suppression distante échoue, on retire quand même la référence
+  // localement : mieux vaut un fichier orphelin dans le dépôt qu'une photo qu'on ne peut plus
+  // enlever de la liste.
+  async function supprimerPhoto(idPhoto){
+    const r = restaurants.find(x => x.id === photoRestoId);
+    if(!r) return;
+    const photos = photosDe(r);
+    const p = photos.find(x => x.id === idPhoto);
+    if(!p) return;
+    if(!confirm("Supprimer définitivement cette photo ?")) return;
+    if(cfgComplete()){
+      try{
+        const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${p.chemin}`;
+        const headers = {
+          "Authorization": `Bearer ${cfg.token}`,
+          "Accept": "application/vnd.github+json",
+          "Content-Type": "application/json"
+        };
+        // Le sha du fichier est obligatoire pour le supprimer ; s'il manque (photo ajoutée
+        // depuis un autre appareil), on le relit d'abord.
+        let sha = p.sha;
+        if(!sha){
+          const lecture = await fetch(`${url}?ref=${encodeURIComponent(cfg.branch || "main")}`, { headers, cache: "no-store" });
+          if(lecture.ok){ const d = await lecture.json(); sha = d.sha; }
+        }
+        if(sha){
+          const res = await fetch(url, {
+            method: "DELETE",
+            headers,
+            body: JSON.stringify({ message: `Suppression photo — ${nomResto(r)}`, sha, branch: cfg.branch })
+          });
+          if(!res.ok) throw new Error("HTTP " + res.status);
+        }
+      }catch(e){
+        console.error("suppression photo:", e);
+        statut("Photo retirée du restaurant, mais non supprimée du dépôt : " + e.message, "err");
+      }
+    }
+    r.photos = photos.filter(x => x.id !== idPhoto);
+    r.maj = new Date().toISOString();
+    photoCacheUrl.delete(idPhoto);
+    sauverLocal();
+    rafraichirListe();
+    pousserVersGithubDifféré();
+    majFenetrePhoto();
+    document.getElementById("photoVisuOverlay").classList.remove("open");
+    ouvrirGaleriePhotos();
+  }
+
+  // ---------- Câblage des fenêtres photo ----------
+  document.getElementById("photoBtnPrendre").addEventListener("click", ()=>{
+    const input = document.getElementById("photoInputCamera");
+    input.value = ""; // sans cela, reprendre exactement la même photo ne déclencherait pas "change"
+    input.click();
+  });
+  document.getElementById("photoBtnBiblio").addEventListener("click", ()=>{
+    const input = document.getElementById("photoInputBiblio");
+    input.value = "";
+    input.click();
+  });
+  document.getElementById("photoBtnVoir").addEventListener("click", ouvrirGaleriePhotos);
+  document.getElementById("photoChoixFermer").addEventListener("click", ()=>{
+    document.getElementById("photoChoixOverlay").classList.remove("open");
+  });
+  document.getElementById("photoInputCamera").addEventListener("change", (ev)=>{
+    traiterFichiersPhoto(Array.from(ev.target.files || []));
+  });
+  document.getElementById("photoInputBiblio").addEventListener("change", (ev)=>{
+    traiterFichiersPhoto(Array.from(ev.target.files || []));
+  });
+  document.getElementById("photoGalerieRetour").addEventListener("click", ()=>{
+    document.getElementById("photoGalerieOverlay").classList.remove("open");
+  });
+  document.getElementById("photoGalerieFermer").addEventListener("click", ()=>{
+    document.getElementById("photoGalerieOverlay").classList.remove("open");
+    document.getElementById("photoChoixOverlay").classList.remove("open");
+  });
+  document.getElementById("photoVisuPrec").addEventListener("click", ()=> deplacerVisuPhoto(-1));
+  document.getElementById("photoVisuSuiv").addEventListener("click", ()=> deplacerVisuPhoto(1));
+  document.getElementById("photoVisuFermer").addEventListener("click", ()=>{
+    document.getElementById("photoVisuOverlay").classList.remove("open");
+  });
 
   function toutRedessiner(){
     Object.keys(markers).forEach(supprimerMarqueur);
