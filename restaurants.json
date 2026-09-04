@@ -136,15 +136,6 @@
           "maj": "2026-09-04T19:53:09.540Z"
         }
       ]
-    },
-    {
-      "id": "r_mtnfaj5o_0y1gah",
-      "lat": 48.85317620152967,
-      "lon": 2.3179149627685414,
-      "name": "Nouveau restaurant",
-      "address": "",
-      "liste": "Paris",
-      "maj": "2026-09-04T20:45:05.532Z"
     }
   ],
   "suppressions": [
@@ -363,6 +354,10 @@
     {
       "id": "r_msfp0to8_fea9hf",
       "maj": "2026-08-05T06:32:47.103Z"
+    },
+    {
+      "id": "r_mtnfaj5o_0y1gah",
+      "maj": "2026-09-04T20:45:21.716Z"
     }
   ],
   "listes": [
@@ -372,5 +367,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-09-04T20:45:06.783Z"
+  "maj": "2026-09-04T20:45:21.721Z"
 }
