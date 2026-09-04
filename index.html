@@ -931,7 +931,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V40";
+  const VERSION = "V41";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1098,6 +1098,12 @@
       "Dans la galerie « Voir les photos », chaque vignette porte désormais son propre bouton « 🗑 Supprimer » bien visible, juste en dessous d'elle — auparavant la suppression n'était possible qu'en mode Modifier, via une petite pastille superposée à l'image.",
       "La photo affichée en grand peut elle aussi être supprimée directement, par un bouton « 🗑 Supprimer cette photo » dans la visionneuse.",
       "Toute suppression demande systématiquement confirmation (la photo est retirée du dépôt GitHub et donc de tous les appareils synchronisés). Après suppression, la galerie se redessine et la visionneuse enchaîne sur la photo suivante, ou se ferme s'il n'en reste plus."
+    ]},
+    { v:"V41", resume:[
+      "Les boutons qui servent d'interrupteur (un premier appui ouvre l'édition, un second la valide et la referme) changent désormais de libellé pour que ce fonctionnement soit évident.",
+      "Bouton principal de l'en-tête : « ✏️ Modifier » devient « ✅ Valider et terminer » tant que le mode Modifier est actif.",
+      "Bouton « Modifier » de chaque restaurant dans la liste : devient « ✅ Valider » pendant l'édition du nom et de l'adresse ; celui du popup de la carte affiche « ✅ Valider » au lieu de « ✅ OK ».",
+      "Les infobulles correspondantes ont été ajustées dans le même esprit."
     ]}
   ];
 
@@ -1231,6 +1237,21 @@
   // de page (voir reappliquerEtatModifApresRechargement) était aussitôt refermé par cet appel,
   // avant même que le jeton n'ait pu être confirmé valide (effet de bord observé : le mode
   // Modifier s'affichait une fraction de seconde puis se refermait tout seul).
+  // Le bouton « Modifier » est un interrupteur : le même bouton ouvre puis referme le mode
+  // d'édition. Tant qu'il gardait le libellé « ✏️ Modifier » une fois activé, rien n'indiquait
+  // qu'il fallait ré-appuyer dessus pour valider et sortir. Son libellé (et son infobulle)
+  // change donc désormais avec l'état : « ✏️ Modifier » quand il est inactif, « ✅ Valider et
+  // terminer » quand le mode d'édition est en cours.
+  function majLibelleBtnModifier(){
+    const btn = document.getElementById("btnModifier");
+    if(!btn) return;
+    const actif = document.body.classList.contains("mode-modif");
+    btn.textContent = actif ? "✅ Valider et terminer" : "✏️ Modifier";
+    btn.title = actif
+      ? "Valider les modifications et quitter le mode Modifier"
+      : "Passer en mode Modifier (ajout, édition, suppression)";
+  }
+
   function majAccesModifier(fermerSiRefuse = true){
     const autorise = tokenFonctionnel || accesModifDebloque;
     document.body.classList.toggle("peut-modifier", autorise);
@@ -1238,6 +1259,7 @@
       document.body.classList.remove("mode-modif");
       const btnMod = document.getElementById("btnModifier");
       if(btnMod) btnMod.classList.remove("active");
+      majLibelleBtnModifier();
       try{ sessionStorage.removeItem(SS_MODIF_KEY); }catch(e){}
     }
   }
@@ -1690,7 +1712,7 @@
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
         <div class="popup-actions-right">
-          <button class="btn-edit" data-editpopup="${r.id}">✏️ Edit</button>
+          <button class="btn-edit" data-editpopup="${r.id}">✏️ Modifier</button>
           <button class="btn-danger${estConnuSurGithub(r.id) ? '' : ' toujours-visible'}" data-del="${r.id}">Supprimer</button>
         </div>
       </div>
@@ -1974,7 +1996,7 @@
       el.replaceWith(input);
     });
     const btn = popupEl.querySelector(`[data-editpopup="${id}"]`);
-    if(btn) btn.textContent = "✅ OK";
+    if(btn) btn.textContent = "✅ Valider";
     const nomInput = popupEl.querySelector('.popup-edit[data-field="name"]');
     if(nomInput){ nomInput.focus(); nomInput.select(); }
   }
@@ -2073,7 +2095,7 @@
         </div>
         <div class="actions">
           <button class="btn-photo" data-photo="${r.id}" title="Photos de ce restaurant (prendre, choisir, voir)">${ICONE_APPAREIL_PHOTO}${nbPhotos ? `<span class="photo-nb">${nbPhotos}</span>` : ""}</button>
-          <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}">Edit</button>
+          <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}" title="${enEdition ? "Valider les modifications de ce restaurant" : "Modifier le nom et l'adresse"}">${enEdition ? "✅ Valider" : "✏️ Modifier"}</button>
           <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
           <button class="btn-locate" data-locate="${r.id}" title="Déplacer l'icône sur la carte à l'adresse saisie"${(r.address||"").trim() ? "" : " disabled"}>📍 Adresse</button>
           <button class="btn-danger${estConnuSurGithub(r.id) ? '' : ' toujours-visible'}" data-del="${r.id}" title="${estConnuSurGithub(r.id) ? '' : 'Restaurant pas encore enregistré sur GitHub — supprimable directement'}">✕</button>
@@ -3060,6 +3082,7 @@
     }
     document.body.classList.toggle("mode-modif", prochainEtat);
     document.getElementById("btnModifier").classList.toggle("active", prochainEtat);
+    majLibelleBtnModifier();
   });
 
   // Au chargement de la page (après un rechargement forcé déclenché ci-dessus sur iPhone),
@@ -3074,7 +3097,11 @@
         document.getElementById("btnModifier").classList.add("active");
       }
     }catch(e){}
+    majLibelleBtnModifier();
   })();
+  // Appel de sécurité : l'IIFE ci-dessus sort prématurément quand aucun état n'a été mémorisé
+  // (cas normal hors rechargement iPhone), sans passer par son propre appel.
+  majLibelleBtnModifier();
 
   // Case à cocher (visible seulement en mode Modifier) qui affiche/masque le panneau de
   // debug en bas de l'écran. Préférence mémorisée dans localStorage.
