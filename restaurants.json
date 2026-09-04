@@ -124,7 +124,18 @@
       "name": "Tonkatsu-Tombo",
       "address": "Rue de l'Arrivée, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-09-04T17:37:02.486Z"
+      "maj": "2026-09-04T19:53:09.540Z",
+      "photos": [
+        {
+          "id": "r_mtndfoz5_rjh0u1",
+          "chemin": "photos/r_mtn8kkah_4xztak/r_mtndfoz5_rjh0u1.jpg",
+          "sha": "a008c453b49da352ac91dfe9d11dc953567d469b",
+          "mime": "image/jpeg",
+          "largeur": 1200,
+          "hauteur": 1600,
+          "maj": "2026-09-04T19:53:09.540Z"
+        }
+      ]
     }
   ],
   "suppressions": [
@@ -352,5 +363,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-09-04T17:37:32.976Z"
+  "maj": "2026-09-04T19:53:10.748Z"
 }
