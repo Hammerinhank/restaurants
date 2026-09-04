@@ -681,20 +681,27 @@
   }
   .photo-vignette img{width:100%;height:110px;object-fit:cover;display:block;cursor:pointer;}
   .photo-erreur{display:block;font-size:11px;color:var(--err);padding:8px;}
-  /* Suppression d'une photo : action destructive, donc réservée au mode Modifier comme
-     les autres suppressions de l'application. */
+  /* Bouton de suppression propre à chaque photo : affiché en clair sous sa vignette (et non
+     plus en pastille superposée réservée au mode Modifier), pour pouvoir supprimer une photo
+     directement pendant qu'on regarde la galerie. La suppression demande toujours confirmation. */
+  .photo-vignette-actions{
+    display:flex;
+    justify-content:center;
+    padding:4px;
+    border-top:1px solid var(--line);
+    background:#fff;
+  }
   .photo-supprimer{
-    position:absolute;top:4px;right:4px;
-    display:none;
-    background:rgba(255,255,255,.92);
+    background:transparent;
     color:var(--err);
     border:1px solid var(--err);
     border-radius:6px;
-    padding:1px 6px;
-    font-size:12px;
+    padding:3px 8px;
+    font-size:11.5px;
+    line-height:1.2;
     cursor:pointer;
+    width:100%;
   }
-  body.mode-modif .photo-supprimer{display:block;}
   .photo-vide{font-size:12px;color:var(--muted);padding:14px 2px;}
   #photoVisuOverlay .modal-box{max-width:900px;width:96vw;}
   .photo-visu-zone{
@@ -913,6 +920,7 @@
       <button class="btn-ghost btn-small" id="photoVisuSuiv">›</button>
     </div>
     <div class="modal-actions">
+      <button class="btn-ghost btn-small photo-supprimer" id="photoVisuSupprimer" style="width:auto;">🗑 Supprimer cette photo</button>
       <button class="btn-primary btn-small" id="photoVisuFermer">Fermer</button>
     </div>
   </div>
@@ -923,7 +931,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V39";
+  const VERSION = "V40";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1085,6 +1093,11 @@
     ]},
     { v:"V39", resume:[
       "L'émoji 📷 restait rendu par iOS en une petite masse noire indéchiffrable, même agrandi : il est remplacé par une véritable icône vectorielle dessinée au trait (boîtier, bossage du viseur, objectif et témoin de flash), à la couleur orangée du bouton, immédiatement identifiable comme un appareil photo. Dimensions du bouton toujours inchangées."
+    ]},
+    { v:"V40", resume:[
+      "Dans la galerie « Voir les photos », chaque vignette porte désormais son propre bouton « 🗑 Supprimer » bien visible, juste en dessous d'elle — auparavant la suppression n'était possible qu'en mode Modifier, via une petite pastille superposée à l'image.",
+      "La photo affichée en grand peut elle aussi être supprimée directement, par un bouton « 🗑 Supprimer cette photo » dans la visionneuse.",
+      "Toute suppression demande systématiquement confirmation (la photo est retirée du dépôt GitHub et donc de tous les appareils synchronisés). Après suppression, la galerie se redessine et la visionneuse enchaîne sur la photo suivante, ou se ferme s'il n'en reste plus."
     ]}
   ];
 
@@ -2396,7 +2409,9 @@
       grille.innerHTML = photos.map((p, i) => `
         <div class="photo-vignette" data-photo-index="${i}">
           <img alt="Photo ${i+1}" data-photo-img="${escHtml(p.id)}">
-          <button class="photo-supprimer" data-photo-suppr="${escHtml(p.id)}" title="Supprimer cette photo">✕</button>
+          <div class="photo-vignette-actions">
+            <button class="photo-supprimer" data-photo-suppr="${escHtml(p.id)}" title="Supprimer cette photo">🗑 Supprimer</button>
+          </div>
         </div>`).join("");
       grille.querySelectorAll("[data-photo-img]").forEach(img=>{
         const p = photos.find(x => x.id === img.getAttribute("data-photo-img"));
@@ -2452,7 +2467,12 @@
     const photos = photosDe(r);
     const p = photos.find(x => x.id === idPhoto);
     if(!p) return;
-    if(!confirm("Supprimer définitivement cette photo ?")) return;
+    // Confirmation systématique : la suppression retire la photo du dépôt GitHub et de tous
+    // les appareils synchronisés, elle est donc irréversible.
+    const numero = photos.indexOf(p) + 1;
+    if(!confirm(`Supprimer définitivement la photo ${numero} sur ${photos.length} de « ${nomResto(r)} » ?`)) return;
+    const galerieOuverte = document.getElementById("photoGalerieOverlay").classList.contains("open");
+    const visuOuverte = document.getElementById("photoVisuOverlay").classList.contains("open");
     if(cfgComplete()){
       try{
         const url = `https://api.github.com/repos/${cfg.owner}/${cfg.repo}/contents/${p.chemin}`;
@@ -2488,8 +2508,15 @@
     rafraichirListe();
     pousserVersGithubDifféré();
     majFenetrePhoto();
-    document.getElementById("photoVisuOverlay").classList.remove("open");
-    ouvrirGaleriePhotos();
+    // On revient exactement là où on était : la galerie est redessinée si elle était ouverte,
+    // et la visionneuse enchaîne sur la photo suivante (ou se ferme s'il n'en reste aucune).
+    if(galerieOuverte) ouvrirGaleriePhotos();
+    if(visuOuverte){
+      const restantes = photosDe(r).length;
+      if(restantes) ouvrirVisuPhoto(Math.min(photoVisuIndex, restantes - 1));
+      else document.getElementById("photoVisuOverlay").classList.remove("open");
+    }
+    statut("Photo supprimée.", "ok");
   }
 
   // ---------- Câblage des fenêtres photo ----------
@@ -2522,6 +2549,12 @@
   });
   document.getElementById("photoVisuPrec").addEventListener("click", ()=> deplacerVisuPhoto(-1));
   document.getElementById("photoVisuSuiv").addEventListener("click", ()=> deplacerVisuPhoto(1));
+  document.getElementById("photoVisuSupprimer").addEventListener("click", ()=>{
+    const r = restaurants.find(x => x.id === photoRestoId);
+    const photos = photosDe(r);
+    const p = photos[photoVisuIndex];
+    if(p) supprimerPhoto(p.id);
+  });
   document.getElementById("photoVisuFermer").addEventListener("click", ()=>{
     document.getElementById("photoVisuOverlay").classList.remove("open");
   });
