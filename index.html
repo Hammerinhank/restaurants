@@ -88,6 +88,10 @@
      nommé "github" déjà créé — voir majAccesModifier()/verifierDeblocageParNom() dans le JS). */
   #btnModifier{display:none;}
   body.peut-modifier #btnModifier{display:inline-block;}
+  /* Pendant du bouton « Valider et terminer » : n'a de sens que si le mode Modifier est en
+     cours, donc masqué le reste du temps. */
+  #btnAnnulerTout{display:none;}
+  body.mode-modif #btnAnnulerTout{display:inline-block;}
   #chkAfficherLogWrap{
     display:none;
     align-items:center;
@@ -104,6 +108,10 @@
     background:var(--accent);
     color:#fff;
     border-color:var(--accent);
+  }
+  #btnAnnulerTout{
+    color:var(--muted);
+    border-style:dashed;
   }
   /* Icône cliquable devant le titre "Restaurants" : bascule le tri de la liste latérale entre
      ordre alphabétique et ordre par date de modification (comportement par défaut). */
@@ -483,13 +491,14 @@
     .hbreak{display:block;flex-basis:100%;height:0;}
     #hbreak1{order:3;}
     #btnModifier{order:4;}
-    header .spacer{order:5;}
-    #btnNouveau{order:6;}
-    #hbreak2{order:7;}
-    #btnSettings{order:8;}
-    #btnDiagTest{order:9;}
-    #btnPresseCollePapier{order:10;}
-    #chkAfficherLogWrap{order:11;}
+    #btnAnnulerTout{order:5;}
+    header .spacer{order:6;}
+    #btnNouveau{order:7;}
+    #hbreak2{order:8;}
+    #btnSettings{order:9;}
+    #btnDiagTest{order:10;}
+    #btnPresseCollePapier{order:11;}
+    #chkAfficherLogWrap{order:12;}
   }
 
   /* Marker */
@@ -759,6 +768,7 @@
   </label>
   <button class="btn-ghost" id="btnPresseCollePapier" title="Créer un restaurant à partir d'une adresse copiée dans le presse-papier">📋 Depuis presse-papier</button>
   <button class="btn-ghost" id="btnModifier">✏️ Modifier</button>
+  <button class="btn-ghost" id="btnAnnulerTout" title="Abandonner toutes les modifications en cours (restaurants en cours d'édition) et quitter le mode Modifier">✖️ Tout annuler</button>
   <button class="btn-primary" id="btnNouveau">📍 Nouveau restaurant</button>
   <div class="hbreak" id="hbreak2"></div>
 </header>
@@ -944,7 +954,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V42";
+  const VERSION = "V43";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1122,6 +1132,11 @@
       "Un bouton « ✖️ Annuler » apparaît à côté du bouton « ✅ Valider » pendant l'édition d'un restaurant, aussi bien dans la liste latérale que dans le popup de la carte : il abandonne les modifications en cours et rétablit le nom et l'adresse précédents.",
       "L'annulation ne touche à rien : le nom et l'adresse ne sont enregistrés qu'au moment de la validation, donc annuler revient simplement à réafficher les valeurs déjà en place (même effet que la touche Échap sur l'iMac, désormais accessible au doigt sur iPhone).",
       "Le bouton Annuler est volontairement discret (gris, contour pointillé) pour que la validation reste l'action mise en avant."
+    ]},
+    { v:"V43", resume:[
+      "Nouveau bouton « ✖️ Tout annuler » dans l'en-tête, à côté de « ✅ Valider et terminer » et visible seulement en mode Modifier : il abandonne d'un seul geste toutes les éditions ouvertes et non validées (chaque restaurant en cours d'édition dans la liste, plus celle éventuellement ouverte dans le popup de la carte), puis quitte le mode Modifier.",
+      "Une confirmation est demandée dès qu'au moins une modification est en cours, en indiquant combien elles sont.",
+      "Seules les saisies non validées sont concernées : les opérations déjà enregistrées au fil de l'eau (photos, suppressions, déplacements de marqueur, changement de liste) ne sont pas annulées."
     ]}
   ];
 
@@ -3133,8 +3148,10 @@
   // Bouton "Modifier" : affiche/masque les boutons "GitHub", "Test" et les boutons d'action
   // (Edit, Déplacer, ✕) de chaque item de la liste, tous masqués par défaut. Un nouveau clic
   // les remasque et redonne au bouton sa couleur par défaut.
-  document.getElementById("btnModifier").addEventListener("click", ()=>{
-    const prochainEtat = !document.body.classList.contains("mode-modif");
+  // Bascule du mode Modifier, extraite du gestionnaire de clic pour être réutilisée par le
+  // bouton « Tout annuler », qui doit sortir du mode exactement de la même façon (y compris
+  // le rechargement de page particulier à iOS).
+  function basculerModeModifier(prochainEtat){
     if(estIOS()){
       try{ sessionStorage.setItem(SS_MODIF_KEY, prochainEtat ? "1" : "0"); }catch(e){}
       const url = new URL(location.href);
@@ -3145,6 +3162,31 @@
     document.body.classList.toggle("mode-modif", prochainEtat);
     document.getElementById("btnModifier").classList.toggle("active", prochainEtat);
     majLibelleBtnModifier();
+  }
+
+  document.getElementById("btnModifier").addEventListener("click", ()=>{
+    basculerModeModifier(!document.body.classList.contains("mode-modif"));
+  });
+
+  // « Tout annuler » : abandonne d'un coup toutes les éditions ouvertes et non validées —
+  // celles de la liste (un ou plusieurs restaurants ouverts en édition) comme celle éventuelle
+  // du popup de la carte — puis quitte le mode Modifier. Rien n'est perdu au-delà de ces
+  // saisies en cours : le nom et l'adresse d'un restaurant ne sont écrits qu'à la validation,
+  // et les autres opérations (photo, suppression, déplacement, changement de liste) sont, elles,
+  // enregistrées immédiatement et ne sont donc pas concernées.
+  document.getElementById("btnAnnulerTout").addEventListener("click", ()=>{
+    const popupEnEdition = document.querySelector("[data-cancelpopup]");
+    const nbEnCours = editingIds.size + (popupEnEdition ? 1 : 0);
+    if(nbEnCours && !confirm(
+      nbEnCours === 1
+        ? "Abandonner la modification en cours et quitter le mode Modifier ?"
+        : `Abandonner les ${nbEnCours} modifications en cours et quitter le mode Modifier ?`
+    )) return;
+    if(popupEnEdition) annulerEditionPopup(popupEnEdition.getAttribute("data-cancelpopup"));
+    editingIds.clear();
+    rafraichirListe();
+    basculerModeModifier(false);
+    if(nbEnCours) statut(nbEnCours + " modification(s) en cours annulée(s).", "ok");
   });
 
   // Au chargement de la page (après un rechargement forcé déclenché ci-dessus sur iPhone),
