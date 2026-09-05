@@ -334,6 +334,16 @@
     font-weight:600;
     color:var(--ink);
   }
+  /* Rappel du classement en cours de la liste, sur la même ligne que son nom : l'icône 🍽️ de
+     l'en-tête bascule entre tri alphabétique et tri par date de modification, mais rien
+     n'indiquait lequel des deux était actif. */
+  #listeTriLbl{
+    text-transform:none;
+    letter-spacing:normal;
+    font-weight:400;
+    color:var(--muted);
+    font-size:11px;
+  }
   /* Sélecteur rapide de liste : remplace #listeNomLbl en place au clic sur la ligne du titre,
      sans ajouter de bloc ni changer la hauteur du panneau (contrairement à #listeHeaderCombo,
      réservé au mode Modifier). Dimensions volontairement proches de #listeNomLbl. */
@@ -807,7 +817,7 @@
 <div id="main">
   <div id="map"></div>
   <div id="listPanel">
-    <h2 id="listeTitreH2" title="Cliquer pour changer de liste">Liste (<span id="countLbl">0</span>) <span id="listeNomLbl"></span><select id="selectListeInline"></select></h2>
+    <h2 id="listeTitreH2" title="Cliquer pour changer de liste">Liste (<span id="countLbl">0</span>) <span id="listeNomLbl"></span><select id="selectListeInline"></select> <span id="listeTriLbl"></span></h2>
     <div id="listeHeaderCombo">
       <select id="selectListeActuelle" title="Liste affichée"></select>
       <button class="btn-ghost" id="btnNouvelleListe">+ Nouvelle liste</button>
@@ -961,7 +971,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V44";
+  const VERSION = "V45";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1150,6 +1160,11 @@
       "Ce bouton localise l'adresse saisie (Nominatim) puis cherche les restaurants nommés dans un rayon de 200 m autour d'elle (Overpass) : le nom proposé et la liste « Autres restaurants à proximité » sont remplacés par ces nouveaux résultats.",
       "À la validation, le repère est déplacé sur le restaurant trouvé (ou, à défaut de restaurant, sur l'adresse saisie) — utile quand la position GPS était imprécise ou qu'on saisit un restaurant qu'on ne visite pas. Sans recours à ce bouton, la position d'origine reste inchangée.",
       "Le bouton disparaît après chaque recherche et réapparaît à la modification suivante du champ Adresse."
+    ]},
+    { v:"V45", resume:[
+      "La ligne de titre du panneau de liste indique désormais le classement en cours, juste après le nom de la liste : « — classée de A à Z » ou « — classée par date de modification ».",
+      "L'indication est recalculée à chaque appui sur l'icône 🍽️ en haut à gauche (qui bascule entre les deux tris) : on voit donc immédiatement l'effet du bouton, alors que seule la couleur de l'icône le signalait jusqu'ici.",
+      "L'infobulle de cette mention rappelle le tri actif et comment en changer."
     ]}
   ];
 
@@ -2140,6 +2155,11 @@
     const restosListe = restaurants.filter(r => (r.liste||"") === listeActuelle);
     document.getElementById("countLbl").textContent = restosListe.length;
     document.getElementById("listeNomLbl").textContent = listeActuelle ? listeActuelle : "(sans nom)";
+    const triLbl = document.getElementById("listeTriLbl");
+    triLbl.textContent = triAlphabetique ? "— classée de A à Z" : "— classée par date de modification";
+    triLbl.title = triAlphabetique
+      ? "Tri alphabétique par nom — cliquer sur l'icône 🍽️ en haut à gauche pour revenir au tri par date de modification"
+      : "Tri par date de modification, la plus récente en premier — cliquer sur l'icône 🍽️ en haut à gauche pour trier de A à Z";
     if(restosListe.length === 0){
       body.innerHTML = '<div class="empty-hint">Aucun restaurant dans cette liste. Utilisez le bouton « Nouveau restaurant ».</div>';
       return;
