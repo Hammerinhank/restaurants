@@ -136,6 +136,15 @@
           "maj": "2026-09-04T19:53:09.540Z"
         }
       ]
+    },
+    {
+      "id": "r_mtnyy24k_xn9cux",
+      "lat": 48.833849399904885,
+      "lon": 2.2953959221959717,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Province",
+      "maj": "2026-09-05T05:55:15.908Z"
     }
   ],
   "suppressions": [
@@ -375,5 +384,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-05T05:46:14.785Z",
-  "maj": "2026-09-05T05:55:10.678Z"
+  "maj": "2026-09-05T05:55:17.116Z"
 }
