@@ -141,10 +141,10 @@
       "id": "r_mtnyy24k_xn9cux",
       "lat": 43.60214993310333,
       "lon": 1.4471572637557852,
-      "name": "Crêperie Saint-Georges",
-      "address": "Place saint georges , toulouse",
+      "name": "Restaurant Émile",
+      "address": "Place Saint-Georges, 31000 Toulouse",
       "liste": "Province",
-      "maj": "2026-09-05T05:57:27.722Z"
+      "maj": "2026-09-05T05:57:48.257Z"
     }
   ],
   "suppressions": [
@@ -384,5 +384,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-05T05:46:14.785Z",
-  "maj": "2026-09-05T05:57:28.926Z"
+  "maj": "2026-09-05T05:57:49.470Z"
 }
