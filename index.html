@@ -562,18 +562,22 @@
   }
   .popup-text:hover{border-bottom-color:var(--line);}
   .popup-text.nom{font-weight:700;font-size:15px;}
+  /* Liens externes du popup (fiche Google Maps, Street View) : présentés comme de vrais
+     boutons, hauts et nettement séparés. En simples lignes de texte serrées l'une contre
+     l'autre, on appuyait systématiquement sur la voisine au doigt. */
   .popup-maps-link{
-    display:inline-block;
+    display:block;
     font-size:12px;
     font-weight:600;
     color:var(--accent);
     text-decoration:none;
-    margin-top:2px;
+    text-align:center;
+    padding:9px 10px;
+    border:1px solid var(--accent);
+    border-radius:8px;
   }
-  .popup-maps-link:hover{text-decoration:underline;}
-  /* Les liens externes du popup (fiche Google Maps, Street View) sont empilés : la largeur
-     d'un popup Leaflet ne permet pas de les mettre côte à côte lisiblement. */
-  .popup-liens{display:flex;flex-direction:column;gap:1px;margin-top:2px;}
+  .popup-maps-link:hover{background:#fbf4ef;}
+  .popup-liens{display:flex;flex-direction:column;gap:8px;margin:8px 0 2px;}
   .popup-edit{
     width:100%;
     font:inherit;
@@ -634,8 +638,14 @@
     font-weight:600;
   }
   .modal-maps-link:hover{text-decoration:underline;}
-  #modalMapsLink{margin:-6px 0 2px;}
-  #modalStreetLink{margin:0 0 12px;}
+  #modalMapsLink{margin:-6px 0 10px;}
+  #modalStreetLink{
+    margin:0 0 14px;
+    padding:9px 10px;
+    border:1px solid var(--accent);
+    border-radius:8px;
+    text-align:center;
+  }
   .modal-box label{
     display:flex;flex-direction:column;gap:4px;
     font-size:12px;color:var(--muted);
@@ -977,7 +987,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V48";
+  const VERSION = "V49";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1186,6 +1196,12 @@
       "VERSION DE DIAGNOSTIC, temporaire : la forme « layer=c + cbll » ne fonctionne pas davantage sur iPhone. Le comportement dépend de l'application Google Maps installée, qui intercepte ces liens et n'honore pas toujours les mêmes paramètres — impossible à trancher sans essayer sur l'appareil.",
       "Le popup propose donc côte à côte les trois formes connues, étiquetées A, B et C : A = forme documentée « Maps URLs » (map_action=pano + viewpoint) ; B = forme historique (layer=c + cbll) ; C = forme produite par Google Maps lui-même quand on partage une vue (/@lat,lon,3a,75y,0h,90t/data=!3m1!1e1).",
       "Dès que l'une d'elles ouvre bien la vue à 360°, les deux autres seront supprimées et il ne restera qu'un seul lien « 🧭 Voir en Street View »."
+    ]},
+    { v:"V49", resume:[
+      "Résultat du diagnostic V48 : aucune des trois URL n'ouvre la vue à 360° sur iPhone (A et C mènent aux photos du lieu, B à une page de recherche). Ces URL sont pourtant correctes — elles fonctionnent sur un navigateur de bureau : c'est l'application Google Maps qui intercepte les liens www.google.com (liens universels iOS) et les traite à sa façon.",
+      "On s'adresse donc désormais à l'application dans son propre langage, via le schéma d'URL comgooglemaps:// documenté par Google pour iOS, avec mapmode=streetview. Si l'application n'est pas installée, la page bascule automatiquement au bout d'1,5 s sur l'URL web, correcte dans Safari ; hors iPhone, l'URL web est utilisée directement.",
+      "Les trois liens de diagnostic A, B et C sont supprimés : il ne reste qu'un lien « 🧭 Voir en Street View ».",
+      "Les liens externes du popup (fiche Google Maps, Street View) deviennent de vrais boutons, plus hauts et séparés par un espace franc : en lignes de texte serrées, on appuyait sur la voisine au doigt."
     ]}
   ];
 
@@ -1470,6 +1486,17 @@
       `, scroll(${Math.round(window.scrollX)},${Math.round(window.scrollY)}), dpr=${window.devicePixelRatio}`
     );
   }, true);
+  // Les liens Street View portent une vraie URL dans href (utile en secours et pour « ouvrir
+  // dans un nouvel onglet »), mais le clic est intercepté ici pour passer par ouvrirStreetView(),
+  // qui privilégie le schéma comgooglemaps:// sur iPhone.
+  document.addEventListener("click", (ev)=>{
+    const lien = ev.target.closest ? ev.target.closest("[data-street]") : null;
+    if(!lien) return;
+    ev.preventDefault();
+    const [la, lo] = (lien.getAttribute("data-street") || "").split(",");
+    ouvrirStreetView(parseFloat(la), parseFloat(lo));
+  });
+
   document.getElementById("btnDebugLogCopier").addEventListener("click", async ()=>{
     const zone = document.getElementById("debugLogBody");
     const texte = zone.textContent || "";
@@ -1792,7 +1819,7 @@
       </div>
       <div class="popup-liens">
         ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">${texteLienMaps}</a>` : ""}
-        ${urlsStreetViewVariantes(r.lat, r.lon).map(v => `<a class="popup-maps-link" href="${v.url}" target="_blank" rel="noopener">🧭 Street View ${v.code} ↗</a>`).join("")}
+        ${(r.lat != null && r.lon != null) ? `<a class="popup-maps-link" href="${urlStreetViewWeb(r.lat, r.lon)}" data-street="${r.lat},${r.lon}">🧭 Voir en Street View ↗</a>` : ""}
       </div>
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
@@ -1855,26 +1882,41 @@
   // conséquence ici, chaque restaurant ayant les siennes. La panoramique retenue reste la plus
   // proche du point, donc généralement prise depuis la chaussée, sans garantie de regarder vers
   // l'entrée du restaurant ; et si le secteur n'est pas couvert, Google Maps s'ouvre sur la carte.
-  function urlStreetView(lat, lon){
+  // Ouverture de la vue Street View à 360°.
+  //
+  // Les trois formes d'URL essayées en V46-V48 (map_action=pano, layer=c+cbll, /@lat,lon,3a,…)
+  // échouent toutes sur iPhone : l'application Google Maps intercepte les liens www.google.com
+  // (liens universels iOS) et les traite à sa façon — galerie de photos du lieu, ou simple
+  // recherche. Ces URL sont pourtant correctes : elles fonctionnent dans un navigateur de bureau.
+  //
+  // On s'adresse donc à l'application dans son propre langage : le schéma d'URL comgooglemaps://
+  // documenté par Google pour iOS, avec mapmode=streetview, qui demande explicitement le mode
+  // panoramique. Si l'application n'est pas installée (rien ne se passe, la page reste visible),
+  // on bascule après 1,5 s sur l'URL web, qui donne le bon résultat dans Safari.
+  function urlStreetViewWeb(lat, lon){
     if(lat == null || lon == null) return null;
-    return `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lon}&cbp=11,0,0,0,0`;
+    return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
   }
 
-  // VERSION DE DIAGNOSTIC (V48) — les trois façons connues de demander une vue Street View par
-  // simple URL, proposées côte à côte le temps d'identifier celle qui fonctionne réellement sur
-  // l'iPhone d'Henri (impossible à tester d'ici : le comportement dépend de l'application Google
-  // Maps installée, qui intercepte ces liens et n'honore pas toujours les mêmes paramètres).
-  //   A = forme documentée « Maps URLs » (map_action=pano + viewpoint) ;
-  //   B = forme historique (layer=c + cbll), censée viser la couche Street View officielle ;
-  //   C = forme produite par Google Maps lui-même au partage d'une vue (/@lat,lon,3a,…/data=!3m1!1e1).
-  // Dès que l'une est validée à l'usage, les deux autres seront supprimées.
-  function urlsStreetViewVariantes(lat, lon){
-    if(lat == null || lon == null) return [];
-    return [
-      { code:"A", url:`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}` },
-      { code:"B", url:`https://www.google.com/maps?q=&layer=c&cbll=${lat},${lon}&cbp=11,0,0,0,0` },
-      { code:"C", url:`https://www.google.com/maps/@${lat},${lon},3a,75y,0h,90t/data=!3m1!1e1` }
-    ];
+  function ouvrirStreetView(lat, lon){
+    const web = urlStreetViewWeb(lat, lon);
+    if(!web) return;
+    if(!estIOS()){
+      window.open(web, "_blank", "noopener");
+      return;
+    }
+    const appli = `comgooglemaps://?center=${lat},${lon}&mapmode=streetview&zoom=17`;
+    let partiVersAppli = false;
+    const marquer = ()=>{ partiVersAppli = true; };
+    document.addEventListener("visibilitychange", marquer, {once:true});
+    window.addEventListener("pagehide", marquer, {once:true});
+    window.location.href = appli;
+    setTimeout(()=>{
+      document.removeEventListener("visibilitychange", marquer);
+      window.removeEventListener("pagehide", marquer);
+      // Toujours là et visible au bout d'1,5 s : l'application n'a pas pris la main.
+      if(!partiVersAppli && !document.hidden) window.location.href = web;
+    }, 1500);
   }
 
   function urlGoogleMapsRestaurantsProches(lat, lon){
@@ -3101,11 +3143,13 @@
         }
         // Street View suit la position courante : celle du restaurant proposé, ou celle trouvée
         // après une recherche relancée depuis une adresse corrigée.
-        const urlPano = urlStreetView(la, lo);
+        const urlPano = urlStreetViewWeb(la, lo);
         if(urlPano){
           lienStreet.href = urlPano;
+          lienStreet.setAttribute("data-street", `${la},${lo}`);
           lienStreet.style.display = "block";
         }else{
+          lienStreet.removeAttribute("data-street");
           lienStreet.style.display = "none";
         }
       };
