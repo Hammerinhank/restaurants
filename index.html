@@ -977,7 +977,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V46";
+  const VERSION = "V47";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1177,6 +1177,10 @@
       "Il utilise le format officiel des Maps URLs (https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=lat,lon), qui ne demande aucune clé d'API. Ce format n'accepte que des coordonnées, jamais une adresse en texte — sans conséquence ici, puisque chaque restaurant a les siennes.",
       "Dans la fenêtre de confirmation, le lien suit la position courante : il pointe sur la position trouvée après une recherche relancée depuis une adresse corrigée.",
       "Deux limites propres à Street View : la panoramique affichée est la plus proche du point (donc en général sur la chaussée, sans garantie qu'elle regarde vers le restaurant), et si aucune image n'existe à proximité Google Maps s'ouvre sans panoramique."
+    ]},
+    { v:"V47", resume:[
+      "Le lien Street View ouvrait une simple photo du lieu au lieu de la vue à 360° de la rue. Cause : la forme documentée (map_action=pano&viewpoint=…) retient la panoramique la plus proche toutes sources confondues, y compris les photos sphériques déposées par les commerçants ou les clients — géolocalisées pile sur l'établissement, elles l'emportaient donc sur la prise de vue de la voiture Street View, qui passe dans la rue.",
+      "Le lien utilise désormais la forme historique « layer=c + cbll », qui désigne explicitement la couche Street View de Google, avec un cadrage initial défini par cbp."
     ]}
   ];
 
@@ -1831,16 +1835,24 @@
   // donnée (sans nom précis) : utilisée quand le restaurant n'a pas encore été identifié
   // (nom encore égal à "Nouveau restaurant"), pour permettre de repérer directement sur Google
   // Maps l'établissement qui correspond à l'icône posée sur la carte.
-  // URL d'ouverture directe de la vue panoramique Street View, au format officiel « Maps URLs »
-  // (aucune clé d'API nécessaire). Le paramètre viewpoint n'accepte QUE des coordonnées, jamais
-  // une adresse en texte — ce n'est pas gênant ici, chaque restaurant ayant les siennes.
-  // Google affiche la panoramique prise au plus près du point ; elle se trouve en général sur la
-  // chaussée et ne regarde pas forcément vers le restaurant (impossible de calculer un cap sans
-  // connaître la position de la prise de vue). Si aucune image n'existe à proximité, Google Maps
-  // s'ouvre sans panoramique.
+  // URL d'ouverture directe de la vue panoramique Street View à 360°.
+  //
+  // On utilise la forme historique « layer=c + cbll » plutôt que la forme documentée
+  // (maps/@?api=1&map_action=pano&viewpoint=…) : cette dernière retient la panoramique la plus
+  // proche du point TOUTES SOURCES CONFONDUES, ce qui inclut les photos sphériques déposées par
+  // les commerçants ou les clients. Comme ces photos sont géolocalisées pile sur l'établissement
+  // alors que la voiture Street View passe dans la rue, c'est presque toujours la photo du lieu
+  // qui gagnait — d'où l'ouverture d'une simple photo au lieu de la vue à 360° de la rue.
+  // « layer=c » désigne explicitement la couche Street View de Google, et cbp fixe le cadrage
+  // initial (cap 0°, inclinaison et zoom par défaut).
+  //
+  // Le paramètre cbll n'accepte que des coordonnées, jamais une adresse en texte — sans
+  // conséquence ici, chaque restaurant ayant les siennes. La panoramique retenue reste la plus
+  // proche du point, donc généralement prise depuis la chaussée, sans garantie de regarder vers
+  // l'entrée du restaurant ; et si le secteur n'est pas couvert, Google Maps s'ouvre sur la carte.
   function urlStreetView(lat, lon){
     if(lat == null || lon == null) return null;
-    return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}&fov=90`;
+    return `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lon}&cbp=11,0,0,0,0`;
   }
 
   function urlGoogleMapsRestaurantsProches(lat, lon){
