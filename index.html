@@ -887,6 +887,7 @@
     <iframe id="streetCadre" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Vue Street View"></iframe>
     <div id="streetAide"></div>
     <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="streetDiag">🔎 Diagnostic</button>
       <button class="btn-ghost btn-small" id="streetExterne">↗ Ouvrir dans Google Maps</button>
       <button class="btn-primary btn-small" id="streetFermer">Fermer</button>
     </div>
@@ -1027,7 +1028,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V50";
+  const VERSION = "V52";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1248,6 +1249,14 @@
       "Cette API est gratuite et sans limite d'usage, mais exige une clé Google Cloud. Un champ « Clé Google Maps (Maps Embed API) » a été ajouté dans ⚙️ ; la clé est enregistrée sur l'appareil au fil de la frappe, indépendamment des identifiants GitHub (« Effacer les identifiants » ne la touche pas).",
       "Sans clé renseignée, le comportement précédent est conservé (ouverture dans Google Maps via le schéma comgooglemaps:// sur iPhone), avec un message rappelant l'existence du réglage.",
       "La fenêtre propose un bouton « ↗ Ouvrir dans Google Maps » pour basculer vers l'application malgré tout, et vide l'iframe à la fermeture."
+    ]},
+    { v:"V51", resume:[
+      "Correction : le panneau de réglages (identifiants GitHub, clé Google Maps) restait affiché après « ✅ Valider et terminer », alors que son bouton ⚙️ n'est visible qu'en mode Modifier — il devenait donc impossible de le refermer. Il se referme désormais automatiquement à la sortie du mode Modifier, ainsi que lorsque l'accès au mode est retiré.",
+      "Anomalie visible uniquement sur iMac : sur iPhone, la page est rechargée à chaque bascule du mode Modifier, ce qui refermait le panneau au passage."
+    ]},
+    { v:"V52", resume:[
+      "La vue Street View intégrée s'affichait entièrement noire, sans explication : le contenu d'un cadre appartenant à un autre domaine étant illisible depuis la page qui l'accueille (règle d'origine du navigateur), un refus de Google reste invisible.",
+      "Bouton « 🔎 Diagnostic » ajouté dans la fenêtre Street View : il ouvre exactement la même adresse dans un onglet, en navigation normale — le message d'erreur éventuel de Google s'y lit alors en clair, avec le bon référent (contrairement à une adresse tapée à la main dans la barre du navigateur, qui n'en envoie aucun)."
     ]}
   ];
 
@@ -1407,6 +1416,7 @@
       const btnMod = document.getElementById("btnModifier");
       if(btnMod) btnMod.classList.remove("active");
       majLibelleBtnModifier();
+      document.getElementById("settings").classList.remove("open");
       try{ sessionStorage.removeItem(SS_MODIF_KEY); }catch(e){}
     }
   }
@@ -1957,6 +1967,13 @@
   // (à créer une fois, puis à coller dans ⚙️ ; à restreindre au domaine du site et à cette API).
   // Le mode streetview donne la panoramique la plus proche du point, photos sphériques déposées
   // par les utilisateurs comprises.
+  function urlEmbedStreetView(lat, lon){
+    const cle = cleGoogleMaps();
+    if(!cle || lat == null || lon == null) return null;
+    return `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(cle)}` +
+      `&location=${lat},${lon}&fov=90&language=fr`;
+  }
+
   function ouvrirStreetView(lat, lon){
     if(lat == null || lon == null) return;
     const cle = cleGoogleMaps();
@@ -1966,11 +1983,16 @@
       return;
     }
     const cadre = document.getElementById("streetCadre");
-    cadre.src = `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(cle)}` +
-      `&location=${lat},${lon}&fov=90&language=fr`;
+    cadre.src = urlEmbedStreetView(lat, lon);
     document.getElementById("streetAide").textContent =
       "Faites glisser l'image pour regarder autour de vous. La panoramique affichée est la plus proche du point, en général prise depuis la chaussée.";
     document.getElementById("streetExterne").onclick = ()=> ouvrirStreetViewExterne(lat, lon);
+    // Diagnostic : ouvre la MÊME adresse dans un onglet, en navigation normale. Le contenu d'un
+    // cadre appartenant à un autre domaine est illisible depuis cette page (règle d'origine du
+    // navigateur), donc un refus de Google s'y affiche en noir, sans explication. Dans un onglet,
+    // le message d'erreur est visible en clair — et le référent envoyé est bien celui du site,
+    // contrairement à une adresse tapée à la main dans la barre du navigateur.
+    document.getElementById("streetDiag").onclick = ()=> window.open(urlEmbedStreetView(lat, lon), "_blank", "noopener");
     document.getElementById("streetOverlay").classList.add("open");
   }
 
@@ -3490,6 +3512,10 @@
     document.body.classList.toggle("mode-modif", prochainEtat);
     document.getElementById("btnModifier").classList.toggle("active", prochainEtat);
     majLibelleBtnModifier();
+    // En quittant le mode Modifier, on referme aussi le panneau de réglages : son bouton ⚙️
+    // n'étant visible qu'en mode Modifier, le panneau resterait sinon affiché sans aucun moyen
+    // de le refermer (visible seulement sur iMac : sur iPhone la page est rechargée).
+    if(!prochainEtat) document.getElementById("settings").classList.remove("open");
   }
 
   document.getElementById("btnModifier").addEventListener("click", ()=>{
