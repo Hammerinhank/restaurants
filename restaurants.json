@@ -139,12 +139,12 @@
     },
     {
       "id": "r_mtnyy24k_xn9cux",
-      "lat": 43.6019159,
-      "lon": 1.4473292,
+      "lat": 43.60208131431912,
+      "lon": 1.447166204452528,
       "name": "Crêperie Saint-Georges",
       "address": "Place saint georges , toulouse",
       "liste": "Province",
-      "maj": "2026-09-05T05:56:51.647Z"
+      "maj": "2026-09-05T05:57:25.356Z"
     }
   ],
   "suppressions": [
@@ -384,5 +384,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-05T05:46:14.785Z",
-  "maj": "2026-09-05T05:56:52.859Z"
+  "maj": "2026-09-05T05:57:26.559Z"
 }
