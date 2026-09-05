@@ -139,12 +139,12 @@
     },
     {
       "id": "r_mtnyncok_jh0bxj",
-      "lat": 48.833847321563866,
-      "lon": 2.295388167811156,
+      "lat": 43.6020045,
+      "lon": 1.4475197,
       "name": "Art Sushi",
       "address": "Place saint georges, toulouse",
       "liste": "Province",
-      "maj": "2026-09-05T05:47:43.216Z"
+      "maj": "2026-09-05T05:53:25.908Z"
     }
   ],
   "suppressions": [
@@ -380,5 +380,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-05T05:46:14.785Z",
-  "maj": "2026-09-05T05:47:57.940Z"
+  "maj": "2026-09-05T05:53:27.112Z"
 }
