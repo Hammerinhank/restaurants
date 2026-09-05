@@ -977,7 +977,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V47";
+  const VERSION = "V48";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1181,6 +1181,11 @@
     { v:"V47", resume:[
       "Le lien Street View ouvrait une simple photo du lieu au lieu de la vue à 360° de la rue. Cause : la forme documentée (map_action=pano&viewpoint=…) retient la panoramique la plus proche toutes sources confondues, y compris les photos sphériques déposées par les commerçants ou les clients — géolocalisées pile sur l'établissement, elles l'emportaient donc sur la prise de vue de la voiture Street View, qui passe dans la rue.",
       "Le lien utilise désormais la forme historique « layer=c + cbll », qui désigne explicitement la couche Street View de Google, avec un cadrage initial défini par cbp."
+    ]},
+    { v:"V48", resume:[
+      "VERSION DE DIAGNOSTIC, temporaire : la forme « layer=c + cbll » ne fonctionne pas davantage sur iPhone. Le comportement dépend de l'application Google Maps installée, qui intercepte ces liens et n'honore pas toujours les mêmes paramètres — impossible à trancher sans essayer sur l'appareil.",
+      "Le popup propose donc côte à côte les trois formes connues, étiquetées A, B et C : A = forme documentée « Maps URLs » (map_action=pano + viewpoint) ; B = forme historique (layer=c + cbll) ; C = forme produite par Google Maps lui-même quand on partage une vue (/@lat,lon,3a,75y,0h,90t/data=!3m1!1e1).",
+      "Dès que l'une d'elles ouvre bien la vue à 360°, les deux autres seront supprimées et il ne restera qu'un seul lien « 🧭 Voir en Street View »."
     ]}
   ];
 
@@ -1787,7 +1792,7 @@
       </div>
       <div class="popup-liens">
         ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">${texteLienMaps}</a>` : ""}
-        ${urlStreetView(r.lat, r.lon) ? `<a class="popup-maps-link" href="${urlStreetView(r.lat, r.lon)}" target="_blank" rel="noopener">🧭 Voir en Street View ↗</a>` : ""}
+        ${urlsStreetViewVariantes(r.lat, r.lon).map(v => `<a class="popup-maps-link" href="${v.url}" target="_blank" rel="noopener">🧭 Street View ${v.code} ↗</a>`).join("")}
       </div>
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
@@ -1853,6 +1858,23 @@
   function urlStreetView(lat, lon){
     if(lat == null || lon == null) return null;
     return `https://www.google.com/maps?q=&layer=c&cbll=${lat},${lon}&cbp=11,0,0,0,0`;
+  }
+
+  // VERSION DE DIAGNOSTIC (V48) — les trois façons connues de demander une vue Street View par
+  // simple URL, proposées côte à côte le temps d'identifier celle qui fonctionne réellement sur
+  // l'iPhone d'Henri (impossible à tester d'ici : le comportement dépend de l'application Google
+  // Maps installée, qui intercepte ces liens et n'honore pas toujours les mêmes paramètres).
+  //   A = forme documentée « Maps URLs » (map_action=pano + viewpoint) ;
+  //   B = forme historique (layer=c + cbll), censée viser la couche Street View officielle ;
+  //   C = forme produite par Google Maps lui-même au partage d'une vue (/@lat,lon,3a,…/data=!3m1!1e1).
+  // Dès que l'une est validée à l'usage, les deux autres seront supprimées.
+  function urlsStreetViewVariantes(lat, lon){
+    if(lat == null || lon == null) return [];
+    return [
+      { code:"A", url:`https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}` },
+      { code:"B", url:`https://www.google.com/maps?q=&layer=c&cbll=${lat},${lon}&cbp=11,0,0,0,0` },
+      { code:"C", url:`https://www.google.com/maps/@${lat},${lon},3a,75y,0h,90t/data=!3m1!1e1` }
+    ];
   }
 
   function urlGoogleMapsRestaurantsProches(lat, lon){
