@@ -38,12 +38,12 @@
     },
     {
       "id": "r_mseg6kdw_9jm3m3",
-      "lat": 48.84348564724833,
-      "lon": 2.293642078620906,
+      "lat": 48.8435951,
+      "lon": 2.2936595,
       "name": "Giocco",
       "address": "3 Rue Mademoiselle, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-09-04T19:59:37.019Z"
+      "maj": "2026-09-05T05:28:29.316Z"
     },
     {
       "id": "r_msegatf2_q0yz01",
@@ -367,5 +367,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-08-04T16:25:05.568Z",
-  "maj": "2026-09-04T20:45:21.721Z"
+  "maj": "2026-09-05T05:28:30.527Z"
 }
