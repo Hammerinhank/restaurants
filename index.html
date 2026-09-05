@@ -639,6 +639,26 @@
   }
   .modal-maps-link:hover{text-decoration:underline;}
   #modalMapsLink{margin:-6px 0 10px;}
+  /* Fenêtre d'affichage de la panoramique Street View intégrée (iframe Maps Embed API).
+     L'API impose une taille minimale de 200 x 200 px. */
+  .modal-box-street{max-width:820px;width:96vw;}
+  #streetCadre{
+    width:100%;
+    height:min(62vh,520px);
+    min-height:220px;
+    border:0;
+    border-radius:8px;
+    background:#000;
+    display:block;
+    margin:6px 0 10px;
+  }
+  #streetAide{
+    font-size:11.5px;
+    color:var(--muted);
+    margin:0 0 10px;
+    line-height:1.45;
+  }
+  #streetAide a{color:var(--accent);}
   #modalStreetLink{
     margin:0 0 14px;
     padding:9px 10px;
@@ -821,6 +841,14 @@
       <input type="password" id="cfgToken" autocomplete="off" placeholder="ghp_...">
     </label>
   </div>
+  <!-- Clé Google Maps : indépendante des identifiants GitHub (enregistrée à la frappe, et non
+       effacée par « Effacer les identifiants »). Elle sert uniquement à afficher la panoramique
+       Street View dans l'application, via la Maps Embed API. -->
+  <div class="settings-row">
+    <label>Clé Google Maps (Maps Embed API) — pour la vue Street View intégrée
+      <input type="password" id="cfgCleGoogle" autocomplete="off" placeholder="AIza...">
+    </label>
+  </div>
   <div class="settings-actions">
     <button class="btn-primary btn-small" id="btnSaveCfg">Enregistrer les identifiants</button>
     <button class="btn-ghost btn-small" id="btnClearCfg">Effacer les identifiants</button>
@@ -851,6 +879,18 @@
     <button class="btn-ghost btn-small" id="btnDebugLogClear">Effacer</button>
   </div>
   <div id="debugLogBody"></div>
+</div>
+
+<div class="modal-overlay" id="streetOverlay">
+  <div class="modal-box modal-box-street">
+    <h3 id="streetTitre">Street View</h3>
+    <iframe id="streetCadre" allowfullscreen referrerpolicy="no-referrer-when-downgrade" title="Vue Street View"></iframe>
+    <div id="streetAide"></div>
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="streetExterne">↗ Ouvrir dans Google Maps</button>
+      <button class="btn-primary btn-small" id="streetFermer">Fermer</button>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="attenteOverlay">
@@ -987,7 +1027,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V49";
+  const VERSION = "V50";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1202,6 +1242,12 @@
       "On s'adresse donc désormais à l'application dans son propre langage, via le schéma d'URL comgooglemaps:// documenté par Google pour iOS, avec mapmode=streetview. Si l'application n'est pas installée, la page bascule automatiquement au bout d'1,5 s sur l'URL web, correcte dans Safari ; hors iPhone, l'URL web est utilisée directement.",
       "Les trois liens de diagnostic A, B et C sont supprimés : il ne reste qu'un lien « 🧭 Voir en Street View ».",
       "Les liens externes du popup (fiche Google Maps, Street View) deviennent de vrais boutons, plus hauts et séparés par un espace franc : en lignes de texte serrées, on appuyait sur la voisine au doigt."
+    ]},
+    { v:"V50", resume:[
+      "La panoramique Street View s'affiche désormais DANS l'application, dans une fenêtre dédiée, via la Maps Embed API de Google (iframe) : plus aucun lien à faire suivre par l'application Google Maps, qui les détournait systématiquement.",
+      "Cette API est gratuite et sans limite d'usage, mais exige une clé Google Cloud. Un champ « Clé Google Maps (Maps Embed API) » a été ajouté dans ⚙️ ; la clé est enregistrée sur l'appareil au fil de la frappe, indépendamment des identifiants GitHub (« Effacer les identifiants » ne la touche pas).",
+      "Sans clé renseignée, le comportement précédent est conservé (ouverture dans Google Maps via le schéma comgooglemaps:// sur iPhone), avec un message rappelant l'existence du réglage.",
+      "La fenêtre propose un bouton « ↗ Ouvrir dans Google Maps » pour basculer vers l'application malgré tout, et vide l'iframe à la fermeture."
     ]}
   ];
 
@@ -1232,6 +1278,9 @@
   const LS_DATA_KEY = "restaurants.v1";
   const LS_SUPPR_KEY = "restaurantsSuppressions.v1";
   const LS_CFG_KEY = "restaurantsGithubConfig.v1";
+  // Clé Google Maps stockée à part : elle ne concerne pas GitHub et ne doit pas disparaître
+  // avec les identifiants du dépôt.
+  const LS_CLE_GOOGLE_KEY = "restaurants.cleGoogleMaps.v1";
   const LS_LISTES_KEY = "restaurantsListes.v1";
   const LS_LISTE_ACTUELLE_KEY = "restaurantsListeActuelle.v1";
   const LS_AFFICHER_LOG_KEY = "restaurantsAfficherLog.v1";
@@ -1898,7 +1947,34 @@
     return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}`;
   }
 
+  function cleGoogleMaps(){
+    try{ return (localStorage.getItem(LS_CLE_GOOGLE_KEY) || "").trim(); }catch(e){ return ""; }
+  }
+
+  // Affichage de la panoramique DANS l'application, via la Maps Embed API : c'est la seule
+  // façon fiable d'obtenir la vraie vue à 360° sur iPhone, l'application Google Maps détournant
+  // les liens web. L'API est gratuite et sans limite d'usage, mais impose une clé Google Cloud
+  // (à créer une fois, puis à coller dans ⚙️ ; à restreindre au domaine du site et à cette API).
+  // Le mode streetview donne la panoramique la plus proche du point, photos sphériques déposées
+  // par les utilisateurs comprises.
   function ouvrirStreetView(lat, lon){
+    if(lat == null || lon == null) return;
+    const cle = cleGoogleMaps();
+    if(!cle){
+      statut("Astuce : renseignez une clé Google Maps dans ⚙️ pour voir la panoramique directement dans l'application.", "");
+      ouvrirStreetViewExterne(lat, lon);
+      return;
+    }
+    const cadre = document.getElementById("streetCadre");
+    cadre.src = `https://www.google.com/maps/embed/v1/streetview?key=${encodeURIComponent(cle)}` +
+      `&location=${lat},${lon}&fov=90&language=fr`;
+    document.getElementById("streetAide").textContent =
+      "Faites glisser l'image pour regarder autour de vous. La panoramique affichée est la plus proche du point, en général prise depuis la chaussée.";
+    document.getElementById("streetExterne").onclick = ()=> ouvrirStreetViewExterne(lat, lon);
+    document.getElementById("streetOverlay").classList.add("open");
+  }
+
+  function ouvrirStreetViewExterne(lat, lon){
     const web = urlStreetViewWeb(lat, lon);
     if(!web) return;
     if(!estIOS()){
@@ -1918,6 +1994,12 @@
       if(!partiVersAppli && !document.hidden) window.location.href = web;
     }, 1500);
   }
+
+  document.getElementById("streetFermer").addEventListener("click", ()=>{
+    document.getElementById("streetOverlay").classList.remove("open");
+    // On vide l'iframe à la fermeture : sinon la panoramique continue de tourner en arrière-plan.
+    document.getElementById("streetCadre").src = "about:blank";
+  });
 
   function urlGoogleMapsRestaurantsProches(lat, lon){
     if(lat == null || lon == null) return null;
@@ -3545,6 +3627,18 @@
   document.getElementById("btnSettings").addEventListener("click", ()=>{
     document.getElementById("settings").classList.toggle("open");
   });
+
+  (function initCleGoogle(){
+    const champ = document.getElementById("cfgCleGoogle");
+    try{ champ.value = localStorage.getItem(LS_CLE_GOOGLE_KEY) || ""; }catch(e){}
+    champ.addEventListener("input", ()=>{
+      const v = champ.value.trim();
+      try{
+        if(v) localStorage.setItem(LS_CLE_GOOGLE_KEY, v);
+        else localStorage.removeItem(LS_CLE_GOOGLE_KEY);
+      }catch(e){}
+    });
+  })();
 
   document.getElementById("btnSaveCfg").addEventListener("click", ()=>{
     const owner = elOwner.value.trim();
