@@ -566,7 +566,7 @@
      boutons, hauts et nettement séparés. En simples lignes de texte serrées l'une contre
      l'autre, on appuyait systématiquement sur la voisine au doigt. */
   .popup-maps-link{
-    display:block;
+    display:inline-block;
     font-size:12px;
     font-weight:600;
     color:var(--accent);
@@ -575,9 +575,13 @@
     padding:9px 10px;
     border:1px solid var(--accent);
     border-radius:8px;
+    white-space:nowrap;
   }
   .popup-maps-link:hover{background:#fbf4ef;}
-  .popup-liens{display:flex;flex-direction:column;gap:8px;margin:8px 0 2px;}
+  /* Liens empilés mais ajustés à leur texte (align-items:flex-start), et bulle Leaflet
+     dimensionnée sur son contenu plutôt que sur une largeur imposée par la bibliothèque. */
+  .popup-liens{display:flex;flex-direction:column;align-items:flex-start;gap:8px;margin:8px 0 2px;}
+  /* Aucune largeur imposée à la bulle : Leaflet mesure son contenu et l'ajuste au plus juste. */
   .popup-edit{
     width:100%;
     font:inherit;
@@ -1028,7 +1032,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V52";
+  const VERSION = "V55";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1257,6 +1261,17 @@
     { v:"V52", resume:[
       "La vue Street View intégrée s'affichait entièrement noire, sans explication : le contenu d'un cadre appartenant à un autre domaine étant illisible depuis la page qui l'accueille (règle d'origine du navigateur), un refus de Google reste invisible.",
       "Bouton « 🔎 Diagnostic » ajouté dans la fenêtre Street View : il ouvre exactement la même adresse dans un onglet, en navigation normale — le message d'erreur éventuel de Google s'y lit alors en clair, avec le bon référent (contrairement à une adresse tapée à la main dans la barre du navigateur, qui n'en envoie aucun)."
+    ]},
+    { v:"V53", resume:[
+      "Les boutons « Voir la fiche sur Google Maps » et « 🧭 Voir en Street View » du popup ne sont plus étirés sur toute la largeur : chacun s'ajuste à son texte. Ils restent empilés et nettement séparés.",
+      "La bulle elle-même se dimensionne désormais sur son contenu (la ligne la plus longue, plafonnée à 300 px) au lieu de la largeur imposée par Leaflet."
+    ]},
+    { v:"V54", resume:[
+      "Correction : la bulle s'était rétrécie au point de couper le texte des boutons sur plusieurs lignes (« Voir en Street View » sur quatre lignes). Elle se cale désormais sur la largeur naturelle de son contenu (max-content) et non sur la largeur minimale possible, et le texte des boutons ne se coupe plus jamais (white-space: nowrap)."
+    ]},
+    { v:"V55", resume:[
+      "Correction : plus aucune largeur n'est imposée à la bulle de la carte. Leaflet mesure lui-même son contenu et l'ajuste au plus juste (plafond de 300 px) ; les deux réglages précédents (width:auto puis width:max-content) faussaient cette mesure, d'où une bulle tantôt rétrécie à couper les mots, tantôt bien trop large avec une grande zone blanche sur la carte.",
+      "Le texte des boutons reste protégé contre la coupure (white-space: nowrap) et chaque bouton garde une largeur ajustée à son texte."
     ]}
   ];
 
