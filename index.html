@@ -571,6 +571,9 @@
     margin-top:2px;
   }
   .popup-maps-link:hover{text-decoration:underline;}
+  /* Les liens externes du popup (fiche Google Maps, Street View) sont empilés : la largeur
+     d'un popup Leaflet ne permet pas de les mettre côte à côte lisiblement. */
+  .popup-liens{display:flex;flex-direction:column;gap:1px;margin-top:2px;}
   .popup-edit{
     width:100%;
     font:inherit;
@@ -631,6 +634,8 @@
     font-weight:600;
   }
   .modal-maps-link:hover{text-decoration:underline;}
+  #modalMapsLink{margin:-6px 0 2px;}
+  #modalStreetLink{margin:0 0 12px;}
   .modal-box label{
     display:flex;flex-direction:column;gap:4px;
     font-size:12px;color:var(--muted);
@@ -854,6 +859,7 @@
     <h3>Confirmer le restaurant</h3>
     <div class="modal-hint" id="modalHint"></div>
     <a id="modalMapsLink" class="modal-maps-link" href="#" target="_blank" rel="noopener">Voir la fiche sur Google Maps ↗</a>
+    <a id="modalStreetLink" class="modal-maps-link" href="#" target="_blank" rel="noopener">🧭 Voir en Street View ↗</a>
     <label>Nom
       <input type="text" id="modalNom" autocomplete="off">
     </label>
@@ -971,7 +977,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V45";
+  const VERSION = "V46";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1165,6 +1171,12 @@
       "La ligne de titre du panneau de liste indique désormais le classement en cours, juste après le nom de la liste : « — classée de A à Z » ou « — classée par date de modification ».",
       "L'indication est recalculée à chaque appui sur l'icône 🍽️ en haut à gauche (qui bascule entre les deux tris) : on voit donc immédiatement l'effet du bouton, alors que seule la couleur de l'icône le signalait jusqu'ici.",
       "L'infobulle de cette mention rappelle le tri actif et comment en changer."
+    ]},
+    { v:"V46", resume:[
+      "Nouveau lien « 🧭 Voir en Street View ↗ » dans le popup de chaque restaurant sur la carte, sous le lien vers la fiche Google Maps, et dans la fenêtre « Confirmer le restaurant ».",
+      "Il utilise le format officiel des Maps URLs (https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=lat,lon), qui ne demande aucune clé d'API. Ce format n'accepte que des coordonnées, jamais une adresse en texte — sans conséquence ici, puisque chaque restaurant a les siennes.",
+      "Dans la fenêtre de confirmation, le lien suit la position courante : il pointe sur la position trouvée après une recherche relancée depuis une adresse corrigée.",
+      "Deux limites propres à Street View : la panoramique affichée est la plus proche du point (donc en général sur la chaussée, sans garantie qu'elle regarde vers le restaurant), et si aucune image n'existe à proximité Google Maps s'ouvre sans panoramique."
     ]}
   ];
 
@@ -1769,7 +1781,10 @@
         <div class="popup-label">Adresse</div>
         <div class="popup-text adr" data-id="${r.id}" data-field="address">${escHtml(r.address || "(adresse non définie, double-cliquez pour saisir)")}</div>
       </div>
-      ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">${texteLienMaps}</a>` : ""}
+      <div class="popup-liens">
+        ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">${texteLienMaps}</a>` : ""}
+        ${urlStreetView(r.lat, r.lon) ? `<a class="popup-maps-link" href="${urlStreetView(r.lat, r.lon)}" target="_blank" rel="noopener">🧭 Voir en Street View ↗</a>` : ""}
+      </div>
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
         <div class="popup-actions-right">
@@ -1816,6 +1831,18 @@
   // donnée (sans nom précis) : utilisée quand le restaurant n'a pas encore été identifié
   // (nom encore égal à "Nouveau restaurant"), pour permettre de repérer directement sur Google
   // Maps l'établissement qui correspond à l'icône posée sur la carte.
+  // URL d'ouverture directe de la vue panoramique Street View, au format officiel « Maps URLs »
+  // (aucune clé d'API nécessaire). Le paramètre viewpoint n'accepte QUE des coordonnées, jamais
+  // une adresse en texte — ce n'est pas gênant ici, chaque restaurant ayant les siennes.
+  // Google affiche la panoramique prise au plus près du point ; elle se trouve en général sur la
+  // chaussée et ne regarde pas forcément vers le restaurant (impossible de calculer un cap sans
+  // connaître la position de la prise de vue). Si aucune image n'existe à proximité, Google Maps
+  // s'ouvre sans panoramique.
+  function urlStreetView(lat, lon){
+    if(lat == null || lon == null) return null;
+    return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lon}&fov=90`;
+  }
+
   function urlGoogleMapsRestaurantsProches(lat, lon){
     if(lat == null || lon == null) return null;
     return `https://www.google.com/maps/search/restaurants/@${lat},${lon},18z`;
@@ -2991,6 +3018,7 @@
       const inputAdr = document.getElementById("modalAdresse");
       const hint = document.getElementById("modalHint");
       const lienMaps = document.getElementById("modalMapsLink");
+      const lienStreet = document.getElementById("modalStreetLink");
       const champAlt = document.getElementById("modalAlternativesChamp");
       const selectAlt = document.getElementById("modalAlternatives");
       const btnValider = document.getElementById("modalValider");
@@ -3036,6 +3064,15 @@
           lienMaps.style.display = "inline-block";
         }else{
           lienMaps.style.display = "none";
+        }
+        // Street View suit la position courante : celle du restaurant proposé, ou celle trouvée
+        // après une recherche relancée depuis une adresse corrigée.
+        const urlPano = urlStreetView(la, lo);
+        if(urlPano){
+          lienStreet.href = urlPano;
+          lienStreet.style.display = "block";
+        }else{
+          lienStreet.style.display = "none";
         }
       };
       majLienMaps(nom, lat, lon, adresse);
@@ -3118,6 +3155,7 @@
       const nettoyer = () => {
         overlay.classList.remove("open");
         btnProche.style.display = "none";
+        lienStreet.style.display = "none";
         btnValider.removeEventListener("click", onValider);
         btnAnnuler.removeEventListener("click", onAnnuler);
         overlay.removeEventListener("keydown", onKey);
