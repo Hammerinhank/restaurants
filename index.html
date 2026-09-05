@@ -608,6 +608,10 @@
   }
   .modal-box h3{margin:0 0 4px;font-size:15px;}
   .modal-hint{font-size:11.5px;color:var(--muted);margin:0 0 12px;}
+  #modalChercherProche{
+    width:100%;
+    margin-top:8px;
+  }
   .modal-maps-link{
     display:none; /* affiché en JS uniquement quand un restaurant a été trouvé */
     font-size:12px;
@@ -849,6 +853,9 @@
     <label>Adresse
       <input type="text" id="modalAdresse" autocomplete="off">
     </label>
+    <!-- N'apparaît que si l'adresse proposée a été modifiée : relance la recherche à partir de
+         l'adresse saisie plutôt qu'à partir de la position GPS. -->
+    <button class="btn-ghost btn-small" id="modalChercherProche" style="display:none;">🔎 Chercher un restaurant proche de cette adresse</button>
     <div class="modal-actions">
       <button class="btn-ghost btn-small" id="modalAnnuler">Ignorer</button>
       <button class="btn-primary btn-small" id="modalValider">Valider</button>
@@ -954,7 +961,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V43";
+  const VERSION = "V44";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1137,6 +1144,12 @@
       "Nouveau bouton « ✖️ Tout annuler » dans l'en-tête, à côté de « ✅ Valider et terminer » et visible seulement en mode Modifier : il abandonne d'un seul geste toutes les éditions ouvertes et non validées (chaque restaurant en cours d'édition dans la liste, plus celle éventuellement ouverte dans le popup de la carte), puis quitte le mode Modifier.",
       "Une confirmation est demandée dès qu'au moins une modification est en cours, en indiquant combien elles sont.",
       "Seules les saisies non validées sont concernées : les opérations déjà enregistrées au fil de l'eau (photos, suppressions, déplacements de marqueur, changement de liste) ne sont pas annulées."
+    ]},
+    { v:"V44", resume:[
+      "Dans la fenêtre « Confirmer le restaurant » (ouverte après « Nouveau restaurant » ou après un déplacement de repère), un bouton « 🔎 Chercher un restaurant proche de cette adresse » apparaît dès que l'adresse proposée est modifiée à la main.",
+      "Ce bouton localise l'adresse saisie (Nominatim) puis cherche les restaurants nommés dans un rayon de 200 m autour d'elle (Overpass) : le nom proposé et la liste « Autres restaurants à proximité » sont remplacés par ces nouveaux résultats.",
+      "À la validation, le repère est déplacé sur le restaurant trouvé (ou, à défaut de restaurant, sur l'adresse saisie) — utile quand la position GPS était imprécise ou qu'on saisit un restaurant qu'on ne visite pas. Sans recours à ce bouton, la position d'origine reste inchangée.",
+      "Le bouton disparaît après chaque recherche et réapparaît à la modification suivante du champ Adresse."
     ]}
   ];
 
@@ -2962,15 +2975,27 @@
       const selectAlt = document.getElementById("modalAlternatives");
       const btnValider = document.getElementById("modalValider");
       const btnAnnuler = document.getElementById("modalAnnuler");
+      const btnProche = document.getElementById("modalChercherProche");
 
-      const listeAlt = alternatives || [];
+      // La suggestion initiale vient de la position GPS. Si l'adresse est corrigée à la main,
+      // cette suggestion n'a plus de raison d'être : on propose alors de relancer la recherche
+      // à partir de l'adresse saisie (géocodage de l'adresse, puis restaurants dans un rayon
+      // de 200 m autour d'elle).
+      let listeAlt = alternatives || [];
+      let latCourant = lat;
+      let lonCourant = lon;
+      let adresseReference = (adresse || "").trim();
+      let positionRedefinie = false; // vrai dès qu'une recherche par adresse a abouti
       inputNom.value = nom || "";
       inputAdr.value = adresse || "";
       hint.textContent = indice || "";
-      selectAlt.innerHTML = '<option value="">— choisir une autre suggestion —</option>' +
-        listeAlt.map((a,i)=> `<option value="${i}">${escHtml(a.nom)} (${a.distance} m)</option>`).join("");
-      champAlt.style.display = listeAlt.length ? "flex" : "none";
-      selectAlt.value = "";
+      const remplirAlternatives = () => {
+        selectAlt.innerHTML = '<option value="">— choisir une autre suggestion —</option>' +
+          listeAlt.map((a,i)=> `<option value="${i}">${escHtml(a.nom)} (${a.distance} m)</option>`).join("");
+        champAlt.style.display = listeAlt.length ? "flex" : "none";
+        selectAlt.value = "";
+      };
+      remplirAlternatives();
 
       // Lien vers la fiche Google Maps du restaurant identifié : construit à partir de son nom
       // et de ses coordonnées (recherche Google Maps, faute de disposer d'un identifiant de
@@ -2995,6 +3020,58 @@
       };
       majLienMaps(nom, lat, lon, adresse);
 
+      const majBoutonProche = () => {
+        const adr = inputAdr.value.trim();
+        btnProche.style.display = (adr && adr !== adresseReference) ? "block" : "none";
+      };
+      majBoutonProche();
+
+      const onAdresseSaisie = () => {
+        majBoutonProche();
+        majLienMaps(inputNom.value.trim(), latCourant, lonCourant, inputAdr.value);
+      };
+
+      const onChercherProche = async () => {
+        const adr = inputAdr.value.trim();
+        if(!adr) return;
+        const libelle = btnProche.textContent;
+        btnProche.disabled = true;
+        btnProche.textContent = "🔎 Recherche en cours…";
+        try{
+          const pos = await geocodeAdresse(adr);
+          if(!pos){
+            hint.textContent = "Cette adresse n'a pas pu être localisée. Vérifiez-la (numéro, voie, code postal, ville) et réessayez.";
+            return;
+          }
+          latCourant = pos.lat;
+          lonCourant = pos.lon;
+          positionRedefinie = true;
+          const proches = await rechercherRestaurantsProches(pos.lat, pos.lon, 5);
+          const principal = (proches && proches[0]) || null;
+          listeAlt = (proches || []).slice(1, 5);
+          remplirAlternatives();
+          if(principal){
+            inputNom.value = principal.nom;
+            latCourant = principal.lat;
+            lonCourant = principal.lon;
+            hint.textContent = `Restaurant le plus proche de l'adresse saisie : ${principal.nom} (${principal.distance} m). Le repère sera déplacé sur ce restaurant à la validation.`;
+          }else{
+            hint.textContent = "Aucun restaurant nommé dans OpenStreetMap à moins de 200 m de cette adresse. Le repère sera déplacé sur l'adresse saisie à la validation.";
+          }
+          majLienMaps(inputNom.value.trim(), latCourant, lonCourant, adr);
+          // L'adresse saisie devient la nouvelle référence : le bouton disparaît jusqu'à la
+          // prochaine modification du champ.
+          adresseReference = adr;
+          majBoutonProche();
+        }catch(e){
+          console.error("recherche par adresse:", e);
+          hint.textContent = "La recherche a échoué : " + (e && e.message ? e.message : "erreur inconnue") + ". Vous pouvez saisir le nom à la main.";
+        }finally{
+          btnProche.disabled = false;
+          btnProche.textContent = libelle;
+        }
+      };
+
       overlay.classList.add("open");
       setTimeout(()=> inputNom.focus(), 60);
 
@@ -3003,6 +3080,12 @@
         // Choisir une suggestion alternative ne remplace que le nom, jamais l'adresse.
         if(idx !== "" && listeAlt[idx]){
           inputNom.value = listeAlt[idx].nom;
+          // Si la position a été redéfinie par une recherche sur l'adresse saisie, choisir une
+          // autre suggestion déplace le repère sur ce restaurant-là.
+          if(positionRedefinie){
+            latCourant = listeAlt[idx].lat;
+            lonCourant = listeAlt[idx].lon;
+          }
           // L'adresse affichée dans le champ n'est volontairement pas modifiée (voir commentaire
           // ci-dessus), mais on garde le lien Google Maps cohérent avec elle : il pointe donc
           // toujours sur l'adresse actuellement affichée dans le champ, pas sur celle de
@@ -3014,23 +3097,43 @@
       };
       const nettoyer = () => {
         overlay.classList.remove("open");
+        btnProche.style.display = "none";
         btnValider.removeEventListener("click", onValider);
         btnAnnuler.removeEventListener("click", onAnnuler);
         overlay.removeEventListener("keydown", onKey);
         selectAlt.removeEventListener("change", onChangeAlt);
+        inputAdr.removeEventListener("input", onAdresseSaisie);
+        btnProche.removeEventListener("click", onChercherProche);
       };
       const onValider = () => {
         const nv = inputNom.value.trim();
         const av = inputAdr.value.trim();
         nettoyer();
-        resolve({ok:true, nom:nv, adresse:av});
+        // lat/lon ne sont renvoyés que si une recherche par adresse a effectivement abouti :
+        // sinon la position GPS d'origine du repère est conservée telle quelle.
+        resolve({
+          ok: true,
+          nom: nv,
+          adresse: av,
+          lat: positionRedefinie ? latCourant : null,
+          lon: positionRedefinie ? lonCourant : null
+        });
       };
       const onAnnuler = () => { nettoyer(); resolve({ok:false}); };
       const onKey = (ev) => {
+        // Entrée depuis le champ Adresse, quand l'adresse vient d'être modifiée : on lance la
+        // recherche plutôt que de valider — c'est ce qu'on attend après avoir corrigé l'adresse.
+        if(ev.key === "Enter" && ev.target === inputAdr && btnProche.style.display !== "none"){
+          ev.preventDefault();
+          onChercherProche();
+          return;
+        }
         if(ev.key === "Enter" && ev.target !== selectAlt) onValider();
         if(ev.key === "Escape") onAnnuler();
       };
       selectAlt.addEventListener("change", onChangeAlt);
+      inputAdr.addEventListener("input", onAdresseSaisie);
+      btnProche.addEventListener("click", onChercherProche);
       btnValider.addEventListener("click", onValider);
       btnAnnuler.addEventListener("click", onAnnuler);
       overlay.addEventListener("keydown", onKey);
@@ -3118,6 +3221,13 @@
     if(choix.ok){
       r.name = choix.nom || "Nouveau restaurant";
       r.address = choix.adresse || "";
+      // Position renvoyée uniquement si l'utilisateur a relancé la recherche depuis une adresse
+      // corrigée : le repère est alors déplacé sur le lieu trouvé, sinon il reste où il était.
+      const deplace = (choix.lat != null && choix.lon != null);
+      if(deplace){
+        r.lat = choix.lat;
+        r.lon = choix.lon;
+      }
       r.maj = new Date().toISOString();
       sauverLocal();
       redessinerMarqueur(r);
@@ -3129,7 +3239,7 @@
       // (jeton absent ou invalide notamment).
       definirSelection(r.id);
       pousserVersGithubDifféré();
-      statut("Informations confirmées.", "ok");
+      statut(deplace ? "Informations confirmées et repère déplacé sur l'adresse trouvée." : "Informations confirmées.", "ok");
     }else{
       statut("Suggestion ignorée. Vous pouvez saisir les informations manuellement (double-clic).", "");
     }
