@@ -9,9 +9,9 @@
       "maj": "2026-08-04T16:31:32.173Z",
       "liste": "Paris",
       "gemini": {
-        "texte": "Je n'ai pas trouvé de restaurant nommé \"Le Mûrier\" à l'adresse 42 Rue Olivier de Serres, 75015 Paris.\n\nMes recherches indiquent qu'à cette adresse se trouve un autre établissement, **Le Relais du Parc**.\n\nIl existe bien un restaurant nommé \"Le Mûrier\" à Paris, mais il est situé au 12 Rue du Mûrier, dans le 13ème arrondissement, ce qui est une adresse différente.\n\nPar conséquent, je ne peux pas fournir d'informations fiables (type de cuisine, prix, points forts/faibles, occasion) concernant un restaurant \"Le Mûrier\" à l'adresse que vous avez indiquée, car il ne semble pas y en avoir à cet endroit.",
+        "texte": "Je n'ai pas trouvé d'informations fiables et récentes concernant un restaurant nommé \"Le Mûrier\" à l'adresse 42 Rue Olivier de Serres, 75015 Paris.\n\nIl est possible que cet établissement ait changé de nom, fermé, ou qu'il s'agisse d'une ancienne adresse. Par conséquent, je ne peux pas vous fournir d'avis sur le type de cuisine, la fourchette de prix, les points forts/faibles ou les occasions pour lesquelles le conseiller, faute de données actuelles.",
         "sources": [],
-        "quand": "2026-09-14T07:12:12.049Z",
+        "quand": "2026-09-14T07:14:33.227Z",
         "modele": "gemini-2.5-flash",
         "recherche": false
       }
@@ -482,5 +482,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T07:12:38.794Z"
+  "maj": "2026-09-14T07:14:34.444Z"
 }
