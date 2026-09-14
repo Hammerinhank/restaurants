@@ -185,9 +185,9 @@
       "lat": 48.8431679828902,
       "lon": 2.321892723887816,
       "name": "Tonkatsu-Tombo",
-      "address": "Rue de l'Arrivée, 75015 Paris",
+      "address": "14 Rue de l'Arrivée, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-09-04T19:53:09.540Z",
+      "maj": "2026-09-14T07:08:05.195Z",
       "photos": [
         {
           "id": "r_mtndfoz5_rjh0u1",
@@ -454,5 +454,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T07:06:39.423Z"
+  "maj": "2026-09-14T07:08:06.401Z"
 }
