@@ -183,7 +183,14 @@
       "name": "Le Cambodge",
       "address": "2 Rue Leriche, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T16:26:18.315Z"
+      "maj": "2026-08-04T16:26:18.315Z",
+      "gemini": {
+        "texte": "D'après les avis récents, voici ce que l'on peut dire du restaurant \"Le Cambodge\" :\n\n*   **Type de cuisine :** Cambodgienne authentique.\n*   **Fourchette de prix :** Modérée (€€). Comptez environ 20-35€ par personne pour un plat et une boisson, voire entrée/plat/dessert.\n*   **Points forts :**\n    *   **Cuisine savoureuse et authentique :** Les plats sont souvent décrits comme délicieux, avec des saveurs fidèles à la cuisine cambodgienne, notamment le bœuf Lok Lak et les currys.\n    *   **Service chaleureux et rapide :** Le personnel est généralement très apprécié pour son accueil et son efficacité.\n    *   **Bon rapport qualité-prix :** Les portions sont généreuses et les prix jugés raisonnables.\n*   **Points faibles :**\n    *   **Décoration simple et datée :** Le cadre est souvent décrit comme sans prétention, voire vieillot, et manque de modernité.\n    *   **Espace parfois exigu :** Le restaurant peut être petit et bruyant lorsqu'il est plein.\n\n**Occasion conseillée :** Je le conseillerais pour un repas décontracté entre amis ou en famille, pour découvrir ou retrouver les saveurs de la cuisine cambodgienne dans une ambiance simple et conviviale, sans chercher un cadre sophistiqué. Idéal pour un dîner rapide et savoureux en semaine.",
+        "sources": [],
+        "quand": "2026-09-14T07:10:03.143Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_msewpb2b_q01kuw",
@@ -468,5 +475,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T07:09:25.095Z"
+  "maj": "2026-09-14T07:10:04.357Z"
 }
