@@ -70,7 +70,48 @@
       "name": "Au petit riche",
       "address": "25 Rue Le Peletier, 75009 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T11:12:26.048Z"
+      "maj": "2026-08-04T11:12:26.048Z",
+      "photos": [],
+      "gemini": {
+        "texte": "Le restaurant \"Au Petit Riche\", situé au 25 Rue Le Peletier, 75009 Paris, est un établissement historique fondé en 1854, réputé pour sa cuisine française traditionnelle.\n\n**Type de cuisine :** Il propose une cuisine française traditionnelle, dite \"bourgeoise\" ou bistronomique, avec une touche de modernité. On y trouve des classiques comme la quenelle de brochet, la tête de veau, le tartare de bœuf, et des huîtres en saison.\n\n**Fourchette de prix :** La fourchette de prix se situe généralement entre 46€ et 100€ par personne pour un repas complet. Des formules déjeuner sont disponibles à partir de 21€ ou 30€, et des menus (entrée, plat, dessert) varient de 31€ à 44€, incluant parfois des boissons.\n\n**Points forts :**\n*   **Décor et ambiance :** Le restaurant est apprécié pour son cadre Belle Époque authentique et son ambiance de brasserie parisienne traditionnelle.\n*   **Qualité de la cuisine :** La cuisine est décrite comme délicieuse, fraîche, de qualité et respectueuse des classiques français, avec une mention spéciale pour la tête de veau et la quenelle de brochet.\n*   **Service :** Le personnel est souvent salué pour son professionnalisme, son amabilité et son efficacité.\n*   **Carte des vins :** L'établissement dispose d'une riche carte des vins, notamment du Val de Loire, avec de nombreuses références biologiques.\n\n**Points faibles :**\n*   Les avis récents mentionnent peu de points faibles majeurs. Une expérience a fait état d'une déception concernant des requêtes spécifiques pour une célébration qui n'auraient pas été honorées comme espéré, et un dessert (éclair) jugé \"limite\" bien qu'il ait été remplacé.\n\n**Occasion conseillée :** \"Au Petit Riche\" est idéal pour une véritable expérience parisienne, que ce soit pour des repas en famille, des déjeuners d'affaires, des dîners entre amis ou pour célébrer des occasions spéciales dans un cadre historique et chaleureux. Il est également adapté aux groupes grâce à ses salons privés.",
+        "sources": [
+          {
+            "titre": "ecotable.fr",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQEDRAG-kzKYoptYO29XzUjDa5en5eXugGurXmEMqrME7CAJGg-lfmymhGozpJuo4NbgnCyDyzda1QyjkcLms14SzeEo9gr5MIfNYgpiBh8pQmCp4hcwOXNaRFQww4xI2ss8whGmf11fhoH7Ej1gZeNTpdAzpTKGYZr2JXwVF1XPdqvOef4-YZk="
+          },
+          {
+            "titre": "ourfrenchimpressions.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHRZIKcF9CsUDaFj9j3v2SZsxTiBIbGWWwgls6SHB0uvFZPgXnK8GxyfZ6MAUiNUy-w56Z4WIvL8pFqpScO0xSxfTAYRckbzL1_al5xoWuNt5I_z5q2AsN1Nwtraj_jXWMSTvnpxRgo0VwVr86us7-uquUx"
+          },
+          {
+            "titre": "pagesjaunes.fr",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQGMLFR95gRDnL0bpKUEz2LklOOUCaLxhAMxsfZqN0j71U-EWeBnOE4gJpbZFgyniKq0t-zYcgV6brC9fmS0G-ebVkmpe4fdQXeYP_rtouzVpQZiPBVSIht5m2lpgVIwCpOEOdQ="
+          },
+          {
+            "titre": "francetoday.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQE1OVoxDBUv3Qur17dRNm1tJTFWOuEox7GRLS2yg06X4STVhm_9uuWIrCOTc7_Iv-V17BtdJ8_IiMUigluiV8JFO4FfurjnNUmd6hRSemH82sVyqbL3ZAEB27_24NYYKeo91y_ng6n1zjXAvxh2aphu49hTm6dM8a1B8G6dkD3C2JtQ6G6v"
+          },
+          {
+            "titre": "restaurant-aupetitriche.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH0kTKBRd9Ia86EuR-y6p_lGbSpjGtsAlgmTcrK87-HsOe3ncvCkdWFDnruEPgI0VYpMDCh5o4MkuwdYO2abYgxhIN41d7J2nTWd_LZzLfLDeujHOuwnVEbwyQ0wolj53wxLceMw9HgojzxXTQ="
+          },
+          {
+            "titre": "lesrestos.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQH1TbaOEulXLOjo4y_uHbM5uAog0fMi94APDtnxjcPMugPj5ytznTnhMk9YJM1OJUGeyhZVIZslmz1sYHomhukDf31vQ--3VVC3X2SEId7UsdNmN6xFLdzoMXq6HFBWEWem_Sb5PXnx-NvpOPgxU3oAK7AznFOzdN4hJXve49sciZfNWMvJBeyIrNGIQCEkA4dwcEesTln6svDl5Kt_n08N8bWNEwunDmxm"
+          },
+          {
+            "titre": "petitfute.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQElxD2UfG9_UoAtwXnFpMTdZmA1wMms2Qq-senzNawco0VaoGm1PuNZv3SzllNSyfAezQ8N9FTpdSUj82q8K5PIsrGB0NUz0Zsx-K2qxCMmYeAPWpojB9fNySj9XDBLOlqQ9lzy8CQ5EdJuXUtOmWiozzYvJ0uOVus-80rLG6ceDGUqBEZwSiuoqEetgrIaLfGNSgcJnxN65tdgku2O1fLuIbPnBzpNBluPrMMkr1sSl9G-z7Z_rvsup_xglqmeZ-Yseb_utQ=="
+          },
+          {
+            "titre": "petitfute.com",
+            "url": "https://vertexaisearch.cloud.google.com/grounding-api-redirect/AUZIYQHn-4JLfPDKODmSWRH111Mb0UMvL7uL1XiYVtsjiDleQTYrwgby3d9it3d44t1_etwuAGli5MaCyNh4e6piVI99GgRtPOW5XVFLcQE7p_C3zX89WeaQMe9qPSbnmyCP5zR9CJsB4YiVfYsXGtB-Hib1rvMQ6U9DgHAeCWIgIIoakjdey-ob-2pGo2KjBXj9Q0Q3cPkjXkbLjnUVSjbGPyAd_heDwR7MqcFeYC9fNQIXoUea0OsS5g9XhIE2lXB6oAjl7XOu7wMWUr7uS8w="
+          }
+        ],
+        "quand": "2026-09-14T06:26:46.404Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": true
+      }
     },
     {
       "id": "r_msemfxa3_wfkzgk",
@@ -384,5 +425,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-05T07:27:59.450Z"
+  "maj": "2026-09-14T06:26:47.619Z"
 }
