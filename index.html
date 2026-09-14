@@ -887,21 +887,63 @@
   .popup-gemini-btn.dispo:hover{background:#5a41bd;}
   #geminiOublier{color:var(--err);border-color:var(--err);}
 
-  .modal-box-gemini{max-width:620px;width:96vw;}
-  #geminiReglages{
+  /* --- V58 : la fenêtre d'avis ne montre plus que l'avis ------------------------------- */
+  /* Ligne de titre avec la roue dentée à droite : tous les réglages techniques (clé, modèle,
+     question, options) sont partis derrière elle, dans une page de paramétrage séparée. */
+  .gemini-entete{display:flex;align-items:center;gap:8px;margin:0 0 4px;}
+  .gemini-entete h3{margin:0;flex:1 1 auto;}
+  .gemini-roue{
+    flex:0 0 auto;
+    background:transparent;
     border:1px solid var(--line);
-    border-radius:8px;
-    padding:8px 10px;
-    margin:0 0 12px;
-    background:#faf8f3;
-  }
-  #geminiReglages summary{
-    cursor:pointer;
-    font-size:12px;
-    font-weight:600;
+    border-radius:9px;
+    padding:5px 8px;
+    font-size:15px;
+    line-height:1;
     color:var(--muted);
+    cursor:pointer;
   }
-  #geminiReglages label{margin:10px 0 8px;}
+  .gemini-roue:hover{background:#f2efe9;}
+  /* Attente de la réponse : petit indicateur tournant à côté du texte d'état. */
+  .gemini-attente{display:flex;align-items:center;gap:9px;margin:6px 0 10px;}
+  .gemini-attente .spinner{width:18px;height:18px;border-width:2px;margin:0;flex:none;}
+  .gemini-attente-txt{font-size:12.5px;color:var(--muted);font-variant-numeric:tabular-nums;}
+  /* Problème rencontré : sa nature en clair, puis ce qu'il faut faire pour le résoudre. */
+  .gemini-erreur{
+    border:1px solid var(--err);
+    border-left-width:4px;
+    border-radius:8px;
+    padding:10px 12px;
+    margin:0 0 10px;
+    background:#fdf5f3;
+    font-size:12.5px;
+    line-height:1.5;
+  }
+  .gemini-erreur strong{display:block;color:var(--err);margin-bottom:4px;font-size:13px;}
+  .gemini-erreur-detail{
+    display:block;margin-top:6px;color:var(--muted);font-size:11px;word-break:break-word;
+  }
+  .gemini-erreur button{margin-top:8px;}
+  /* Bouton « Redemander » : présent mais discret — un simple lien souligné, pas un bouton
+     coloré qui inviterait à réinterroger Gemini alors que l'avis est déjà là. */
+  .gemini-discret{
+    background:transparent;
+    border:none;
+    padding:4px 2px;
+    font-size:11.5px;
+    font-weight:500;
+    color:var(--muted);
+    text-decoration:underline;
+    cursor:pointer;
+  }
+  .gemini-discret:hover{color:var(--gemini);}
+  .gemini-discret:disabled{opacity:.5;cursor:default;text-decoration:none;}
+  .gemini-actions{display:flex;align-items:center;gap:8px;margin-top:4px;}
+  .gemini-actions .gemini-espace{flex:1 1 auto;}
+
+  /* La page ne défilant plus (V57), les deux fenêtres Gemini défilent elles-mêmes si leur
+     contenu dépasse la hauteur de l'écran (avis long, ou page de réglages sur iPhone). */
+  .modal-box-gemini{max-width:620px;width:96vw;max-height:88dvh;overflow-y:auto;}
   .gemini-aide{font-size:11px;color:var(--muted);line-height:1.45;}
   .gemini-options{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;}
   /* .modal-box label est en colonne : on rétablit une disposition en ligne pour les cases. */
@@ -1155,36 +1197,65 @@
   </div>
 </div>
 
-<!-- ===== Avis Gemini (V56) ===== -->
+<!-- ===== Avis Gemini : fenêtre de lecture (V56, remaniée en V58) =====
+     Cette fenêtre ne montre que l'avis lui-même : soit l'avis déjà enregistré, soit l'attente
+     de la réponse, soit la nature du problème rencontré et la façon d'y remédier. Tous les
+     réglages techniques sont passés derrière la roue dentée, dans #geminiParamsOverlay. -->
 <div class="modal-overlay" id="geminiOverlay">
   <div class="modal-box modal-box-gemini">
-    <h3>✨ Ce que Gemini pense de ce restaurant</h3>
+    <div class="gemini-entete">
+      <h3>✨ Avis de Gemini</h3>
+      <button class="gemini-roue" id="geminiParams" title="Réglages : clé API, modèle, question posée, options">⚙️</button>
+    </div>
     <div class="modal-hint" id="geminiHint"></div>
 
-    <!-- Réglages propres à Gemini, placés ici (et non dans ⚙️) pour rester accessibles hors
-         mode Modifier. La clé reste sur l'appareil : elle n'est jamais envoyée sur GitHub. -->
-    <details id="geminiReglages">
-      <summary>⚙️ Clé API Gemini et modèle</summary>
-      <label>Clé API Gemini
-        <input type="password" id="geminiCle" autocomplete="off" placeholder="AIza...">
-      </label>
-      <label>Modèle
-        <select id="geminiModele">
-          <option value="gemini-2.5-flash">gemini-2.5-flash (rapide, recommandé)</option>
-          <option value="gemini-2.5-pro">gemini-2.5-pro (plus fouillé, plus lent)</option>
-          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
-        </select>
-      </label>
-      <div class="gemini-aide">
-        La clé se crée gratuitement sur Google AI Studio (aistudio.google.com). Elle est
-        enregistrée sur cet appareil uniquement, au fil de la frappe, indépendamment des
-        identifiants GitHub : elle n'est jamais écrite dans restaurants.json et « Effacer les
-        identifiants » n'y touche pas. À saisir une fois sur l'iPhone et une fois sur l'iMac.
-      </div>
-    </details>
+    <div class="gemini-attente" id="geminiAttente" style="display:none;">
+      <div class="spinner" aria-hidden="true"></div>
+      <div class="gemini-attente-txt" id="geminiAttenteTxt">Interrogation de Gemini…</div>
+    </div>
+
+    <div class="gemini-erreur" id="geminiErreur" style="display:none;"></div>
+    <div class="gemini-reponse" id="geminiReponse"></div>
+    <div class="gemini-sources" id="geminiSources"></div>
+    <div class="gemini-etat" id="geminiEtat"></div>
+
+    <div class="modal-actions gemini-actions">
+      <button class="gemini-discret" id="geminiDemander" title="Interroger Gemini à nouveau et remplacer l'avis enregistré">🔄 Redemander</button>
+      <span class="gemini-espace"></span>
+      <button class="btn-ghost btn-small" id="geminiCopier">📋 Copier</button>
+      <button class="btn-primary btn-small" id="geminiFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Avis Gemini : page de paramétrage (V58) =====
+     Ouverte par la roue dentée de la fenêtre ci-dessus. Les réglages s'appliquent à la
+     prochaine demande d'avis. -->
+<div class="modal-overlay" id="geminiParamsOverlay">
+  <div class="modal-box modal-box-gemini">
+    <h3>⚙️ Réglages de Gemini</h3>
+    <div class="modal-hint">Ces réglages s'appliquent à la prochaine demande d'avis.</div>
+
+    <label>Clé API Gemini
+      <input type="password" id="geminiCle" autocomplete="off" placeholder="AIza...">
+    </label>
+    <div class="gemini-aide">
+      La clé se crée gratuitement sur Google AI Studio (aistudio.google.com). Elle est
+      enregistrée sur cet appareil uniquement, au fil de la frappe, indépendamment des
+      identifiants GitHub : elle n'est jamais écrite dans restaurants.json et « Effacer les
+      identifiants » n'y touche pas. À saisir une fois sur l'iPhone et une fois sur l'iMac.
+    </div>
+
+    <label style="margin-top:12px;">Modèle
+      <select id="geminiModele">
+        <option value="gemini-2.5-flash">gemini-2.5-flash (rapide, recommandé)</option>
+        <option value="gemini-2.5-pro">gemini-2.5-pro (plus fouillé, plus lent)</option>
+        <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+      </select>
+    </label>
 
     <label>Question posée à Gemini
-      <textarea id="geminiQuestion" rows="3"></textarea>
+      <textarea id="geminiQuestion" rows="4"></textarea>
     </label>
     <div class="gemini-options">
       <label class="gemini-check" title="Gemini cherche sur le web des informations et des avis récents sur cet établissement avant de répondre">
@@ -1196,15 +1267,11 @@
       <button class="btn-ghost btn-small" id="geminiInit" title="Revenir à la question par défaut">↺ Question par défaut</button>
     </div>
 
-    <div class="gemini-etat" id="geminiEtat"></div>
-    <div class="gemini-reponse" id="geminiReponse"></div>
-    <div class="gemini-sources" id="geminiSources"></div>
+    <div class="gemini-etat" id="geminiParamsEtat"></div>
 
     <div class="modal-actions">
-      <button class="btn-ghost btn-small" id="geminiOublier" title="Supprimer l'avis enregistré pour ce restaurant">🗑 Oublier cet avis</button>
-      <button class="btn-ghost btn-small" id="geminiCopier">📋 Copier</button>
-      <button class="btn-primary btn-small" id="geminiDemander">✨ Demander à Gemini</button>
-      <button class="btn-ghost btn-small" id="geminiFermer">Fermer</button>
+      <button class="btn-ghost btn-small" id="geminiOublier" title="Supprimer l'avis enregistré pour ce restaurant">🗑 Oublier l'avis de ce restaurant</button>
+      <button class="btn-primary btn-small" id="geminiParamsFermer">Terminé</button>
     </div>
   </div>
 </div>
@@ -1214,7 +1281,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V57";
+  const VERSION = "V58";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1470,6 +1537,12 @@
       "Le bouton indique d'un coup d'œil qu'un avis est disponible : « ✨ Avis ✓ » en violet plein dans la liste (au lieu de « ✨ Gemini » en contour), et « ✨ Avis de Gemini ✓ » également en plein dans la bulle de la carte. L'infobulle précise la date à laquelle l'avis a été obtenu.",
       "Bouton « 🔄 Redemander l'avis à Gemini » dans la fenêtre pour rafraîchir un avis existant : la nouvelle réponse remplace l'ancienne et repart aussitôt sur GitHub. Bouton « 🗑 Oublier cet avis » pour le supprimer purement et simplement (le bouton reprend alors son aspect normal).",
       "L'avis n'est pas concerné par l'horodatage « date de modification » du restaurant : demander un avis ne remonte pas le restaurant en tête de la liste triée par date. En cas de synchronisation entre deux appareils, c'est l'avis le plus récent des deux qui est conservé, même si l'autre appareil a par ailleurs la fiche la plus à jour."
+    ]},
+    { v:"V58", resume:[
+      "La fenêtre d'avis ne montre plus que l'avis. Tout l'appareillage technique qui l'encombrait (clé API, choix du modèle, question posée, cases « chercher sur le web » et « joindre les photos », suppression de l'avis) est parti derrière une roue dentée ⚙️ en haut à droite de la fenêtre, qui ouvre une page de réglages séparée. Ces réglages s'appliquent à la demande suivante.",
+      "À l'ouverture, la fenêtre affiche donc directement : l'avis déjà enregistré, ou bien l'attente de la réponse (indicateur tournant et compteur de secondes), ou bien le problème rencontré.",
+      "En cas de problème, le message dit ce qui ne va pas ET ce qu'il faut faire : clé absente, clé refusée, clé sans droit d'accès à l'API, quota atteint, modèle indisponible, recherche web non acceptée par le modèle, refus de répondre, service indisponible, absence de connexion. Un bouton « ⚙️ Ouvrir les réglages » est proposé quand la solution s'y trouve, et le message technique renvoyé par Google reste lisible en petit, en dessous.",
+      "Le bouton pour redemander un avis est conservé mais volontairement discret : un simple lien « 🔄 Redemander » en bas à gauche, et non plus le bouton principal de la fenêtre. Le bouton « 📋 Copier » n'apparaît que lorsqu'il y a effectivement un avis à copier."
     ]}
   ];
 
@@ -3205,6 +3278,93 @@
     el.textContent = msg || "";
     el.className = "gemini-etat" + (erreur ? " err" : "");
   }
+  function geminiParamsEtat(msg){
+    const el = document.getElementById("geminiParamsEtat");
+    if(el) el.textContent = msg || "";
+  }
+  // Indicateur d'attente (roue tournante + compteur), seul contenu affiché tant que Gemini
+  // n'a pas répondu.
+  function geminiAttente(msg){
+    const bloc = document.getElementById("geminiAttente");
+    if(msg == null){ bloc.style.display = "none"; return; }
+    document.getElementById("geminiAttenteTxt").textContent = msg;
+    bloc.style.display = "flex";
+  }
+  function masquerErreurGemini(){
+    const el = document.getElementById("geminiErreur");
+    el.style.display = "none";
+    el.innerHTML = "";
+  }
+
+  // Traduit le message brut renvoyé par l'API Google en une cause compréhensible ET la manière
+  // d'y remédier : c'est presque toujours un réglage à corriger (clé, modèle, option), d'où le
+  // bouton qui ouvre directement la page de réglages quand c'est le cas.
+  function expliquerErreurGemini(message){
+    const m = (message || "").toLowerCase();
+    const a = (probleme, solution, reglages) => ({probleme, solution, reglages: !!reglages});
+    if(m.indexOf("aucune clé api") >= 0)
+      return a("Aucune clé API Gemini n'est enregistrée sur cet appareil.",
+               "Ouvrez les réglages (roue dentée, en haut de cette fenêtre) et collez-y la clé créée sur aistudio.google.com. Elle reste sur cet appareil et n'est jamais envoyée sur GitHub.", true);
+    if(m.indexOf("failed to fetch") >= 0 || m.indexOf("load failed") >= 0 || m.indexOf("networkerror") >= 0)
+      return a("Impossible de joindre le serveur de Google.",
+               "Vérifiez la connexion de l'appareil (Wi-Fi, données mobiles, mode Avion), puis appuyez sur « Redemander ».", false);
+    if(m.indexOf("api key not valid") >= 0 || m.indexOf("api_key_invalid") >= 0 || m.indexOf("invalid api key") >= 0 || m.indexOf("api key expired") >= 0)
+      return a("Google refuse la clé API enregistrée sur cet appareil.",
+               "Recollez-la dans les réglages, sans espace ni retour à la ligne au début ou à la fin (une clé AI Studio commence par « AIza »). Si elle a été révoquée, créez-en une nouvelle sur aistudio.google.com.", true);
+    if(m.indexOf("permission") >= 0 || m.indexOf("403") >= 0 || m.indexOf("forbidden") >= 0)
+      return a("La clé existe mais n'a pas le droit d'utiliser cette API.",
+               "Dans Google AI Studio (ou Google Cloud), vérifiez que l'API « Generative Language » est bien activée pour le projet de cette clé, et que la clé n'est pas restreinte à d'autres sites que celui-ci.", true);
+    if(m.indexOf("quota") >= 0 || m.indexOf("resource_exhausted") >= 0 || m.indexOf("429") >= 0 || m.indexOf("rate limit") >= 0)
+      return a("Le quota d'utilisation de cette clé est atteint.",
+               "Attendez quelques minutes avant de redemander, ou choisissez un modèle plus léger (gemini-2.5-flash) dans les réglages : son quota gratuit est bien plus large que celui de gemini-2.5-pro.", true);
+    if(m.indexOf("not found") >= 0 || m.indexOf("404") >= 0 || m.indexOf("not supported") >= 0 || m.indexOf("unsupported") >= 0)
+      return a("Le modèle choisi n'est pas disponible pour cette clé, ou n'accepte pas ce type de requête.",
+               "Choisissez un autre modèle dans les réglages (gemini-2.5-flash convient dans la plupart des cas). Si le problème persiste, décochez-y « Chercher sur le web » : tous les modèles n'acceptent pas cet outil.", true);
+    if(m.indexOf("search") >= 0 || m.indexOf("tool") >= 0)
+      return a("Le modèle choisi n'accepte pas la recherche web.",
+               "Dans les réglages, décochez « Chercher sur le web », ou revenez au modèle gemini-2.5-flash qui la prend en charge.", true);
+    if(m.indexOf("safety") >= 0 || m.indexOf("blocked") >= 0 || m.indexOf("prohibited") >= 0 || m.indexOf("recitation") >= 0)
+      return a("Gemini a refusé de répondre à la question posée.",
+               "Reformulez la question dans les réglages (bouton « ↺ Question par défaut » pour repartir du texte d'origine), puis redemandez l'avis.", true);
+    if(m.indexOf("500") >= 0 || m.indexOf("503") >= 0 || m.indexOf("unavailable") >= 0 || m.indexOf("overloaded") >= 0 || m.indexOf("internal") >= 0)
+      return a("Le service Gemini est momentanément indisponible chez Google.",
+               "Ce n'est pas un problème de réglage : réessayez dans un instant avec « Redemander ».", false);
+    if(m.indexOf("n'a rien renvoyé") >= 0)
+      return a("Gemini a bien répondu, mais sans aucun texte.",
+               "Redemandez l'avis ; si cela se reproduit, changez de modèle dans les réglages ou reformulez-y la question.", true);
+    return a("Gemini n'a pas pu répondre.",
+             "Réessayez avec « Redemander ». Si le problème persiste, vérifiez la clé et le modèle dans les réglages.", true);
+  }
+
+  function afficherErreurGemini(message){
+    const info = expliquerErreurGemini(message);
+    const el = document.getElementById("geminiErreur");
+    el.innerHTML =
+      "<strong>" + escHtml(info.probleme) + "</strong>" +
+      escHtml(info.solution) +
+      (info.reglages ? '<div><button class="btn-ghost btn-small" id="geminiErreurReglages">⚙️ Ouvrir les réglages</button></div>' : "") +
+      '<span class="gemini-erreur-detail">Message renvoyé : ' + escHtml(message || "") + "</span>";
+    el.style.display = "block";
+    const btn = document.getElementById("geminiErreurReglages");
+    if(btn) btn.addEventListener("click", ouvrirParamsGemini);
+  }
+
+  function ouvrirParamsGemini(){
+    const r = restaurants.find(x => x.id === geminiRestoId);
+    document.getElementById("geminiQuestion").value = questionGemini();
+    document.getElementById("geminiCle").value = cleGemini();
+    document.getElementById("geminiModele").value = modeleGemini();
+    document.getElementById("geminiRecherche").checked = rechercheGeminiActive();
+    const photos = r ? photosDe(r) : [];
+    document.getElementById("geminiPhotosWrap").style.display = photos.length ? "inline-flex" : "none";
+    document.getElementById("geminiPhotosNb").textContent = photos.length;
+    document.getElementById("geminiOublier").style.display = avisGemini(r) ? "inline-block" : "none";
+    geminiParamsEtat("");
+    document.getElementById("geminiParamsOverlay").classList.add("open");
+  }
+  function fermerParamsGemini(){
+    document.getElementById("geminiParamsOverlay").classList.remove("open");
+  }
 
   // Mise en forme légère de la réponse : Gemini répond souvent en Markdown simple. On échappe
   // d'abord tout le HTML (la réponse vient d'un tiers), puis on ne restitue que le gras et les
@@ -3329,8 +3489,11 @@
     const r = restaurants.find(x => x.id === geminiRestoId);
     if(!r) return;
     if(!cleGemini()){
-      document.getElementById("geminiReglages").open = true;
-      geminiEtat("Renseignez d'abord votre clé API Gemini ci-dessus.", true);
+      afficherErreurGemini("aucune clé api Gemini enregistrée sur cet appareil");
+      geminiEtat("");
+      geminiAttente(null);
+      document.getElementById("geminiDemander").style.display = "none";
+      document.getElementById("geminiCopier").style.display = "none";
       return;
     }
     if(geminiAbort) geminiAbort.abort();
@@ -3338,6 +3501,10 @@
     const signal = geminiAbort.signal;
     const btn = document.getElementById("geminiDemander");
     btn.disabled = true;
+    btn.style.display = "none";
+    document.getElementById("geminiCopier").style.display = "none";
+    masquerErreurGemini();
+    geminiEtat("");
     document.getElementById("geminiReponse").innerHTML = "";
     document.getElementById("geminiSources").innerHTML = "";
 
@@ -3352,7 +3519,7 @@
       const photos = photosDe(r).slice(0, GEMINI_MAX_PHOTOS);
       for(let i = 0; i < photos.length; i++){
         if(signal.aborted){ btn.disabled = false; return; }
-        geminiEtat("Préparation des photos : " + (i + 1) + "/" + photos.length +
+        geminiAttente("Préparation des photos : " + (i + 1) + "/" + photos.length +
           " (" + (photos.length - i - 1) + " restante(s))…");
         try{
           images.push(await photoEnBase64(photos[i]));
@@ -3364,8 +3531,7 @@
 
     const depart = Date.now();
     const majChrono = function(){
-      geminiEtat("Interrogation de Gemini (" + modeleGemini() + ")… " +
-        Math.round((Date.now() - depart) / 1000) + " s" +
+      geminiAttente("Gemini réfléchit… " + Math.round((Date.now() - depart) / 1000) + " s" +
         (images.length ? " — " + images.length + " photo(s) jointe(s)" : ""));
     };
     majChrono();
@@ -3388,17 +3554,23 @@
       res.recherche = !!recherche;
       res.sources = (res.sources || []).slice(0, 8); // on n'alourdit pas restaurants.json inutilement
       enregistrerAvisGemini(r, res);
+      geminiAttente(null);
       afficherReponseGemini(res);
-      geminiEtat("Réponse reçue en " + Math.round((Date.now() - depart) / 1000) + " s" +
-        (recherche ? " (avec recherche web)" : "") + ".");
+      geminiEtat("Avis obtenu à l'instant (" + res.modele + (recherche ? ", avec recherche web" : "") + ").");
+      document.getElementById("geminiCopier").style.display = "inline-block";
       debugLog("Gemini : réponse reçue (" + res.texte.length + " caractères, " + res.sources.length + " source(s))");
     }catch(e){
       clearInterval(geminiChrono);
+      geminiAttente(null);
       if(e && e.name === "AbortError") return;
-      geminiEtat("Échec : " + e.message, true);
+      geminiEtat("");
+      afficherErreurGemini(e.message);
       debugLog("Gemini : échec — " + e.message);
     }finally{
       btn.disabled = false;
+      // Le lien discret réapparaît une fois l'attente terminée, que la réponse soit arrivée
+      // ou qu'un problème se soit produit (il sert alors de « Réessayer »).
+      btn.style.display = "inline-block";
       geminiAbort = null;
     }
   }
@@ -3410,41 +3582,31 @@
 
     const adr = (r.address || "").trim();
     document.getElementById("geminiHint").textContent = nomResto(r) + (adr ? " — " + adr : "");
-    document.getElementById("geminiQuestion").value = questionGemini();
-    document.getElementById("geminiCle").value = cleGemini();
-    document.getElementById("geminiModele").value = modeleGemini();
-    document.getElementById("geminiRecherche").checked = rechercheGeminiActive();
-    document.getElementById("geminiReglages").open = !cleGemini();
 
-    const photos = photosDe(r);
-    const wrap = document.getElementById("geminiPhotosWrap");
-    wrap.style.display = photos.length ? "inline-flex" : "none";
-    document.getElementById("geminiPhotosNb").textContent = photos.length;
-    document.getElementById("geminiPhotos").checked = false;
-
+    // La fenêtre ne montre que l'avis : on repart d'un contenu vide, sans réglage apparent.
+    masquerErreurGemini();
+    geminiAttente(null);
+    geminiEtat("");
     document.getElementById("geminiReponse").innerHTML = "";
     document.getElementById("geminiSources").innerHTML = "";
+    document.getElementById("geminiPhotos").checked = false;
     document.getElementById("geminiDemander").disabled = false;
+    document.getElementById("geminiDemander").style.display = "none";
+    document.getElementById("geminiCopier").style.display = "none";
     document.getElementById("geminiOverlay").classList.add("open");
 
     const dejaVu = avisGemini(r);
-    document.getElementById("geminiOublier").style.display = dejaVu ? "inline-block" : "none";
     if(dejaVu){
-      // Avis déjà enregistré (et synchronisé via GitHub) : on l'affiche tel quel, sans
-      // réinterroger Gemini. Le bouton « Redemander » permet de le rafraîchir si besoin.
+      // Avis déjà enregistré (et synchronisé via GitHub) : affiché tel quel, sans réinterroger
+      // Gemini. Le lien discret « Redemander » permet de le rafraîchir si besoin.
       afficherReponseGemini(dejaVu);
-      geminiEtat("Avis enregistré, obtenu le " + dateAvisGemini(r) +
-        (dejaVu.modele ? " (" + dejaVu.modele + ")" : "") +
-        " — « Redemander l'avis à Gemini » pour le rafraîchir.");
-      document.getElementById("geminiDemander").textContent = "🔄 Redemander l'avis à Gemini";
+      geminiEtat("Avis obtenu le " + dateAvisGemini(r) + (dejaVu.modele ? " (" + dejaVu.modele + ")" : "") + ".");
+      document.getElementById("geminiDemander").style.display = "inline-block";
+      document.getElementById("geminiCopier").style.display = "inline-block";
     }else{
-      document.getElementById("geminiDemander").textContent = "✨ Demander à Gemini";
-      geminiEtat("");
-      if(cleGemini()){
-        lancerAvisGemini();
-      }else{
-        geminiEtat("Renseignez d'abord votre clé API Gemini ci-dessus, puis appuyez sur « Demander à Gemini ».", true);
-      }
+      // Aucun avis enregistré : on interroge Gemini immédiatement, l'utilisateur n'a rien à
+      // faire de plus que d'attendre.
+      lancerAvisGemini();
     }
   }
 
@@ -3453,6 +3615,8 @@
     // dont on ne verra jamais la réponse.
     if(geminiAbort){ geminiAbort.abort(); geminiAbort = null; }
     clearInterval(geminiChrono);
+    geminiAttente(null);
+    fermerParamsGemini();
     document.getElementById("geminiOverlay").classList.remove("open");
   }
 
@@ -3464,7 +3628,7 @@
         if(v) localStorage.setItem(LS_CLE_GEMINI_KEY, v);
         else localStorage.removeItem(LS_CLE_GEMINI_KEY);
       }catch(e){}
-      if(v) geminiEtat("Clé enregistrée sur cet appareil. Appuyez sur « Demander à Gemini ».");
+      geminiParamsEtat(v ? "Clé enregistrée sur cet appareil." : "Clé effacée de cet appareil.");
     });
 
     const champModele = document.getElementById("geminiModele");
@@ -3485,13 +3649,12 @@
     document.getElementById("geminiInit").addEventListener("click", function(){
       champQuestion.value = QUESTION_GEMINI_DEFAUT;
       try{ localStorage.removeItem(LS_QUESTION_GEMINI_KEY); }catch(e){}
-      geminiEtat("Question par défaut rétablie.");
+      geminiParamsEtat("Question par défaut rétablie.");
     });
 
-    document.getElementById("geminiDemander").addEventListener("click", function(){
-      document.getElementById("geminiDemander").textContent = "🔄 Redemander l'avis à Gemini";
-      lancerAvisGemini();
-    });
+    document.getElementById("geminiDemander").addEventListener("click", lancerAvisGemini);
+    document.getElementById("geminiParams").addEventListener("click", ouvrirParamsGemini);
+    document.getElementById("geminiParamsFermer").addEventListener("click", fermerParamsGemini);
 
     document.getElementById("geminiOublier").addEventListener("click", function(){
       const r = restaurants.find(x => x.id === geminiRestoId);
@@ -3501,8 +3664,10 @@
       document.getElementById("geminiReponse").innerHTML = "";
       document.getElementById("geminiSources").innerHTML = "";
       document.getElementById("geminiOublier").style.display = "none";
-      document.getElementById("geminiDemander").textContent = "✨ Demander à Gemini";
-      geminiEtat("Avis supprimé.");
+      document.getElementById("geminiCopier").style.display = "none";
+      document.getElementById("geminiDemander").style.display = "inline-block";
+      geminiParamsEtat("Avis supprimé.");
+      geminiEtat("Aucun avis enregistré pour ce restaurant — « Redemander » pour en obtenir un.");
     });
 
     document.getElementById("geminiFermer").addEventListener("click", fermerAvisGemini);
