@@ -1537,7 +1537,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V70";
+  const VERSION = "V71";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1865,6 +1865,12 @@
       "La synthèse ne dramatise plus l'échec d'un miroir de secours : si le serveur principal répond — et c'est lui que l'application interroge en premier — elle le dit clairement, l'indisponibilité des autres n'ayant aucune conséquence pratique. À l'inverse, elle précise ce qui reste possible quand aucun ne répond.",
       "Délai porté de 8 à 12 secondes, dans le diagnostic comme dans l'application : Overpass est lent par nature, et 8 secondes suffisaient à faire passer un serveur simplement chargé pour un serveur mort.",
       "Le miroir overpass.openstreetmap.ru, injoignable de façon répétée, cède sa place à l'instance française api.openstreetmap.fr."
+    ]},
+    { v:"V71", resume:[
+      "Garde-fou sur les clés d'API, après un cas réel : le champ « Clé API Gemini » contenait un jeton GitHub, collé là par erreur. Conséquence invisible mais sérieuse — l'application expédiait ce jeton à Google dans l'adresse même de chaque requête (?key=…), où il finissait journalisé côté serveur.",
+      "La forme de la clé est désormais contrôlée avant tout appel réseau, pour Gemini comme pour Google Maps. Une valeur reconnue comme jeton GitHub est refusée net, avec la marche à suivre : révoquer ce jeton sur GitHub — il doit être tenu pour compromis — puis coller la vraie clé. Aucune requête n'est envoyée entre-temps.",
+      "Une valeur qui n'a simplement pas la forme d'une clé Google (« AIza » suivi d'une quarantaine de caractères) est signalée de la même façon, avec les confusions courantes : identifiant de projet, clé tronquée, clé d'un autre service.",
+      "L'avertissement apparaît dès la saisie dans les réglages, sans attendre la première demande d'avis."
     ]}
   ];
 
@@ -3722,6 +3728,40 @@
     el.value = abregerSecret(valeur || "");
   }
 
+  // V71 : une clé collée dans le mauvais champ ne se contente pas d'empêcher la fonction de
+  // marcher — elle EXPÉDIE le secret au mauvais destinataire. Un jeton GitHub collé dans le
+  // champ Gemini part chez Google dans l'URL de chaque requête (?key=…), donc jusque dans ses
+  // journaux de serveur. Ces contrôles de forme sont faits avant tout appel réseau.
+  const RE_JETON_GITHUB = /^(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|[0-9a-f]{40})$/;
+  const RE_CLE_GOOGLE = /^AIza[0-9A-Za-z_-]{20,}$/;
+
+  // Renvoie null si la forme est plausible, sinon { probleme, solution }.
+  function controlerFormeCleGemini(cle){
+    return controlerFormeCleGoogle(cle, "Clé API Gemini");
+  }
+  function controlerFormeCleGoogle(cle, nomDuChamp){
+    if(!cle) return null;
+    if(RE_JETON_GITHUB.test(cle)){
+      return {
+        probleme: "Ce n'est pas une clé d'API : c'est un jeton GitHub.",
+        solution: "Il a été collé dans le champ « " + nomDuChamp + " » à la place de la clé attendue. "
+          + "Deux choses à faire, dans cet ordre. D'abord révoquez ce jeton sur github.com → Settings → "
+          + "Developer settings → Personal access tokens : l'application l'a peut-être déjà envoyé à Google "
+          + "dans l'adresse de ses requêtes, où il est journalisé — considérez-le comme compromis. "
+          + "Ensuite collez ici la vraie clé, qui commence par « AIza » et fait une quarantaine de caractères."
+      };
+    }
+    if(!RE_CLE_GOOGLE.test(cle)){
+      return {
+        probleme: "Cette valeur n'a pas la forme d'une clé Google.",
+        solution: "Une clé d'API Google commence par « AIza » et fait une quarantaine de caractères, sans espace. "
+          + "Vérifiez que vous n'avez pas collé autre chose : un identifiant de projet, une clé tronquée, "
+          + "ou la clé d'un autre service."
+      };
+    }
+    return null;
+  }
+
   // Résultat d'un test de clé : ce qui va ou ne va pas, puis quoi faire.
   function afficherResultatTest(idRes, genre, titre, detail){
     const el = document.getElementById(idRes);
@@ -3860,14 +3900,14 @@
              "Réessayez avec « Redemander ». Si le problème persiste, vérifiez la clé et le modèle dans les réglages.", true);
   }
 
-  function afficherErreurGemini(message){
-    const info = expliquerErreurGemini(message);
+  function afficherErreurGemini(message, infoForcee){
+    const info = infoForcee || expliquerErreurGemini(message);
     const el = document.getElementById("geminiErreur");
     el.innerHTML =
       "<strong>" + escHtml(info.probleme) + "</strong>" +
       escHtml(info.solution) +
-      (info.reglages ? '<div><button class="btn-ghost btn-small" id="geminiErreurReglages">⚙️ Ouvrir les réglages</button></div>' : "") +
-      '<span class="gemini-erreur-detail">Message renvoyé : ' + escHtml(message || "") + "</span>";
+      (info.reglages === false ? "" : '<div><button class="btn-ghost btn-small" id="geminiErreurReglages">⚙️ Ouvrir les réglages</button></div>') +
+      (message ? '<span class="gemini-erreur-detail">Message renvoyé : ' + escHtml(message) + "</span>" : "");
     el.style.display = "block";
     const btn = document.getElementById("geminiErreurReglages");
     if(btn) btn.addEventListener("click", ouvrirParamsGemini);
@@ -4012,6 +4052,16 @@
   async function lancerAvisGemini(){
     const r = restaurants.find(x => x.id === geminiRestoId);
     if(!r) return;
+    const formeKo = controlerFormeCleGemini(cleGemini());
+    if(formeKo){
+      // On n'appelle surtout pas Google : ce serait lui transmettre le secret mal placé.
+      afficherErreurGemini("", formeKo);
+      geminiEtat("");
+      geminiAttente(null);
+      document.getElementById("geminiDemander").style.display = "none";
+      document.getElementById("geminiCopier").style.display = "none";
+      return;
+    }
     if(!cleGemini()){
       afficherErreurGemini("aucune clé api Gemini enregistrée sur cet appareil");
       geminiEtat("");
@@ -4150,7 +4200,9 @@
         if(v) localStorage.setItem(LS_CLE_GEMINI_KEY, v);
         else localStorage.removeItem(LS_CLE_GEMINI_KEY);
       }catch(e){}
-      geminiParamsEtat(v ? "Clé enregistrée sur cet appareil." : "Clé effacée de cet appareil.");
+      const ko = controlerFormeCleGemini(v);
+      if(ko) geminiParamsEtat("⚠ " + ko.probleme + " Appuyez sur « Tester la clé et le modèle » pour le détail.");
+      else geminiParamsEtat(v ? "Clé enregistrée sur cet appareil." : "Clé effacée de cet appareil.");
     });
     document.getElementById("btnTesterGemini").addEventListener("click", testerCleGemini);
 
@@ -5166,9 +5218,9 @@
         "Sans elle, « Voir en Street View » bascule vers l'application Google Maps au lieu d'afficher la panoramique dans l'application. Créez une clé sur console.cloud.google.com, activez-y l'API « Maps Embed API », puis collez la clé ci-dessus.");
       return;
     }
-    if(!/^AIza[0-9A-Za-z_-]{20,}$/.test(cle)){
-      afficherResultatTest("resGoogle", "ko", "Cette clé n'a pas la forme attendue.",
-        "Une clé Google commence par « AIza » et fait une quarantaine de caractères, sans espace. Vérifiez que vous n'avez pas collé autre chose (un identifiant de projet, ou une clé tronquée).");
+    const formeKo = controlerFormeCleGoogle(cle, "Clé Google Maps");
+    if(formeKo){
+      afficherResultatTest("resGoogle", "ko", formeKo.probleme, formeKo.solution);
       return;
     }
     // Tour Eiffel : un point couvert par Street View depuis toujours, donc un écran noir ne peut
@@ -5185,6 +5237,11 @@
     if(!cle){
       afficherResultatTest("resGemini", "ko", "Aucune clé API Gemini saisie.",
         "Créez-en une gratuitement sur aistudio.google.com (« Get API key »), puis collez-la ci-dessus. Elle reste sur cet appareil et n'est jamais envoyée sur GitHub : il faut donc la saisir une fois par appareil.");
+      return;
+    }
+    const formeKo = controlerFormeCleGemini(cle);
+    if(formeKo){
+      afficherResultatTest("resGemini", "ko", formeKo.probleme, formeKo.solution);
       return;
     }
     const btn = document.getElementById("btnTesterGemini");
