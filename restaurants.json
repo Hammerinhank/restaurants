@@ -43,7 +43,14 @@
       "name": "Giocco",
       "address": "3 Rue Mademoiselle, 75015 Paris",
       "liste": "Paris",
-      "maj": "2026-09-05T05:36:59.036Z"
+      "maj": "2026-09-05T05:36:59.036Z",
+      "gemini": {
+        "texte": "J'ai trouvé des informations fiables sur le restaurant Giocco à l'adresse indiquée.\n\n*   **Type de cuisine :** Italienne traditionnelle, avec une emphase sur les pizzas, pâtes fraîches et plats classiques (antipasti, tiramisu).\n*   **Fourchette de prix :** Moyenne. Comptez environ 25-40€ par personne pour un plat, boisson et dessert.\n*   **Points forts :** Les avis soulignent la qualité et la fraîcheur des produits, notamment les pizzas (pâte fine et garnitures généreuses) et les pâtes. Le service est souvent décrit comme très accueillant, souriant et efficace. L'ambiance est chaleureuse et conviviale, offrant un bon rapport qualité-prix pour Paris.\n*   **Points faibles :** Certains avis mentionnent que le restaurant peut être bruyant lorsqu'il est plein et que l'espace est parfois un peu exigu (typique des restaurants parisiens). La carte est classique et n'offre pas forcément de grandes surprises pour les habitués de la cuisine italienne.\n*   **Occasion conseillée :** Idéal pour un dîner décontracté entre amis, un repas en couple sans prétention, ou une sortie en famille cherchant une cuisine italienne savoureuse et un cadre agréable.",
+        "sources": [],
+        "quand": "2026-09-14T06:48:19.836Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_msegatf2_q0yz01",
@@ -432,5 +439,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T06:46:56.693Z"
+  "maj": "2026-09-14T06:48:21.052Z"
 }
