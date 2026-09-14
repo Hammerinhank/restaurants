@@ -61,7 +61,14 @@
       "name": "Bar à iode saint germain",
       "address": "34 Bd Saint-Germain, 75005 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T12:04:17.698Z"
+      "maj": "2026-08-04T12:04:17.698Z",
+      "gemini": {
+        "texte": "Je connais bien le Bar à iode Saint-Germain. Voici mon avis basé sur les retours récents :\n\n*   **Type de cuisine :** Spécialisé dans les **fruits de mer**, notamment les **huîtres** (un large choix de différentes provenances), les **plateaux de fruits de mer** et quelques plats de poissons. C'est un véritable bar à huîtres.\n*   **Fourchette de prix :** Plutôt **moyenne à élevée**. Comptez environ 40-70€ par personne pour un plat et une boisson, et davantage pour un grand plateau de fruits de mer. Les prix sont justifiés par la fraîcheur et la qualité des produits.\n*   **Points forts :**\n    *   **Fraîcheur et qualité** irréprochable des produits de la mer.\n    *   **Large sélection** d'huîtres et de fruits de mer.\n    *   **Emplacement idéal** au cœur de Saint-Germain-des-Prés, avec une terrasse agréable.\n    *   **Service généralement efficace et professionnel**.\n    *   Ambiance typique de brasserie parisienne animée.\n*   **Points faibles :**\n    *   Peut être **bruyant et très fréquenté**, surtout aux heures de pointe.\n    *   Les **tables sont parfois un peu serrées**.\n    *   Peu d'options pour ceux qui n'apprécient pas les fruits de mer ou les plats froids.\n*   **Occasion conseillée :** Idéal pour un **dîner entre amis** ou en **couple** amateurs de fruits de mer, un **apéritif raffiné** autour d'un plateau d'huîtres, ou pour une **occasion spéciale** où l'on souhaite déguster des produits de la mer de qualité dans un cadre parisien vivant. Moins adapté pour un repas d'affaires calme ou avec des enfants en bas âge.",
+        "sources": [],
+        "quand": "2026-09-14T06:46:09.996Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_msek3o3c_yqcolm",
@@ -425,5 +432,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T06:26:47.619Z"
+  "maj": "2026-09-14T06:46:11.214Z"
 }
