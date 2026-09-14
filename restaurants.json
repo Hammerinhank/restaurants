@@ -186,7 +186,14 @@
       "name": "Le Bistrot du Dôme",
       "address": "1 Rue Delambre, 75014 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T15:08:00.228Z"
+      "maj": "2026-08-04T15:08:00.228Z",
+      "gemini": {
+        "texte": "Je connais Le Bistrot du Dôme. Voici mon avis basé sur les retours récents :\n\n*   **Type de cuisine :** Cuisine de brasserie française classique et traditionnelle. On y trouve les grands classiques : fruits de mer, viandes grillées, plats du jour typiques, etc.\n*   **Fourchette de prix :** Moyenne à élevée. Comptez environ 45-70€ par personne pour un repas complet (plat, dessert, boisson), sans les vins les plus chers.\n*   **Points forts :**\n    *   **Ambiance et Cadre :** L'atmosphère est celle d'une brasserie parisienne typique, souvent animée et avec un décor traditionnel.\n    *   **Classiques Fiables :** Les plats traditionnels français sont généralement bien exécutés et de bonne qualité, notamment les fruits de mer.\n    *   **Service :** Le service est souvent décrit comme professionnel et efficace.\n    *   **Emplacement :** Idéalement situé à Montparnasse, proche des théâtres.\n*   **Points faibles :**\n    *   **Prix :** Certains avis le trouvent un peu cher pour la prestation, surtout comparé à des bistros plus modernes.\n    *   **Bruit et Affluence :** L'établissement peut être très bruyant et bondé, surtout aux heures de pointe.\n    *   **Manque d'Innovation :** Ne vous attendez pas à une cuisine inventive ; il mise sur les valeurs sûres.\n    *   **Service rapide :** Parfois perçu comme un peu expéditif en période d'affluence.\n\n**Occasion conseillée :** Je le conseillerais pour une expérience de brasserie parisienne authentique, un dîner avant ou après un spectacle dans le quartier, ou un repas d'affaires informel. C'est une bonne option pour ceux qui recherchent des classiques français dans un cadre historique.",
+        "sources": [],
+        "quand": "2026-09-14T07:35:29.085Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_mseuhr48_wrk3zm",
@@ -517,5 +524,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-14T07:18:23.543Z",
-  "maj": "2026-09-14T07:34:52.547Z"
+  "maj": "2026-09-14T07:35:30.301Z"
 }
