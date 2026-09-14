@@ -977,6 +977,16 @@
      question, options) sont partis derrière elle, dans une page de paramétrage séparée. */
   /* V63 : croix de fermeture en haut à droite, doublant le bouton « Fermer » du bas — sur
      iPhone, celui-ci se retrouve loin du pouce dès que la fenêtre est un peu haute. */
+  /* V67 : les champs secrets (jeton GitHub, clés API) ne sont plus de type "password" — c'est
+     la seule présence d'un tel champ dans la page qui poussait iOS à proposer « Se connecter à
+     github.io » avec Face ID, alors que l'application n'a aucun compte ni aucune connexion. Le
+     masquage des caractères est donc fait ici, visuellement, sans rien dire au gestionnaire de
+     mots de passe. */
+  .champ-masque{
+    -webkit-text-security:disc;
+    text-security:disc;
+    font-family:inherit;
+  }
   .modal-fermer{
     flex:0 0 auto;
     background:transparent;
@@ -1117,18 +1127,18 @@
 <div id="settings">
   <div class="settings-row">
     <label>Utilisateur / organisation GitHub
-      <input type="text" id="cfgOwner" autocomplete="off" placeholder="ex. hammerinhank">
+      <input type="text" id="cfgOwner" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ex. hammerinhank">
     </label>
     <label>Dépôt
-      <input type="text" id="cfgRepo" autocomplete="off" placeholder="ex. restaurant">
+      <input type="text" id="cfgRepo" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ex. restaurant">
     </label>
     <label>Branche
-      <input type="text" id="cfgBranch" autocomplete="off" placeholder="main" value="main">
+      <input type="text" id="cfgBranch" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="main" value="main">
     </label>
   </div>
   <div class="settings-row">
     <label>Jeton d'accès personnel (PAT)
-      <input type="password" id="cfgToken" autocomplete="off" placeholder="ghp_...">
+      <input type="text" class="champ-masque" id="cfgToken" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ghp_...">
     </label>
   </div>
   <!-- Clé Google Maps : indépendante des identifiants GitHub (enregistrée à la frappe, et non
@@ -1136,7 +1146,7 @@
        Street View dans l'application, via la Maps Embed API. -->
   <div class="settings-row">
     <label>Clé Google Maps (Maps Embed API) — pour la vue Street View intégrée
-      <input type="password" id="cfgCleGoogle" autocomplete="off" placeholder="AIza...">
+      <input type="text" class="champ-masque" id="cfgCleGoogle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="AIza...">
     </label>
   </div>
   <div class="settings-actions">
@@ -1215,13 +1225,13 @@
     <a id="modalMapsLink" class="modal-maps-link" href="#" target="_blank" rel="noopener">Voir la fiche sur Google Maps ↗</a>
     <a id="modalStreetLink" class="modal-maps-link" href="#" target="_blank" rel="noopener">🧭 Voir en Street View ↗</a>
     <label>Nom
-      <input type="text" id="modalNom" autocomplete="off">
+      <input type="text" id="modalNom" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     </label>
     <label id="modalAlternativesChamp">Autres restaurants à proximité
       <select id="modalAlternatives"></select>
     </label>
     <label>Adresse
-      <input type="text" id="modalAdresse" autocomplete="off">
+      <input type="text" id="modalAdresse" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
     </label>
     <!-- N'apparaît que si l'adresse proposée a été modifiée : relance la recherche à partir de
          l'adresse saisie plutôt qu'à partir de la position GPS. -->
@@ -1338,7 +1348,7 @@
     <div class="modal-hint">Créer une liste, en renommer ou en supprimer une.</div>
 
     <label>Nom de la nouvelle liste
-      <input type="text" id="listeNouveauNom" autocomplete="off" placeholder="ex. : Lyon, Coups de cœur, À essayer…">
+      <input type="text" id="listeNouveauNom" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ex. : Lyon, Coups de cœur, À essayer…">
     </label>
     <div class="gemini-options">
       <button class="btn-primary btn-small" id="btnListeCreer">+ Créer cette liste</button>
@@ -1438,7 +1448,7 @@
     <div class="modal-hint">Ces réglages s'appliquent à la prochaine demande d'avis.</div>
 
     <label>Clé API Gemini
-      <input type="password" id="geminiCle" autocomplete="off" placeholder="AIza...">
+      <input type="text" class="champ-masque" id="geminiCle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="AIza...">
     </label>
     <div class="gemini-aide">
       La clé se crée gratuitement sur Google AI Studio (aistudio.google.com). Elle est
@@ -1482,7 +1492,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V66";
+  const VERSION = "V67";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1788,6 +1798,10 @@
       "On y crée une liste (elle devient aussitôt la liste affichée, prête à recevoir les restaurants suivants), et on voit toutes les listes existantes avec le nombre de restaurants de chacune, celle affichée étant signalée.",
       "Chaque liste peut être renommée (✏️) ou supprimée (🗑). Renommer réécrit la liste d'appartenance de tous ses restaurants, qui la suivent donc. Supprimer ne perd rien : les restaurants concernés sont rangés dans la liste par défaut, et la fenêtre de confirmation annonce combien ils sont.",
       "La liste par défaut (sans nom) ne peut être ni renommée ni supprimée : elle sert de point de chute aux restaurants dont la liste disparaît."
+    ]},
+    { v:"V67", resume:[
+      "Plus de proposition « Se connecter à github.io » avec Face ID au détour d'une fenêtre : l'application n'a pourtant aucun compte ni aucune connexion. En cause, la seule présence de champs de type « mot de passe » (jeton GitHub, clés API Google et Gemini) — iOS et Chrome en déduisent une page d'authentification et proposent leurs identifiants enregistrés, souvent au moment où l'on ouvre une fenêtre contenant un champ texte.",
+      "Ces champs ne sont donc plus déclarés comme des mots de passe : leurs caractères restent masqués à l'écran, mais par un simple effet visuel, sans rien annoncer au gestionnaire de mots de passe. Correction et majuscule automatiques désactivées au passage sur tous les champs de saisie."
     ]}
   ];
 
