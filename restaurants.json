@@ -317,6 +317,15 @@
         "modele": "gemini-2.5-flash",
         "recherche": false
       }
+    },
+    {
+      "id": "r_mu1nj5jt_2ae97b",
+      "lat": 43.57490422522258,
+      "lon": 7.111198836540699,
+      "name": "Nouveau restaurant",
+      "address": "",
+      "liste": "Province",
+      "maj": "2026-09-14T19:44:31.193Z"
     }
   ],
   "suppressions": [
@@ -556,5 +565,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-14T17:56:57.377Z",
-  "maj": "2026-09-14T18:23:04.044Z"
+  "maj": "2026-09-14T19:44:32.410Z"
 }
