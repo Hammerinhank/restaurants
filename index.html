@@ -433,7 +433,12 @@
     gap:6px;
     margin-top:6px;
   }
-  body.mode-modif .item-liste-row{display:flex;}
+  /* V61 : en mode Modifier, les outils n'apparaissent que sur le restaurant choisi (celui qui
+     est sélectionné, donc mis en évidence dans la liste et centré sur la carte). Toucher un
+     autre restaurant lui transfère les outils et rend le précédent à son apparence normale.
+     Auparavant, TOUS les restaurants affichaient d'un coup leur combo de liste et leurs cinq
+     boutons : la liste triplait de longueur et devenait illisible. */
+  body.mode-modif .resto-item.selected .item-liste-row{display:flex;}
   .item-liste-row .item-liste-label{
     font-size:11px;
     color:var(--muted);
@@ -483,11 +488,11 @@
      En mode normal, seul le bouton ✕ peut rester visible (restaurant pas encore sur GitHub, voir
      .btn-danger.toujours-visible ci-dessous), donc ce changement de disposition n'a quasi aucun
      effet visible hors mode Modifier. */
-  body.mode-modif .resto-item{
+  body.mode-modif .resto-item.selected{
     flex-direction:column;
     align-items:stretch;
   }
-  body.mode-modif .resto-item .actions{
+  body.mode-modif .resto-item.selected .actions{
     margin-top:8px;
     flex-wrap:wrap;
   }
@@ -502,11 +507,20 @@
   .resto-item .actions .btn-move,
   .resto-item .actions .btn-locate,
   .resto-item .actions .btn-danger{display:none;}
-  body.mode-modif .resto-item .actions .btn-edit,
-  body.mode-modif .resto-item .actions .btn-annuler,
-  body.mode-modif .resto-item .actions .btn-move,
-  body.mode-modif .resto-item .actions .btn-locate,
-  body.mode-modif .resto-item .actions .btn-danger{display:inline-block;}
+  body.mode-modif .resto-item.selected .actions .btn-edit,
+  body.mode-modif .resto-item.selected .actions .btn-annuler,
+  body.mode-modif .resto-item.selected .actions .btn-move,
+  body.mode-modif .resto-item.selected .actions .btn-locate,
+  body.mode-modif .resto-item.selected .actions .btn-danger{display:inline-block;}
+  /* Repère discret sur les autres lignes, pour qu'on comprenne qu'elles sont modifiables elles
+     aussi : un liseré pointillé à gauche, qui cède la place à la mise en évidence habituelle
+     sur la ligne choisie (laquelle affiche alors ses vrais boutons). Un liseré plutôt qu'une
+     icône : il ne peut heurter aucun bouton, notamment le ✕ des restaurants pas encore
+     enregistrés sur GitHub, qui reste visible en permanence à droite de la ligne. */
+  body.mode-modif .resto-item:not(.selected){
+    border-left:3px dashed var(--line);
+    padding-left:9px;
+  }
   /* Restaurant créé en local (localStorage) mais pas encore confirmé présent sur GitHub : son
      bouton de suppression reste visible même hors mode Modifier, puisque sa suppression ne
      dépend d'aucune synchronisation avec un autre appareil. */
@@ -1301,7 +1315,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V60";
+  const VERSION = "V61";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1576,6 +1590,12 @@
       "Une inertie de fin de geste a été ajoutée pour retrouver la souplesse du défilement natif : la liste continue sur sa lancée puis s'amortit, et s'arrête net sur les butées haute et basse.",
       "Sur iMac, rien ne change : molette et trackpad continuent de passer par le défilement ordinaire. Les champs de saisie et les listes déroulantes restent eux aussi gérés normalement par le navigateur.",
       "Le journal de debug (case « 🐞 Log ») trace maintenant chaque geste sur la liste : position de départ, course totale disponible, hauteur du contenu et de la zone visible, position et vitesse en fin de geste."
+    ]},
+    { v:"V61", resume:[
+      "Le mode Modifier ne fait plus basculer toute la liste d'un coup. Les outils (combo de liste, Modifier, Déplacer, 📍 Adresse, ✕) n'apparaissent que sur le restaurant choisi ; toucher un autre restaurant les lui transfère et rend le précédent à son apparence normale. La liste ne triple donc plus de longueur et reste lisible.",
+      "Les autres lignes portent un liseré pointillé à gauche pour rappeler qu'elles sont modifiables elles aussi : il suffit de les toucher.",
+      "Si le nom ou l'adresse était en cours de saisie sur le restaurant que l'on quitte, la modification est validée plutôt que perdue — exactement comme un appui sur « Valider » — et un message le signale. Même chose en sortant du mode Modifier, où une saisie restée ouverte se serait sinon retrouvée sans bouton pour la valider ni l'annuler.",
+      "À l'entrée dans le mode Modifier, un message rappelle que les outils s'affichent sur le restaurant choisi, et invite à en toucher un si aucun n'est encore sélectionné."
     ]}
   ];
 
@@ -2416,6 +2436,9 @@
       recalerTailleCarte("avant sélection/popup");
       const precedent = selectedId;
       selectedId = id;
+      // Les outils de modification suivent le restaurant choisi : celui qu'on quitte referme
+      // son éventuelle édition en cours (voir fermerEditionAutresItems).
+      if(id !== precedent) fermerEditionAutresItems(id);
       if(precedent && precedent !== id && markers[precedent]){
         markers[precedent].setIcon(iconResto(false, precedent===deplacableId));
       }
@@ -2965,6 +2988,39 @@
       const nomInput = itemEl && itemEl.querySelector('[data-field="name"]');
       if(nomInput){ nomInput.focus(); nomInput.select(); }
     }
+  }
+
+  // Referme l'édition (nom + adresse) ouverte sur les AUTRES restaurants que celui passé en
+  // paramètre. Appelée quand on choisit un autre restaurant : le précédent doit reprendre son
+  // apparence normale. Ce qui avait été tapé n'est pas jeté pour autant — si le nom ou l'adresse
+  // a réellement changé, la modification est validée, exactement comme un appui sur « Valider ».
+  function fermerEditionAutresItems(idGarde){
+    let valides = 0;
+    [...editingIds].forEach(id => {
+      if(id === idGarde) return;
+      const itemEl = document.querySelector(`.resto-item[data-goto="${id}"]`);
+      const r = restaurants.find(x => x.id === id);
+      if(itemEl && r){
+        const champNom = itemEl.querySelector('[data-field="name"]');
+        const champAdr = itemEl.querySelector('[data-field="address"]');
+        const nom = champNom ? champNom.value.trim() : (r.name || "");
+        const adr = champAdr ? champAdr.value.trim() : (r.address || "");
+        if(nom !== (r.name || "") || adr !== (r.address || "")){
+          r.name = nom;
+          r.address = adr;
+          r.maj = new Date().toISOString();
+          sauverLocal();
+          redessinerMarqueur(r);
+          pousserVersGithubDifféré();
+          valides++;
+        }
+      }
+      editingIds.delete(id);
+    });
+    if(valides) statut(valides === 1
+      ? "Modification du restaurant précédent validée."
+      : valides + " modifications validées.", "ok");
+    return valides;
   }
 
   // Abandonne l'édition en cours d'un restaurant sans rien enregistrer : les champs saisis sont
@@ -4457,10 +4513,23 @@
     document.body.classList.toggle("mode-modif", prochainEtat);
     document.getElementById("btnModifier").classList.toggle("active", prochainEtat);
     majLibelleBtnModifier();
+    if(prochainEtat) rappelerChoixItemModifiable();
+    // En quittant le mode, une édition restée ouverte est validée et refermée : sans les boutons
+    // du mode Modifier, elle serait affichée sans aucun moyen de la valider ni de l'annuler.
+    if(!prochainEtat && editingIds.size){ fermerEditionAutresItems(null); rafraichirListe(); }
     // En quittant le mode Modifier, on referme aussi le panneau de réglages : son bouton ⚙️
     // n'étant visible qu'en mode Modifier, le panneau resterait sinon affiché sans aucun moyen
     // de le refermer (visible seulement sur iMac : sur iPhone la page est rechargée).
     if(!prochainEtat) document.getElementById("settings").classList.remove("open");
+  }
+
+  // Rappelle, à l'entrée du mode Modifier, que les outils s'affichent sur le restaurant choisi
+  // et sur lui seul — sinon on pourrait croire que le mode n'a rien changé.
+  function rappelerChoixItemModifiable(){
+    if(!document.body.classList.contains("mode-modif")) return;
+    statut(selectedId
+      ? "Mode Modifier : les outils s'affichent sur le restaurant choisi. Touchez-en un autre pour les lui transférer."
+      : "Mode Modifier : touchez un restaurant de la liste pour afficher ses outils (modifier, déplacer, adresse, supprimer).", "ok");
   }
 
   document.getElementById("btnModifier").addEventListener("click", ()=>{
@@ -4498,6 +4567,9 @@
       if(v === "1"){
         document.body.classList.add("mode-modif");
         document.getElementById("btnModifier").classList.add("active");
+        // Sur iPhone, l'entrée dans le mode Modifier passe par un rechargement de page : le
+        // rappel doit donc être émis ici aussi, une fois la page revenue.
+        setTimeout(rappelerChoixItemModifiable, 300);
       }
     }catch(e){}
     majLibelleBtnModifier();
