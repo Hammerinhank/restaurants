@@ -38,7 +38,11 @@
        l'unité, qui conservent le height:100% ci-dessus. */
     height:100dvh;
     overscroll-behavior:none;
-    touch-action:manipulation; /* bloque le zoom natif au double-tap (que iOS applique malgré user-scalable=no), sans gêner le pincement (pinch-zoom) */
+    /* V59 : plus de touch-action sur le body. Cette déclaration (qui sert à empêcher le zoom
+       au double-tap) est désormais posée sur les seuls éléments qui en ont besoin — la carte et
+       les champs éditables — et jamais sur un ancêtre de la liste : sur iOS, une valeur autre
+       que « auto » héritée le long de la chaîne d'ancêtres d'une zone défilante rend le
+       défilement tactile erratique (le glissement est classé comme un appui). */
   }
 
   header{
@@ -202,7 +206,7 @@
     border-radius:6px;
     margin-bottom:4px;
     box-sizing:border-box;
-    touch-action:manipulation; /* évite que le double-tap iOS soit intercepté comme un zoom de page (cf. double-tap plein écran carte) */
+    touch-action:pan-y; /* cf. .popup-text : bloque le double-tap sans gêner le défilement */
     transition:font-size .12s ease, padding .12s ease, height .12s ease;
     resize:none;
     overflow:hidden;
@@ -277,6 +281,7 @@
     flex:1 1 auto;
     min-width:0;
     min-height:0; /* autorise la carte à se réduire quand la liste passe en dessous (iPhone) */
+    touch-action:manipulation; /* bloque le zoom natif au double-tap, sans gêner le pincement */
     -webkit-touch-callout:none; /* évite le menu contextuel/la loupe iOS pendant l'appui long (ajout de restaurant) */
   }
 
@@ -448,6 +453,9 @@
     font-size:13px;
     color:var(--muted);
   }
+  /* Toute la ligne (et pas seulement ses zones de texte) déclare le glissement vertical comme
+     un défilement : aucune zone « morte » où le doigt ne ferait rien. */
+  .resto-item, .resto-item *{touch-action:pan-y;}
   .resto-item{
     padding:10px 12px;
     border-top:1px solid var(--line);
@@ -596,7 +604,13 @@
     cursor:text;
     border-bottom:1px dashed transparent;
     padding:1px 0;
-    touch-action:manipulation; /* évite que le double-tap iOS soit intercepté comme un zoom de page */
+    /* V59 : « pan-y » plutôt que « manipulation ». Les deux empêchent le zoom au double-tap,
+       mais pan-y autorise explicitement le glissement vertical — indispensable ici, car ces
+       deux lignes (nom + adresse) recouvrent presque toute la surface de chaque restaurant
+       dans la liste : c'est sur elles que le doigt se pose pour faire défiler. Avec
+       « manipulation », WebKit classait ce glissement comme un appui et la liste ne bougeait
+       pas, sauf à viser une marge — d'où un défilement qui ne marchait qu'une fois sur deux. */
+    touch-action:pan-y;
   }
   .popup-text:hover{border-bottom-color:var(--line);}
   .popup-text.nom{font-weight:700;font-size:15px;}
@@ -1281,7 +1295,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V58";
+  const VERSION = "V59";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1543,6 +1557,12 @@
       "À l'ouverture, la fenêtre affiche donc directement : l'avis déjà enregistré, ou bien l'attente de la réponse (indicateur tournant et compteur de secondes), ou bien le problème rencontré.",
       "En cas de problème, le message dit ce qui ne va pas ET ce qu'il faut faire : clé absente, clé refusée, clé sans droit d'accès à l'API, quota atteint, modèle indisponible, recherche web non acceptée par le modèle, refus de répondre, service indisponible, absence de connexion. Un bouton « ⚙️ Ouvrir les réglages » est proposé quand la solution s'y trouve, et le message technique renvoyé par Google reste lisible en petit, en dessous.",
       "Le bouton pour redemander un avis est conservé mais volontairement discret : un simple lien « 🔄 Redemander » en bas à gauche, et non plus le bouton principal de la fenêtre. Le bouton « 📋 Copier » n'apparaît que lorsqu'il y a effectivement un avis à copier."
+    ]},
+    { v:"V59", resume:[
+      "Défilement de la liste : vraie cause trouvée. Les deux lignes de texte de chaque restaurant (nom et adresse) portaient « touch-action: manipulation », posé jadis pour empêcher le zoom au double-tap. Or ces deux lignes recouvrent presque toute la surface d'une ligne de liste : le doigt se posait donc quasiment toujours dessus, et WebKit classait alors le glissement comme un appui plutôt que comme un défilement. D'où une liste qui ne bougeait qu'en visant une marge, au hasard.",
+      "Ces éléments déclarent désormais « touch-action: pan-y », qui empêche toujours le zoom au double-tap mais autorise explicitement le glissement vertical. La règle est étendue à toute la ligne : plus aucune zone morte où le doigt ne ferait rien.",
+      "La même déclaration a été retirée du body (où elle couvrait toute la page, liste comprise) et reportée sur la carte, seul endroit où elle était réellement nécessaire.",
+      "Trois garde-fous complètent la correction : un redessin de la liste survenant pendant le geste est différé à la fin de celui-ci (le contenu n'est plus remplacé sous le doigt) ; la position de défilement est conservée d'un redessin à l'autre (elle repartait de zéro à chaque sélection) ; et le « clic » que iOS émet à la fin d'un glissement ne sélectionne plus de restaurant — faire défiler ne recentre donc plus la carte ni n'ouvre de bulle au passage."
     ]}
   ];
 
@@ -2664,8 +2684,21 @@
   }
 
   // ---------- Liste latérale ----------
+  // Défilement de la liste : trois garde-fous, en plus de la correction CSS ci-dessus.
+  //  1. un redessin de la liste pendant que le doigt la fait défiler est différé à la fin du
+  //     geste (sinon le contenu est remplacé sous le doigt et le défilement s'interrompt) ;
+  //  2. la position de défilement est conservée d'un redessin à l'autre (elle repartait de
+  //     zéro à chaque sélection, ce qui donnait l'impression que rien n'avait bougé) ;
+  //  3. le « clic » que iOS émet à la fin d'un glissement ne sélectionne plus de restaurant.
+  let listeGesteEnCours = false;
+  let listeRedessinEnAttente = false;
+  let listeGesteADeplace = false;
+  let listeGesteY0 = 0;
+
   function rafraichirListe(){
     const body = document.getElementById("listBody");
+    if(listeGesteEnCours){ listeRedessinEnAttente = true; return; }
+    const defilement = body.scrollTop;
     const restosListe = restaurants.filter(r => (r.liste||"") === listeActuelle);
     document.getElementById("countLbl").textContent = restosListe.length;
     document.getElementById("listeNomLbl").textContent = listeActuelle ? listeActuelle : "(sans nom)";
@@ -2681,7 +2714,13 @@
     const tries = triAlphabetique
       ? [...restosListe].sort((a,b)=> (a.name||"Nouveau restaurant").localeCompare(b.name||"Nouveau restaurant", "fr", {sensitivity:"base"}))
       : [...restosListe].sort((a,b)=> (b.maj||"").localeCompare(a.maj||""));
-    body.innerHTML = tries.map(r => {
+    const remplirListe = (html)=>{
+      body.innerHTML = html;
+      // Restauré immédiatement après le remplacement du contenu, avant tout branchement
+      // d'événement : la liste ne « saute » donc jamais en haut.
+      body.scrollTop = defilement;
+    };
+    remplirListe(tries.map(r => {
       const enEdition = editingIds.has(r.id);
       const nbPhotos = Array.isArray(r.photos) ? r.photos.length : 0;
       const avisG = !!avisGemini(r);
@@ -2710,7 +2749,7 @@
         </div>
       </div>
     `;
-    }).join("");
+    }).join(""));
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
         if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.closest("[data-cancel]") || ev.target.closest("[data-photo]") || ev.target.closest("[data-gemini]") || ev.target.closest(".item-liste-select") || ev.target.tagName === "INPUT") return;
@@ -2792,6 +2831,41 @@
       };
     });
   }
+
+  // Suivi du geste tactile sur la liste (voir les trois garde-fous ci-dessus).
+  (function initDefilementListe(){
+    const zone = document.getElementById("listBody");
+    if(!zone) return;
+    zone.addEventListener("touchstart", (ev)=>{
+      listeGesteEnCours = true;
+      listeGesteADeplace = false;
+      listeGesteY0 = ev.touches[0] ? ev.touches[0].clientY : 0;
+    }, {passive:true});
+    zone.addEventListener("touchmove", (ev)=>{
+      const y = ev.touches[0] ? ev.touches[0].clientY : listeGesteY0;
+      if(Math.abs(y - listeGesteY0) > 8) listeGesteADeplace = true;
+    }, {passive:true});
+    const finDuGeste = ()=>{
+      listeGesteEnCours = false;
+      if(listeRedessinEnAttente){
+        listeRedessinEnAttente = false;
+        rafraichirListe();
+      }
+    };
+    zone.addEventListener("touchend", finDuGeste, {passive:true});
+    zone.addEventListener("touchcancel", finDuGeste, {passive:true});
+    // Un glissement qui se termine sur une ligne produit quand même un « click » sur iOS.
+    // Intercepté ici en phase de capture, donc avant les gestionnaires des lignes : faire
+    // défiler la liste ne sélectionne plus un restaurant au passage (ce qui recentrait la
+    // carte, rouvrait un popup et redessinait la liste en pleine manœuvre).
+    zone.addEventListener("click", (ev)=>{
+      if(!listeGesteADeplace) return;
+      listeGesteADeplace = false;
+      ev.stopPropagation();
+      ev.preventDefault();
+      debugLog("clic ignoré dans la liste : le doigt a glissé, c'était un défilement");
+    }, true);
+  })();
 
   // Ouvre/ferme le mode édition (nom + adresse) d'un item de la liste.
   // En fermant, sauvegarde les valeurs saisies dans les champs.
