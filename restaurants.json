@@ -188,7 +188,14 @@
       "name": "La Cour Brasserie Chartres",
       "address": "22 Place des Épars, 28000 Chartres",
       "liste": "Province",
-      "maj": "2026-08-04T16:12:14.160Z"
+      "maj": "2026-08-04T16:12:14.160Z",
+      "gemini": {
+        "texte": "Oui, je connais La Cour Brasserie Chartres.\n\n*   **Type de cuisine :** Cuisine française de brasserie traditionnelle, proposant des classiques (viandes, poissons, salades, fruits de mer) avec des plats du jour.\n*   **Fourchette de prix :** Moyenne (€€). Comptez environ 15-25€ pour un plat principal.\n*   **Points forts (selon les avis récents) :**\n    *   Emplacement central et agréable sur la Place des Épars, souvent avec une belle terrasse.\n    *   Service généralement efficace, professionnel et aimable.\n    *   Ambiance typique de brasserie, animée et conviviale.\n    *   Plats classiques bien exécutés et de bonne qualité.\n*   **Points faibles (selon les avis récents) :**\n    *   Peut être bruyant, surtout aux heures de pointe.\n    *   Les prix sont parfois jugés un peu élevés pour certains plats par rapport à la qualité perçue.\n    *   La cuisine est solide mais rarement \"exceptionnelle\".\n*   **Occasion conseillée :** Idéal pour un repas décontracté entre amis ou en famille, un déjeuner d'affaires informel, ou pour profiter de l'ambiance animée et de la terrasse après une visite de la ville de Chartres.",
+        "sources": [],
+        "quand": "2026-09-14T07:17:41.466Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_mseve5no_dxe7we",
@@ -496,5 +503,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-14T07:15:53.659Z",
-  "maj": "2026-09-14T07:17:18.091Z"
+  "maj": "2026-09-14T07:17:42.677Z"
 }
