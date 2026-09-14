@@ -55,7 +55,14 @@
       "name": "IZAKKI - Ramen & Izakaya",
       "address": "49 Rue Olivier de Serres, 75015 Paris",
       "maj": "2026-08-04T16:47:14.381Z",
-      "liste": "Paris"
+      "liste": "Paris",
+      "gemini": {
+        "texte": "Je connais bien IZAKKI - Ramen & Izakaya, un établissement apprécié dans le 15ème arrondissement.\n\n*   **Type de cuisine :** Japonaise, spécialisée dans les ramen (soupes de nouilles) et les plats \"izakaya\" (petites assiettes à partager, style tapas japonais).\n*   **Fourchette de prix :** Moyenne (€€). Comptez environ 15-25€ par personne pour un plat et une boisson, voire plus si vous prenez plusieurs izakaya.\n*   **Points forts :** Les avis soulignent l'authenticité et la richesse des bouillons de ramen, la qualité du chashu (porc braisé) et des nouilles. Les plats izakaya (gyozas, karaage, takoyaki) sont également très appréciés pour leur saveur. L'ambiance est souvent décrite comme conviviale et le service efficace.\n*   **Points faibles :** Le restaurant peut être petit et donc vite rempli, entraînant parfois de l'attente ou une ambiance un peu bruyante aux heures de pointe.\n*   **Occasion conseillée :** Idéal pour un repas décontracté entre amis ou en couple, un déjeuner rapide et savoureux, ou simplement pour satisfaire une envie de ramen authentiques et de plats japonais à partager dans une atmosphère conviviale.",
+        "sources": [],
+        "quand": "2026-09-14T07:34:22.532Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_mseg6kdw_9jm3m3",
@@ -503,5 +510,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-14T07:18:23.543Z",
-  "maj": "2026-09-14T07:18:45.526Z"
+  "maj": "2026-09-14T07:34:23.752Z"
 }
