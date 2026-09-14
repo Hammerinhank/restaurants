@@ -288,12 +288,12 @@
     },
     {
       "id": "r_mu1jep77_xmxesy",
-      "lat": 43.57485493824482,
-      "lon": 7.11134565923407,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "lat": 43.6995184,
+      "lon": 7.2790673,
+      "name": "La Table Alziari",
+      "address": "4 Rue François Zanin, 06300 Nice",
       "liste": "Paris",
-      "maj": "2026-09-14T17:49:04.915Z"
+      "maj": "2026-09-14T17:50:44.465Z"
     }
   ],
   "suppressions": [
@@ -533,5 +533,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-14T07:18:23.543Z",
-  "maj": "2026-09-14T17:50:01.617Z"
+  "maj": "2026-09-14T17:50:45.733Z"
 }
