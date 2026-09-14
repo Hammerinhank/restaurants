@@ -977,16 +977,29 @@
      question, options) sont partis derrière elle, dans une page de paramétrage séparée. */
   /* V63 : croix de fermeture en haut à droite, doublant le bouton « Fermer » du bas — sur
      iPhone, celui-ci se retrouve loin du pouce dès que la fenêtre est un peu haute. */
-  /* V67 : les champs secrets (jeton GitHub, clés API) ne sont plus de type "password" — c'est
-     la seule présence d'un tel champ dans la page qui poussait iOS à proposer « Se connecter à
-     github.io » avec Face ID, alors que l'application n'a aucun compte ni aucune connexion. Le
-     masquage des caractères est donc fait ici, visuellement, sans rien dire au gestionnaire de
-     mots de passe. */
-  .champ-masque{
-    -webkit-text-security:disc;
-    text-security:disc;
-    font-family:inherit;
+  /* V68 : le masquage par -webkit-text-security de la V67 était une fausse bonne idée — Chrome
+     reconnaît lui aussi ce style comme la marque d'un champ de mot de passe, et la proposition
+     « Se connecter à github.io » revenait, désormais dès le lancement. Plus aucun indice n'est
+     donc laissé au gestionnaire de mots de passe : ce sont de simples champs texte, et la valeur
+     n'est masquée que par le texte affiché (voir installerChampSecret dans le code), abrégé en
+     « AIza••••••••1f3c » tant qu'on n'a pas touché le champ. */
+  .champ-secret{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;}
+  .test-resultat{
+    display:none;
+    white-space:pre-wrap;
+    border-radius:8px;
+    border:1px solid var(--line);
+    border-left-width:4px;
+    padding:9px 11px;
+    margin-top:8px;
+    font-size:12px;
+    line-height:1.5;
   }
+  .test-resultat strong{display:block;margin-bottom:4px;font-size:12.5px;}
+  .test-resultat.ok{background:#f2f7f2;border-color:#7fae7f;}
+  .test-resultat.ko{background:#fdf5f3;border-color:var(--err);}
+  .test-resultat.ko strong{color:var(--err);}
+  .test-resultat.info{background:#f4f1fd;border-color:var(--gemini);}
   .modal-fermer{
     flex:0 0 auto;
     background:transparent;
@@ -1138,17 +1151,25 @@
   </div>
   <div class="settings-row">
     <label>Jeton d'accès personnel (PAT)
-      <input type="text" class="champ-masque" id="cfgToken" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ghp_...">
+      <input type="text" class="champ-secret" id="cfgToken" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ghp_...">
     </label>
   </div>
+  <div class="settings-actions">
+    <button class="btn-ghost btn-small" id="btnTesterToken" title="Vérifier que ce jeton ouvre bien le dépôt en écriture">🔍 Tester le jeton et le dépôt</button>
+  </div>
+  <div class="test-resultat" id="resToken"></div>
   <!-- Clé Google Maps : indépendante des identifiants GitHub (enregistrée à la frappe, et non
        effacée par « Effacer les identifiants »). Elle sert uniquement à afficher la panoramique
        Street View dans l'application, via la Maps Embed API. -->
   <div class="settings-row">
     <label>Clé Google Maps (Maps Embed API) — pour la vue Street View intégrée
-      <input type="text" class="champ-masque" id="cfgCleGoogle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="AIza...">
+      <input type="text" class="champ-secret" id="cfgCleGoogle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="AIza...">
     </label>
   </div>
+  <div class="settings-actions">
+    <button class="btn-ghost btn-small" id="btnTesterGoogle" title="Afficher une panoramique connue pour vérifier la clé">🔍 Tester la clé Google Maps</button>
+  </div>
+  <div class="test-resultat" id="resGoogle"></div>
   <div class="settings-actions">
     <button class="btn-primary btn-small" id="btnSaveCfg">Enregistrer les identifiants</button>
     <button class="btn-ghost btn-small" id="btnClearCfg">Effacer les identifiants</button>
@@ -1448,8 +1469,12 @@
     <div class="modal-hint">Ces réglages s'appliquent à la prochaine demande d'avis.</div>
 
     <label>Clé API Gemini
-      <input type="text" class="champ-masque" id="geminiCle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="AIza...">
+      <input type="text" class="champ-secret" id="geminiCle" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="AIza...">
     </label>
+    <div class="gemini-options">
+      <button class="btn-ghost btn-small" id="btnTesterGemini" title="Vérifier que la clé fonctionne et que le modèle choisi est disponible">🔍 Tester la clé et le modèle</button>
+    </div>
+    <div class="test-resultat" id="resGemini"></div>
     <div class="gemini-aide">
       La clé se crée gratuitement sur Google AI Studio (aistudio.google.com). Elle est
       enregistrée sur cet appareil uniquement, au fil de la frappe, indépendamment des
@@ -1492,7 +1517,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V67";
+  const VERSION = "V68";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1802,6 +1827,14 @@
     { v:"V67", resume:[
       "Plus de proposition « Se connecter à github.io » avec Face ID au détour d'une fenêtre : l'application n'a pourtant aucun compte ni aucune connexion. En cause, la seule présence de champs de type « mot de passe » (jeton GitHub, clés API Google et Gemini) — iOS et Chrome en déduisent une page d'authentification et proposent leurs identifiants enregistrés, souvent au moment où l'on ouvre une fenêtre contenant un champ texte.",
       "Ces champs ne sont donc plus déclarés comme des mots de passe : leurs caractères restent masqués à l'écran, mais par un simple effet visuel, sans rien annoncer au gestionnaire de mots de passe. Correction et majuscule automatiques désactivées au passage sur tous les champs de saisie."
+    ]},
+    { v:"V68", resume:[
+      "La proposition « Se connecter à github.io » revenait, et même dès le lancement : le masquage mis en place en V67 (-webkit-text-security) est lui aussi reconnu par Chrome comme la marque d'un champ de mot de passe. Plus aucun indice n'est désormais laissé au gestionnaire de mots de passe — ce sont de simples champs texte.",
+      "Le jeton et les clés restent néanmoins illisibles à l'écran : le champ n'affiche qu'une forme abrégée (« AIza••••••••1f3c ») tant qu'on ne le touche pas, et la valeur entière n'apparaît qu'au moment où l'on vient la modifier. On voit donc d'un coup d'œil qu'une clé est bien là, sans l'étaler.",
+      "Chaque clé et le jeton ont maintenant leur bouton « 🔍 Tester », qui dit ce qui ne va pas et ce qu'il faut faire.",
+      "Jeton GitHub : un seul appel vérifie le jeton, le nom du dépôt, le droit d'écriture et l'existence de la branche — les quatre causes d'un envoi qui échoue. Chaque cas a son explication : jeton expiré ou mal recopié, dépôt absent de la portée d'un jeton « fine-grained », dépôt en lecture seule, branche mal nommée (avec rappel de la branche par défaut du dépôt), quota d'API épuisé, autorisation SSO manquante.",
+      "Clé Gemini : la liste des modèles accessibles est demandée à Google, ce qui valide la clé et vérifie du même coup que le modèle sélectionné lui est bien accessible — sinon, les modèles réellement disponibles sont énumérés.",
+      "Clé Google Maps : la réponse de l'API Embed est illisible depuis la page (autre domaine), le test est donc visuel — une panoramique connue (la Tour Eiffel) est affichée, et le résultat à l'écran tranche. Les trois causes d'un écran noir sont expliquées par ordre de fréquence : API Embed non activée, facturation non activée sur le projet, ou restrictions de la clé n'autorisant pas ce site."
     ]}
   ];
 
@@ -3615,6 +3648,59 @@
     document.getElementById("photoVisuOverlay").classList.remove("open");
   });
 
+  // ---------- Champs secrets (V68) ----------
+  // Jeton GitHub et clés API sont des champs texte ordinaires : rien ne doit signaler un mot de
+  // passe au navigateur, sous peine de voir revenir la proposition « Se connecter à github.io ».
+  // La valeur réelle est conservée à côté, et le champ n'affiche qu'une forme abrégée tant qu'il
+  // n'a pas le focus — donc lisible d'un coup d'œil pour vérifier qu'une clé est bien là, sans
+  // l'étaler en entier à l'écran.
+  const champsSecrets = new Map();  // id du champ -> { valeur, auChangement }
+
+  function abregerSecret(v){
+    if(!v) return "";
+    if(v.length <= 10) return "•".repeat(v.length);
+    return v.slice(0, 4) + "•".repeat(Math.min(10, v.length - 8)) + v.slice(-4);
+  }
+  function installerChampSecret(id, valeurInitiale, auChangement){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const etat = { valeur: (valeurInitiale || "").trim(), auChangement };
+    champsSecrets.set(id, etat);
+    el.value = abregerSecret(etat.valeur);
+    el.addEventListener("focus", ()=>{ el.value = etat.valeur; });
+    el.addEventListener("input", ()=>{
+      etat.valeur = el.value.trim();
+      if(etat.auChangement) etat.auChangement(etat.valeur);
+    });
+    el.addEventListener("blur", ()=>{
+      etat.valeur = el.value.trim();
+      if(etat.auChangement) etat.auChangement(etat.valeur);
+      el.value = abregerSecret(etat.valeur);
+    });
+  }
+  function valeurSecrete(id){
+    const etat = champsSecrets.get(id);
+    if(etat) return etat.valeur;
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+  }
+  function majChampSecret(id, valeur){
+    const el = document.getElementById(id);
+    if(!el) return;
+    const etat = champsSecrets.get(id);
+    if(etat) etat.valeur = (valeur || "").trim();
+    el.value = abregerSecret(valeur || "");
+  }
+
+  // Résultat d'un test de clé : ce qui va ou ne va pas, puis quoi faire.
+  function afficherResultatTest(idRes, genre, titre, detail){
+    const el = document.getElementById(idRes);
+    if(!el) return;
+    el.className = "test-resultat " + genre;   // ok | ko | info
+    el.innerHTML = "<strong>" + escHtml(titre) + "</strong>" + escHtml(detail || "");
+    el.style.display = "block";
+  }
+
   // ==================== Avis Gemini (V56) ====================
   // Demande à Gemini ce qu'il pense d'un restaurant. Contrairement au parcours ChatGPT/Claude
   // d'autres applications (copier, ouvrir l'assistant, recoller la réponse), Gemini répond
@@ -3760,7 +3846,7 @@
   function ouvrirParamsGemini(){
     const r = restaurants.find(x => x.id === geminiRestoId);
     document.getElementById("geminiQuestion").value = questionGemini();
-    document.getElementById("geminiCle").value = cleGemini();
+    majChampSecret("geminiCle", cleGemini());
     document.getElementById("geminiModele").value = modeleGemini();
     document.getElementById("geminiRecherche").checked = rechercheGeminiActive();
     const photos = r ? photosDe(r) : [];
@@ -4029,15 +4115,14 @@
   }
 
   (function initGemini(){
-    const champCle = document.getElementById("geminiCle");
-    champCle.addEventListener("input", function(){
-      const v = champCle.value.trim();
+    installerChampSecret("geminiCle", cleGemini(), (v)=>{
       try{
         if(v) localStorage.setItem(LS_CLE_GEMINI_KEY, v);
         else localStorage.removeItem(LS_CLE_GEMINI_KEY);
       }catch(e){}
       geminiParamsEtat(v ? "Clé enregistrée sur cet appareil." : "Clé effacée de cet appareil.");
     });
+    document.getElementById("btnTesterGemini").addEventListener("click", testerCleGemini);
 
     const champModele = document.getElementById("geminiModele");
     champModele.addEventListener("change", function(){
@@ -4927,8 +5012,9 @@
     elOwner.value = cfg.owner || "";
     elRepo.value = cfg.repo || "";
     elBranch.value = cfg.branch || "main";
-    elToken.value = cfg.token || "";
+    majChampSecret("cfgToken", cfg.token || "");
   }
+  installerChampSecret("cfgToken", cfg.token || "");
   remplirChampsCfg();
 
   document.getElementById("btnSettings").addEventListener("click", ()=>{
@@ -4940,10 +5026,9 @@
   document.getElementById("btnReglagesGemini").addEventListener("click", ouvrirParamsGemini);
 
   (function initCleGoogle(){
-    const champ = document.getElementById("cfgCleGoogle");
-    try{ champ.value = localStorage.getItem(LS_CLE_GOOGLE_KEY) || ""; }catch(e){}
-    champ.addEventListener("input", ()=>{
-      const v = champ.value.trim();
+    let initiale = "";
+    try{ initiale = localStorage.getItem(LS_CLE_GOOGLE_KEY) || ""; }catch(e){}
+    installerChampSecret("cfgCleGoogle", initiale, (v)=>{
       try{
         if(v) localStorage.setItem(LS_CLE_GOOGLE_KEY, v);
         else localStorage.removeItem(LS_CLE_GOOGLE_KEY);
@@ -4951,11 +5036,154 @@
     });
   })();
 
+  // ---------- Tests des clés et du jeton (V68) ----------
+
+  // GitHub : on interroge l'API sur le dépôt lui-même, ce qui vérifie d'un coup le jeton, le nom
+  // du dépôt, le droit d'écriture et l'existence de la branche — les quatre causes d'un envoi
+  // qui échoue.
+  async function testerJetonGithub(){
+    const owner = elOwner.value.trim();
+    const repo = elRepo.value.trim();
+    const branche = elBranch.value.trim() || "main";
+    const token = valeurSecrete("cfgToken");
+    if(!owner || !repo){
+      afficherResultatTest("resToken", "ko", "Dépôt non renseigné.",
+        "Remplissez « Utilisateur / organisation » et « Dépôt » ci-dessus : ce sont les deux premières lignes de l'adresse de votre dépôt sur github.com.");
+      return;
+    }
+    if(!token){
+      afficherResultatTest("resToken", "ko", "Aucun jeton saisi.",
+        "Créez-en un sur github.com → Settings → Developer settings → Personal access tokens, avec le droit d'écriture sur le contenu du dépôt (Contents : Read and write pour un jeton « fine-grained », ou la case « repo » pour un jeton classique), puis collez-le ci-dessus.");
+      return;
+    }
+    const btn = document.getElementById("btnTesterToken");
+    btn.disabled = true;
+    afficherResultatTest("resToken", "info", "Vérification en cours…", "");
+    try{
+      const entetes = { Authorization: "Bearer " + token, Accept: "application/vnd.github+json" };
+      const res = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`, {headers: entetes});
+      if(res.status === 401){
+        afficherResultatTest("resToken", "ko", "GitHub refuse le jeton (401).",
+          "Il est expiré, révoqué, ou mal recopié (un espace ou un retour à la ligne collé avec suffit). Régénérez-le sur github.com → Settings → Developer settings → Personal access tokens, puis recollez-le ici. Un jeton n'est visible qu'une fois, à sa création.");
+        return;
+      }
+      if(res.status === 404){
+        afficherResultatTest("resToken", "ko", "Dépôt introuvable pour ce jeton (404).",
+          `Deux causes possibles. Soit « ${owner}/${repo} » est mal orthographié — vérifiez sur github.com. Soit le jeton n'a pas accès à ce dépôt : un jeton « fine-grained » doit le lister explicitement dans « Repository access ». GitHub répond 404 et non 403 dans ce cas, pour ne pas révéler l'existence d'un dépôt privé.`);
+        return;
+      }
+      if(res.status === 403){
+        const reste = res.headers.get("x-ratelimit-remaining");
+        afficherResultatTest("resToken", "ko", "Accès refusé (403).",
+          reste === "0"
+            ? "Le quota d'appels à l'API GitHub est épuisé pour l'heure en cours. Attendez une vingtaine de minutes et retestez."
+            : "Le jeton existe mais n'a pas le droit demandé. Si votre compte ou l'organisation utilise l'authentification unique (SSO), il faut autoriser explicitement le jeton pour cette organisation depuis la page des jetons.");
+        return;
+      }
+      if(!res.ok){
+        afficherResultatTest("resToken", "ko", "Réponse inattendue de GitHub (" + res.status + ").",
+          "Réessayez dans un instant ; si cela persiste, vérifiez la connexion réseau de l'appareil.");
+        return;
+      }
+      const data = await res.json();
+      const peutEcrire = !!(data.permissions && data.permissions.push);
+      // La branche est vérifiée à part : un dépôt accessible mais dont la branche est mal nommée
+      // (main / master) donne un envoi qui échoue sans raison apparente.
+      let brancheOk = false;
+      try{
+        const resB = await fetch(`https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/branches/${encodeURIComponent(branche)}`, {headers: entetes});
+        brancheOk = resB.ok;
+      }catch(e){}
+      if(!peutEcrire){
+        afficherResultatTest("resToken", "ko", "Dépôt accessible, mais en lecture seule.",
+          `Le jeton ouvre bien « ${data.full_name} », mais sans droit d'écriture : vos modifications ne pourront jamais être envoyées. Donnez-lui « Contents : Read and write » (jeton fine-grained) ou cochez « repo » (jeton classique), puis retestez.`);
+        return;
+      }
+      if(!brancheOk){
+        afficherResultatTest("resToken", "ko", `Branche « ${branche} » introuvable.`,
+          `Le jeton et le dépôt « ${data.full_name} » sont bons, mais cette branche n'existe pas. La branche par défaut du dépôt est « ${data.default_branch} » : corrigez le champ Branche ci-dessus.`);
+        return;
+      }
+      afficherResultatTest("resToken", "ok", "Tout est bon.",
+        `Dépôt « ${data.full_name} » (${data.private ? "privé" : "public"}), branche « ${branche} », droit d'écriture accordé. L'envoi vers GitHub doit fonctionner.`);
+    }catch(e){
+      afficherResultatTest("resToken", "ko", "Impossible de joindre GitHub.",
+        "Vérifiez la connexion de l'appareil (Wi-Fi, données mobiles, mode Avion), puis retestez. Détail : " + e.message);
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  // Google Maps : la réponse de l'API Embed est illisible depuis cette page (elle appartient à un
+  // autre domaine), il n'existe donc aucun moyen de la tester en silence. Le test est visuel : on
+  // affiche une panoramique connue, et l'écran répond à la question mieux qu'un code d'erreur.
+  function testerCleGoogle(){
+    const cle = valeurSecrete("cfgCleGoogle");
+    if(!cle){
+      afficherResultatTest("resGoogle", "ko", "Aucune clé Google Maps saisie.",
+        "Sans elle, « Voir en Street View » bascule vers l'application Google Maps au lieu d'afficher la panoramique dans l'application. Créez une clé sur console.cloud.google.com, activez-y l'API « Maps Embed API », puis collez la clé ci-dessus.");
+      return;
+    }
+    if(!/^AIza[0-9A-Za-z_-]{20,}$/.test(cle)){
+      afficherResultatTest("resGoogle", "ko", "Cette clé n'a pas la forme attendue.",
+        "Une clé Google commence par « AIza » et fait une quarantaine de caractères, sans espace. Vérifiez que vous n'avez pas collé autre chose (un identifiant de projet, ou une clé tronquée).");
+      return;
+    }
+    // Tour Eiffel : un point couvert par Street View depuis toujours, donc un écran noir ne peut
+    // venir que de la clé.
+    afficherResultatTest("resGoogle", "info", "Panoramique de test ouverte (Tour Eiffel).",
+      "Si vous voyez la vue à 360°, la clé fonctionne.\n\nSi l'image reste noire ou grise, la clé est refusée par Google. Trois causes, par ordre de fréquence : l'API « Maps Embed API » n'est pas activée pour le projet de la clé ; la facturation n'est pas activée sur le projet (l'API Embed reste gratuite, mais Google exige une carte enregistrée) ; ou les restrictions de la clé n'autorisent pas ce site — ajoutez alors hammerinhank.github.io/* dans les référents autorisés.\n\nLe bouton « Diagnostic » de la fenêtre ouvre la même adresse dans un onglet, où le message exact de Google est lisible en clair.");
+    ouvrirStreetView(48.8584, 2.2945);
+  }
+
+  // Gemini : la liste des modèles est le test idéal — un seul appel qui valide la clé ET dit si
+  // le modèle choisi est réellement accessible à cette clé.
+  async function testerCleGemini(){
+    const cle = valeurSecrete("geminiCle");
+    if(!cle){
+      afficherResultatTest("resGemini", "ko", "Aucune clé API Gemini saisie.",
+        "Créez-en une gratuitement sur aistudio.google.com (« Get API key »), puis collez-la ci-dessus. Elle reste sur cet appareil et n'est jamais envoyée sur GitHub : il faut donc la saisir une fois par appareil.");
+      return;
+    }
+    const btn = document.getElementById("btnTesterGemini");
+    btn.disabled = true;
+    afficherResultatTest("resGemini", "info", "Vérification en cours…", "");
+    try{
+      const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models?key=" + encodeURIComponent(cle));
+      let data = null;
+      try{ data = await res.json(); }catch(e){}
+      if(!res.ok){
+        const brut = (data && data.error && data.error.message) ? data.error.message : ("HTTP " + res.status);
+        const info = expliquerErreurGemini(brut);
+        afficherResultatTest("resGemini", "ko", info.probleme, info.solution + "\n\nMessage renvoyé par Google : " + brut);
+        return;
+      }
+      const noms = (data.models || []).map(m => (m.name || "").replace(/^models\//, ""));
+      const choisi = modeleGemini();
+      if(noms.length && !noms.includes(choisi)){
+        const proches = noms.filter(n => n.indexOf("gemini") === 0).slice(0, 6).join(", ");
+        afficherResultatTest("resGemini", "ko", `La clé fonctionne, mais le modèle « ${choisi} » ne lui est pas accessible.`,
+          "Choisissez-en un autre dans la liste déroulante ci-dessus. Modèles disponibles pour cette clé : " + (proches || noms.slice(0, 6).join(", ")) + ".");
+        return;
+      }
+      afficherResultatTest("resGemini", "ok", "Clé valide.",
+        `${noms.length} modèle(s) accessibles, dont « ${choisi} » qui est bien celui sélectionné. Demander un avis à Gemini doit fonctionner.`);
+    }catch(e){
+      afficherResultatTest("resGemini", "ko", "Impossible de joindre le serveur de Google.",
+        "Vérifiez la connexion de l'appareil, puis retestez. Détail : " + e.message);
+    }finally{
+      btn.disabled = false;
+    }
+  }
+
+  document.getElementById("btnTesterToken").addEventListener("click", testerJetonGithub);
+  document.getElementById("btnTesterGoogle").addEventListener("click", testerCleGoogle);
+
   document.getElementById("btnSaveCfg").addEventListener("click", ()=>{
     const owner = elOwner.value.trim();
     const repo = elRepo.value.trim();
     const branch = elBranch.value.trim() || "main";
-    const token = elToken.value.trim();
+    const token = valeurSecrete("cfgToken");
     if(!owner || !repo || !token){
       statut("Utilisateur, dépôt et jeton sont requis.", "err");
       return;
