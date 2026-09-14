@@ -19,12 +19,24 @@
   }
   *{box-sizing:border-box;}
   html,body{height:100%;margin:0;}
+  /* V57 : la PAGE elle-même ne défile jamais. Seule la liste des restaurants (#listBody)
+     possède sa propre zone de défilement. Auparavant, c'est le panneau entier (#listPanel) qui
+     portait overflow-y:auto sans hauteur ferme : un glissement du doigt dans la liste était
+     donc interprété comme un défilement de la page, laquelle n'a rien à faire défiler —
+     résultat, rien ne bougeait et la liste restait bloquée. */
+  html{overflow:hidden;}
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     background:var(--bg);
     color:var(--ink);
     display:flex;
     flex-direction:column;
+    overflow:hidden;
+    /* 100dvh (hauteur « dynamique ») plutôt que 100vh sur iPhone : la barre d'adresse de Safari
+       apparaît et disparaît au défilement, et 100vh vaut toujours la hauteur SANS barre, donc
+       une page trop haute pour l'écran réel. Ignoré par les navigateurs qui ne connaissent pas
+       l'unité, qui conservent le height:100% ci-dessus. */
+    height:100dvh;
     overscroll-behavior:none;
     touch-action:manipulation; /* bloque le zoom natif au double-tap (que iOS applique malgré user-scalable=no), sans gêner le pincement (pinch-zoom) */
   }
@@ -230,6 +242,11 @@
     gap:8px;
     flex-direction:column;
     font-size:13px;
+    /* La page ne défilant plus (V57), ce panneau reçoit son propre défilement : sur un petit
+       écran en mode Modifier, il ne doit jamais pousser la carte et la liste hors de l'écran. */
+    flex:0 1 auto;
+    max-height:42dvh;
+    overflow-y:auto;
   }
   #settings.open{display:flex;}
   #settings label{
@@ -254,10 +271,12 @@
     flex:1 1 auto;
     display:flex;
     min-height:0;
+    overflow:hidden;
   }
   #map{
     flex:1 1 auto;
     min-width:0;
+    min-height:0; /* autorise la carte à se réduire quand la liste passe en dessous (iPhone) */
     -webkit-touch-callout:none; /* évite le menu contextuel/la loupe iOS pendant l'appui long (ajout de restaurant) */
   }
 
@@ -315,9 +334,23 @@
     flex:0 0 auto;
     background:var(--panel);
     border-left:1px solid var(--line);
-    overflow-y:auto;
+    overflow:hidden;   /* le défilement est confié à #listBody, pas au panneau entier */
+    min-height:0;
     display:flex;
     flex-direction:column;
+  }
+  /* En-tête du panneau (titre ou combo de liste) : hauteur fixe, jamais comprimée ni défilée. */
+  #listPanel > h2, #listeHeaderCombo{flex:0 0 auto;}
+  /* Seule zone défilante de la page. overscroll-behavior:contain empêche le défilement de
+     « déborder » sur la page une fois arrivé en haut ou en bas de la liste, et touch-action
+     déclare explicitement à iOS que le glissement vertical du doigt est un défilement. */
+  #listBody{
+    flex:1 1 auto;
+    min-height:0;
+    overflow-y:auto;
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+    touch-action:pan-y;
   }
   #listPanel h2{
     font-size:12px;
@@ -484,7 +517,12 @@
     #main{flex-direction:column;}
     #listPanel{
       width:auto;
-      max-height:34vh;
+      /* Hauteur FERME (et non plus un simple max-height) : c'est elle qui donne à #listBody une
+         hauteur de référence, donc une vraie zone de défilement interne. */
+      flex:0 0 auto;
+      height:38vh;
+      height:38dvh;
+      min-height:0;
       border-left:none;
       border-top:1px solid var(--line);
     }
@@ -840,6 +878,14 @@
     cursor:pointer;
   }
   .popup-gemini-btn:hover{background:#f4f1fd;}
+  /* Avis déjà enregistré pour ce restaurant : bouton en violet plein plutôt qu'en contour,
+     pour qu'on voie sans réfléchir que la réponse est disponible immédiatement. */
+  .btn-gemini.dispo, .popup-gemini-btn.dispo{
+    background:var(--gemini);
+    color:#fff;
+  }
+  .popup-gemini-btn.dispo:hover{background:#5a41bd;}
+  #geminiOublier{color:var(--err);border-color:var(--err);}
 
   .modal-box-gemini{max-width:620px;width:96vw;}
   #geminiReglages{
@@ -1155,6 +1201,7 @@
     <div class="gemini-sources" id="geminiSources"></div>
 
     <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="geminiOublier" title="Supprimer l'avis enregistré pour ce restaurant">🗑 Oublier cet avis</button>
       <button class="btn-ghost btn-small" id="geminiCopier">📋 Copier</button>
       <button class="btn-primary btn-small" id="geminiDemander">✨ Demander à Gemini</button>
       <button class="btn-ghost btn-small" id="geminiFermer">Fermer</button>
@@ -1167,7 +1214,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V56";
+  const VERSION = "V57";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1415,6 +1462,14 @@
       "Case « 🖼️ Joindre les photos » (proposée seulement si le restaurant en a) : jusqu'à 4 photos déjà enregistrées sont envoyées avec la question (devanture, carte, plat…), avec un décompte de préparation photo par photo.",
       "Clé API Gemini et choix du modèle (2.5-flash, 2.5-pro, 2.0-flash) directement dans cette fenêtre, sous « ⚙️ Clé API Gemini et modèle » : la clé reste sur l'appareil, n'est jamais écrite dans restaurants.json et survit à « Effacer les identifiants » — à saisir donc une fois par appareil, comme la clé Google Maps.",
       "La dernière réponse reçue pour un restaurant est conservée le temps de la session : rouvrir la fenêtre la réaffiche aussitôt, sans nouvelle attente. Bouton « 📋 Copier » pour récupérer le texte, durée d'attente affichée en secondes, et fermer la fenêtre pendant l'attente abandonne la requête."
+    ]},
+    { v:"V57", resume:[
+      "Correction du défilement de la liste des restaurants : glisser le doigt dans la liste faisait défiler la PAGE entière, qui n'a rien à faire défiler — donc rien ne bougeait. Le défilement est désormais confié à la liste elle-même et à elle seule : la page est verrouillée, le panneau reçoit une hauteur ferme (38 % de l'écran sur iPhone, au lieu d'un simple plafond), et la liste déclare explicitement à iOS que le glissement vertical est un défilement, sans déborder sur la page une fois arrivé en haut ou en bas.",
+      "La hauteur de la page suit maintenant l'unité « dynamique » 100dvh : sur iPhone, 100vh vaut toujours la hauteur sans la barre d'adresse de Safari, ce qui rendait la page plus haute que l'écran réel.",
+      "L'avis de Gemini est désormais ENREGISTRÉ avec le restaurant, dans restaurants.json : il part sur GitHub comme le reste et se retrouve donc sur tous les appareils. Rouvrir la fenêtre affiche l'avis déjà obtenu, sans nouvelle interrogation ni nouvelle attente — y compris après un rechargement de la page ou depuis l'autre appareil.",
+      "Le bouton indique d'un coup d'œil qu'un avis est disponible : « ✨ Avis ✓ » en violet plein dans la liste (au lieu de « ✨ Gemini » en contour), et « ✨ Avis de Gemini ✓ » également en plein dans la bulle de la carte. L'infobulle précise la date à laquelle l'avis a été obtenu.",
+      "Bouton « 🔄 Redemander l'avis à Gemini » dans la fenêtre pour rafraîchir un avis existant : la nouvelle réponse remplace l'ancienne et repart aussitôt sur GitHub. Bouton « 🗑 Oublier cet avis » pour le supprimer purement et simplement (le bouton reprend alors son aspect normal).",
+      "L'avis n'est pas concerné par l'horodatage « date de modification » du restaurant : demander un avis ne remonte pas le restaurant en tête de la liste triée par date. En cas de synchronisation entre deux appareils, c'est l'avis le plus récent des deux qui est conservé, même si l'autre appareil a par ailleurs la fiche la plus à jour."
     ]}
   ];
 
@@ -2057,7 +2112,7 @@
       <div class="popup-liens">
         ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">${texteLienMaps}</a>` : ""}
         ${(r.lat != null && r.lon != null) ? `<a class="popup-maps-link" href="${urlStreetViewWeb(r.lat, r.lon)}" data-street="${r.lat},${r.lon}">🧭 Voir en Street View ↗</a>` : ""}
-        <button class="popup-gemini-btn" data-gemini="${r.id}" title="Demander à Gemini ce qu'il pense de ce restaurant">✨ Avis de Gemini</button>
+        <button class="popup-gemini-btn${avisGemini(r) ? ' dispo' : ''}" data-gemini="${r.id}" title="${avisGemini(r) ? escHtml("Avis déjà obtenu le " + dateAvisGemini(r)) : "Demander à Gemini ce qu'il pense de ce restaurant"}">${avisGemini(r) ? "✨ Avis de Gemini ✓" : "✨ Avis de Gemini"}</button>
       </div>
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
@@ -2556,6 +2611,7 @@
     body.innerHTML = tries.map(r => {
       const enEdition = editingIds.has(r.id);
       const nbPhotos = Array.isArray(r.photos) ? r.photos.length : 0;
+      const avisG = !!avisGemini(r);
       const txtHtml = enEdition
         ? `<textarea class="list-edit-input nom-input" data-field="name" rows="1" placeholder="Nom du restaurant">${escHtml(r.name || "")}</textarea>
            <textarea class="list-edit-input adr-input" data-field="address" rows="1" placeholder="Adresse">${escHtml(r.address || "")}</textarea>`
@@ -2572,7 +2628,7 @@
         </div>
         <div class="actions">
           <button class="btn-photo" data-photo="${r.id}" title="Photos de ce restaurant (prendre, choisir, voir)">${ICONE_APPAREIL_PHOTO}${nbPhotos ? `<span class="photo-nb">${nbPhotos}</span>` : ""}</button>
-          <button class="btn-gemini" data-gemini="${r.id}" title="Demander à Gemini ce qu'il pense de ce restaurant">✨ Gemini</button>
+          <button class="btn-gemini${avisG ? ' dispo' : ''}" data-gemini="${r.id}" title="${avisG ? escHtml("Avis de Gemini déjà disponible (obtenu le " + dateAvisGemini(r) + ") — appuyez pour le lire") : "Demander à Gemini ce qu'il pense de ce restaurant"}">${avisG ? "✨ Avis ✓" : "✨ Gemini"}</button>
           <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}" title="${enEdition ? "Valider les modifications de ce restaurant" : "Modifier le nom et l'adresse"}">${enEdition ? "✅ Valider" : "✏️ Modifier"}</button>
           ${enEdition ? `<button class="btn-annuler" data-cancel="${r.id}" title="Abandonner les modifications et revenir aux valeurs précédentes">✖️ Annuler</button>` : ""}
           <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
@@ -3095,7 +3151,39 @@
   let geminiRestoId = null;      // restaurant actuellement affiché dans la fenêtre
   let geminiAbort = null;        // requête en cours (abandonnée à la fermeture)
   let geminiChrono = null;       // minuteur d'affichage du temps d'attente
-  const geminiCache = new Map(); // id restaurant -> dernière réponse reçue (durée de la session)
+
+  // L'avis rendu par Gemini est enregistré DANS le restaurant (champ .gemini), donc dans
+  // restaurants.json : il part sur GitHub avec le reste et se retrouve sur tous les appareils.
+  // On ne réinterroge donc plus Gemini pour un restaurant déjà commenté, même après un
+  // rechargement de la page ou sur l'autre appareil.
+  //   { texte, sources:[{titre,url}], quand:ISO, modele, recherche }
+  function avisGemini(r){
+    return (r && r.gemini && r.gemini.texte) ? r.gemini : null;
+  }
+  function dateAvisGemini(r){
+    const a = avisGemini(r);
+    if(!a) return "";
+    const d = new Date(a.quand || 0);
+    return isNaN(d.getTime()) ? "" : d.toLocaleString("fr-FR");
+  }
+  // Conserve le plus récent de deux avis : utilisé à la fusion GitHub, pour qu'un avis obtenu
+  // sur un appareil ne soit pas perdu parce que l'AUTRE appareil avait la fiche la plus à jour.
+  function avisGeminiLePlusRecent(a, b){
+    if(!a || !a.texte) return (b && b.texte) ? b : undefined;
+    if(!b || !b.texte) return a;
+    return (new Date(b.quand || 0) > new Date(a.quand || 0)) ? b : a;
+  }
+  function enregistrerAvisGemini(r, avis){
+    if(avis) r.gemini = avis;
+    else delete r.gemini;
+    // On ne touche PAS à r.maj : demander un avis n'est pas une modification de la fiche et ne
+    // doit pas remonter le restaurant en tête de la liste triée par date de modification. La
+    // fusion GitHub traite le champ .gemini séparément (voir fusionner()).
+    sauverLocal();
+    rafraichirListe();
+    if(markers[r.id]) redessinerMarqueur(r);
+    pousserVersGithubDifféré();
+  }
 
   function cleGemini(){
     try{ return (localStorage.getItem(LS_CLE_GEMINI_KEY) || "").trim(); }catch(e){ return ""; }
@@ -3295,8 +3383,11 @@
       });
       clearInterval(geminiChrono);
       if(signal.aborted) return;
-      res.quand = new Date();
-      geminiCache.set(r.id, res);
+      res.quand = new Date().toISOString();
+      res.modele = modeleGemini();
+      res.recherche = !!recherche;
+      res.sources = (res.sources || []).slice(0, 8); // on n'alourdit pas restaurants.json inutilement
+      enregistrerAvisGemini(r, res);
       afficherReponseGemini(res);
       geminiEtat("Réponse reçue en " + Math.round((Date.now() - depart) / 1000) + " s" +
         (recherche ? " (avec recherche web)" : "") + ".");
@@ -3336,14 +3427,16 @@
     document.getElementById("geminiDemander").disabled = false;
     document.getElementById("geminiOverlay").classList.add("open");
 
-    const dejaVu = geminiCache.get(id);
+    const dejaVu = avisGemini(r);
+    document.getElementById("geminiOublier").style.display = dejaVu ? "inline-block" : "none";
     if(dejaVu){
-      // Une réponse a déjà été obtenue dans cette session : on la réaffiche telle quelle plutôt
-      // que de refaire attendre. Le bouton permet d'en redemander une nouvelle.
+      // Avis déjà enregistré (et synchronisé via GitHub) : on l'affiche tel quel, sans
+      // réinterroger Gemini. Le bouton « Redemander » permet de le rafraîchir si besoin.
       afficherReponseGemini(dejaVu);
-      geminiEtat("Réponse obtenue à " + dejaVu.quand.toLocaleTimeString("fr-FR") +
-        " — « Redemander à Gemini » pour la renouveler.");
-      document.getElementById("geminiDemander").textContent = "🔄 Redemander à Gemini";
+      geminiEtat("Avis enregistré, obtenu le " + dateAvisGemini(r) +
+        (dejaVu.modele ? " (" + dejaVu.modele + ")" : "") +
+        " — « Redemander l'avis à Gemini » pour le rafraîchir.");
+      document.getElementById("geminiDemander").textContent = "🔄 Redemander l'avis à Gemini";
     }else{
       document.getElementById("geminiDemander").textContent = "✨ Demander à Gemini";
       geminiEtat("");
@@ -3396,14 +3489,27 @@
     });
 
     document.getElementById("geminiDemander").addEventListener("click", function(){
-      document.getElementById("geminiDemander").textContent = "🔄 Redemander à Gemini";
+      document.getElementById("geminiDemander").textContent = "🔄 Redemander l'avis à Gemini";
       lancerAvisGemini();
+    });
+
+    document.getElementById("geminiOublier").addEventListener("click", function(){
+      const r = restaurants.find(x => x.id === geminiRestoId);
+      if(!r || !avisGemini(r)) return;
+      if(!confirm("Supprimer l'avis de Gemini enregistré pour « " + nomResto(r) + " » ?\n\nIl sera aussi retiré de GitHub, donc des autres appareils.")) return;
+      enregistrerAvisGemini(r, null);
+      document.getElementById("geminiReponse").innerHTML = "";
+      document.getElementById("geminiSources").innerHTML = "";
+      document.getElementById("geminiOublier").style.display = "none";
+      document.getElementById("geminiDemander").textContent = "✨ Demander à Gemini";
+      geminiEtat("Avis supprimé.");
     });
 
     document.getElementById("geminiFermer").addEventListener("click", fermerAvisGemini);
 
     document.getElementById("geminiCopier").addEventListener("click", async function(){
-      const res = geminiCache.get(geminiRestoId);
+      const r = restaurants.find(x => x.id === geminiRestoId);
+      const res = avisGemini(r);
       const texte = res ? res.texte : (document.getElementById("geminiReponse").textContent || "");
       if(!texte.trim()){ geminiEtat("Rien à copier pour l'instant.", true); return; }
       try{
@@ -4338,7 +4444,13 @@
       }else{
         const majLocal = new Date(local.maj || 0).getTime();
         const majDist = new Date(d.maj || 0).getTime();
-        if(majDist > majLocal) parId.set(d.id, d);
+        // L'avis de Gemini est fusionné à part : il n'a pas d'incidence sur "maj" (demander un
+        // avis ne modifie pas la fiche), donc la règle du dernier écrit gagnant lui ferait
+        // perdre un avis obtenu sur un appareil dont la fiche est par ailleurs plus ancienne.
+        const avis = avisGeminiLePlusRecent(local.gemini, d.gemini);
+        const gagnant = (majDist > majLocal) ? d : local;
+        if(avis) gagnant.gemini = avis; else delete gagnant.gemini;
+        parId.set(d.id, gagnant);
       }
     });
 
