@@ -270,11 +270,26 @@
     gap:8px;
     flex-direction:column;
     font-size:13px;
-    /* La page ne défilant plus (V57), ce panneau reçoit son propre défilement : sur un petit
-       écran en mode Modifier, il ne doit jamais pousser la carte et la liste hors de l'écran. */
-    flex:0 1 auto;
-    max-height:42dvh;
+    /* V69 : le paramétrage prend toute la place disponible sous l'en-tête, la carte et la liste
+       étant masquées pendant ce temps (voir body.reglages-ouverts). Auparavant, il partageait
+       l'écran avec elles et se retrouvait comprimé à un tiers de hauteur : on ne voyait jamais
+       plus de deux réglages à la fois, alors qu'on n'a précisément besoin de rien d'autre. */
+    flex:1 1 auto;
+    min-height:0;
     overflow-y:auto;
+  }
+  body.reglages-ouverts #main{display:none;}
+  /* En-tête du paramétrage : rappelle où l'on est et offre une sortie évidente. */
+  .settings-entete{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:4px;
+  }
+  .settings-entete h2{
+    margin:0;
+    flex:1 1 auto;
+    font-size:15px;
   }
   #settings.open{display:flex;}
   #settings label{
@@ -1138,6 +1153,11 @@
 <div id="statusLine"></div>
 
 <div id="settings">
+  <div class="settings-entete">
+    <h2>⚙️ Paramétrage</h2>
+    <button class="modal-fermer" id="btnFermerSettings" title="Fermer le paramétrage">✕</button>
+  </div>
+  <div class="settings-separateur">Dépôt GitHub</div>
   <div class="settings-row">
     <label>Utilisateur / organisation GitHub
       <input type="text" id="cfgOwner" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="ex. hammerinhank">
@@ -1517,7 +1537,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V68";
+  const VERSION = "V69";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1835,6 +1855,10 @@
       "Jeton GitHub : un seul appel vérifie le jeton, le nom du dépôt, le droit d'écriture et l'existence de la branche — les quatre causes d'un envoi qui échoue. Chaque cas a son explication : jeton expiré ou mal recopié, dépôt absent de la portée d'un jeton « fine-grained », dépôt en lecture seule, branche mal nommée (avec rappel de la branche par défaut du dépôt), quota d'API épuisé, autorisation SSO manquante.",
       "Clé Gemini : la liste des modèles accessibles est demandée à Google, ce qui valide la clé et vérifie du même coup que le modèle sélectionné lui est bien accessible — sinon, les modèles réellement disponibles sont énumérés.",
       "Clé Google Maps : la réponse de l'API Embed est illisible depuis la page (autre domaine), le test est donc visuel — une panoramique connue (la Tour Eiffel) est affichée, et le résultat à l'écran tranche. Les trois causes d'un écran noir sont expliquées par ordre de fréquence : API Embed non activée, facturation non activée sur le projet, ou restrictions de la clé n'autorisant pas ce site."
+    ]},
+    { v:"V69", resume:[
+      "Le paramétrage s'affiche désormais seul : la carte et la liste sont masquées tant qu'il est ouvert, et il occupe toute la page sous l'en-tête. Il partageait auparavant l'écran avec elles et se retrouvait comprimé au tiers de la hauteur — on ne voyait jamais plus de deux réglages à la fois, alors qu'on n'a précisément besoin de rien d'autre à ce moment-là.",
+      "Un titre « ⚙️ Paramétrage » et une croix de fermeture ont été ajoutés en tête de la page, et les réglages GitHub ont reçu leur intitulé de section comme les deux autres (Assistant IA, Diagnostic). Sortir du mode Modifier referme la page comme avant."
     ]}
   ];
 
@@ -4784,7 +4808,7 @@
     // En quittant le mode Modifier, on referme aussi le panneau de réglages : son bouton ⚙️
     // n'étant visible qu'en mode Modifier, le panneau resterait sinon affiché sans aucun moyen
     // de le refermer (visible seulement sur iMac : sur iPhone la page est rechargée).
-    if(!prochainEtat) document.getElementById("settings").classList.remove("open");
+    if(!prochainEtat) basculerReglages(false);
   }
 
   // Rappelle, à l'entrée du mode Modifier, que les outils s'affichent sur le restaurant choisi
@@ -5017,9 +5041,17 @@
   installerChampSecret("cfgToken", cfg.token || "");
   remplirChampsCfg();
 
-  document.getElementById("btnSettings").addEventListener("click", ()=>{
-    document.getElementById("settings").classList.toggle("open");
-  });
+  // Le paramétrage s'affiche seul : la carte et la liste sont masquées tant qu'il est ouvert.
+  function basculerReglages(ouvrir){
+    const el = document.getElementById("settings");
+    const etat = (ouvrir === undefined) ? !el.classList.contains("open") : !!ouvrir;
+    el.classList.toggle("open", etat);
+    document.body.classList.toggle("reglages-ouverts", etat);
+    if(etat) el.scrollTop = 0;
+    else recalerTailleCarte("fermeture du paramétrage");
+  }
+  document.getElementById("btnSettings").addEventListener("click", ()=> basculerReglages());
+  document.getElementById("btnFermerSettings").addEventListener("click", ()=> basculerReglages(false));
 
   // Les réglages de Gemini restent définis à un seul endroit (la fenêtre d'avis) : on ouvre
   // cette même page depuis le paramétrage plutôt que d'en dupliquer les champs.
