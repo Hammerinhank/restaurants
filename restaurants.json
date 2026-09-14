@@ -292,8 +292,8 @@
       "lon": 7.2790673,
       "name": "La Table Alziari",
       "address": "4 Rue François Zanin, 06300 Nice",
-      "liste": "Paris",
-      "maj": "2026-09-14T17:50:44.465Z"
+      "liste": "Province",
+      "maj": "2026-09-14T17:52:06.778Z"
     }
   ],
   "suppressions": [
@@ -533,5 +533,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-14T07:18:23.543Z",
-  "maj": "2026-09-14T17:51:09.044Z"
+  "maj": "2026-09-14T17:52:08.004Z"
 }
