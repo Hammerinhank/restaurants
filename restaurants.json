@@ -304,12 +304,12 @@
     },
     {
       "id": "r_mu1k681b_0c7ijj",
-      "lat": 43.57167171172703,
-      "lon": 7.104363441525453,
+      "lat": 43.5713895829738,
+      "lon": 7.10374011714674,
       "name": "Pizzagora",
       "address": "1 Rue des Îles, 06160 Antibes",
       "liste": "Province",
-      "maj": "2026-09-14T20:25:45.635Z",
+      "maj": "2026-09-14T20:25:49.589Z",
       "gemini": {
         "texte": "Pizzagora est un établissement spécialisé dans la **pizza**, proposant une cuisine italienne simple et efficace.\n\nLa fourchette de prix est **abordable à moyenne** (€ - €€), avec des pizzas généralement entre 10 et 18€.\n\n**Points forts :** Les avis récents louent la **qualité des pizzas** (pâte fine, ingrédients frais), le **service rapide et aimable**, et un **excellent rapport qualité-prix**. C'est un choix très populaire pour la **vente à emporter** et la livraison.\n\n**Points faibles :** Le principal inconvénient est le **nombre très limité de places assises** et une ambiance très simple, ce qui le rend moins adapté pour un dîner sur place. Il peut y avoir de l'attente aux heures de pointe.\n\n**Occasion :** Je le conseillerais pour un **repas rapide et décontracté**, une **soirée pizza à la maison** (à emporter ou livraison), ou un déjeuner simple. Ce n'est pas l'endroit pour une occasion spéciale ou un dîner romantique.",
         "sources": [],
@@ -564,5 +564,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-14T20:18:08.663Z",
-  "maj": "2026-09-14T20:25:46.845Z"
+  "maj": "2026-09-14T20:25:50.797Z"
 }
