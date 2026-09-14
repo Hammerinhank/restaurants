@@ -806,6 +806,88 @@
     margin:8px 0 4px;
   }
 </style>
+
+<!-- ===== Avis Gemini (V56) : styles ===== -->
+<style>
+  :root{ --gemini:#6b4fd8; }
+
+  /* Bouton « ✨ Gemini » de chaque item de la liste : volontairement TOUJOURS visible
+     (comme le bouton appareil photo), pour pouvoir demander un avis sans passer en mode
+     Modifier. Il n'est donc pas listé dans les règles qui masquent les boutons d'édition. */
+  .btn-gemini{
+    background:transparent;
+    color:var(--gemini);
+    border:1px solid var(--gemini);
+    padding:3px 7px;
+    font-size:11px;
+    line-height:1.35;
+    flex:none;
+    white-space:nowrap;
+  }
+  /* Même habillage que les liens externes du popup (Google Maps, Street View), en violet
+     pour le distinguer, et ajusté à son texte comme eux. */
+  .popup-gemini-btn{
+    display:inline-block;
+    font-size:12px;
+    font-weight:600;
+    color:var(--gemini);
+    background:transparent;
+    text-align:center;
+    padding:9px 10px;
+    border:1px solid var(--gemini);
+    border-radius:8px;
+    white-space:nowrap;
+    cursor:pointer;
+  }
+  .popup-gemini-btn:hover{background:#f4f1fd;}
+
+  .modal-box-gemini{max-width:620px;width:96vw;}
+  #geminiReglages{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:8px 10px;
+    margin:0 0 12px;
+    background:#faf8f3;
+  }
+  #geminiReglages summary{
+    cursor:pointer;
+    font-size:12px;
+    font-weight:600;
+    color:var(--muted);
+  }
+  #geminiReglages label{margin:10px 0 8px;}
+  .gemini-aide{font-size:11px;color:var(--muted);line-height:1.45;}
+  .gemini-options{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;}
+  /* .modal-box label est en colonne : on rétablit une disposition en ligne pour les cases. */
+  .modal-box label.gemini-check{
+    flex-direction:row;align-items:center;gap:6px;
+    margin:0;font-size:12px;color:var(--ink);cursor:pointer;user-select:none;
+  }
+  .gemini-check input{margin:0;cursor:pointer;}
+  .gemini-etat{
+    font-size:11.5px;color:var(--muted);min-height:15px;margin:0 0 6px;
+    font-variant-numeric:tabular-nums;
+  }
+  .gemini-etat.err{color:var(--err);}
+  .gemini-reponse{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    font-size:13px;
+    line-height:1.55;
+    white-space:pre-wrap;
+    word-break:break-word;
+    max-height:46vh;
+    overflow-y:auto;
+    margin:0 0 8px;
+  }
+  .gemini-reponse:empty{display:none;}
+  .gemini-sources{font-size:11px;color:var(--muted);line-height:1.6;margin:0 0 10px;}
+  .gemini-sources:empty{display:none;}
+  .gemini-sources a{color:var(--gemini);text-decoration:none;}
+  .gemini-sources a:hover{text-decoration:underline;}
+</style>
 </head>
 <body>
 
@@ -1027,12 +1109,65 @@
   </div>
 </div>
 
+<!-- ===== Avis Gemini (V56) ===== -->
+<div class="modal-overlay" id="geminiOverlay">
+  <div class="modal-box modal-box-gemini">
+    <h3>✨ Ce que Gemini pense de ce restaurant</h3>
+    <div class="modal-hint" id="geminiHint"></div>
+
+    <!-- Réglages propres à Gemini, placés ici (et non dans ⚙️) pour rester accessibles hors
+         mode Modifier. La clé reste sur l'appareil : elle n'est jamais envoyée sur GitHub. -->
+    <details id="geminiReglages">
+      <summary>⚙️ Clé API Gemini et modèle</summary>
+      <label>Clé API Gemini
+        <input type="password" id="geminiCle" autocomplete="off" placeholder="AIza...">
+      </label>
+      <label>Modèle
+        <select id="geminiModele">
+          <option value="gemini-2.5-flash">gemini-2.5-flash (rapide, recommandé)</option>
+          <option value="gemini-2.5-pro">gemini-2.5-pro (plus fouillé, plus lent)</option>
+          <option value="gemini-2.0-flash">gemini-2.0-flash</option>
+        </select>
+      </label>
+      <div class="gemini-aide">
+        La clé se crée gratuitement sur Google AI Studio (aistudio.google.com). Elle est
+        enregistrée sur cet appareil uniquement, au fil de la frappe, indépendamment des
+        identifiants GitHub : elle n'est jamais écrite dans restaurants.json et « Effacer les
+        identifiants » n'y touche pas. À saisir une fois sur l'iPhone et une fois sur l'iMac.
+      </div>
+    </details>
+
+    <label>Question posée à Gemini
+      <textarea id="geminiQuestion" rows="3"></textarea>
+    </label>
+    <div class="gemini-options">
+      <label class="gemini-check" title="Gemini cherche sur le web des informations et des avis récents sur cet établissement avant de répondre">
+        <input type="checkbox" id="geminiRecherche"> 🔎 Chercher sur le web
+      </label>
+      <label class="gemini-check" id="geminiPhotosWrap" title="Joint les photos déjà enregistrées pour ce restaurant (4 au maximum)">
+        <input type="checkbox" id="geminiPhotos"> 🖼️ Joindre les photos (<span id="geminiPhotosNb">0</span>)
+      </label>
+      <button class="btn-ghost btn-small" id="geminiInit" title="Revenir à la question par défaut">↺ Question par défaut</button>
+    </div>
+
+    <div class="gemini-etat" id="geminiEtat"></div>
+    <div class="gemini-reponse" id="geminiReponse"></div>
+    <div class="gemini-sources" id="geminiSources"></div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="geminiCopier">📋 Copier</button>
+      <button class="btn-primary btn-small" id="geminiDemander">✨ Demander à Gemini</button>
+      <button class="btn-ghost btn-small" id="geminiFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
   "use strict";
 
-  const VERSION = "V55";
+  const VERSION = "V56";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1272,6 +1407,14 @@
     { v:"V55", resume:[
       "Correction : plus aucune largeur n'est imposée à la bulle de la carte. Leaflet mesure lui-même son contenu et l'ajuste au plus juste (plafond de 300 px) ; les deux réglages précédents (width:auto puis width:max-content) faussaient cette mesure, d'où une bulle tantôt rétrécie à couper les mots, tantôt bien trop large avec une grande zone blanche sur la carte.",
       "Le texte des boutons reste protégé contre la coupure (white-space: nowrap) et chaque bouton garde une largeur ajustée à son texte."
+    ]},
+    { v:"V56", resume:[
+      "Nouveau : on peut demander à Gemini ce qu'il pense d'un restaurant. Un bouton « ✨ Gemini » apparaît sur chaque restaurant de la liste (toujours visible, même hors mode Modifier) et un bouton « ✨ Avis de Gemini » dans la bulle de la carte, sous les liens Google Maps et Street View.",
+      "La fenêtre qui s'ouvre envoie à Gemini le nom, l'adresse et les coordonnées du restaurant avec une question modifiable (mémorisée d'une fois sur l'autre, bouton « ↺ Question par défaut » pour la rétablir), puis affiche la réponse dans l'application : aucun passage par le presse-papier, aucune autre application à ouvrir.",
+      "Case « 🔎 Chercher sur le web » (cochée par défaut) : Gemini va chercher les avis récents avant de répondre, et les pages consultées sont listées sous la réponse. Sans elle, il répond de mémoire, donc souvent « je ne connais pas cet établissement ».",
+      "Case « 🖼️ Joindre les photos » (proposée seulement si le restaurant en a) : jusqu'à 4 photos déjà enregistrées sont envoyées avec la question (devanture, carte, plat…), avec un décompte de préparation photo par photo.",
+      "Clé API Gemini et choix du modèle (2.5-flash, 2.5-pro, 2.0-flash) directement dans cette fenêtre, sous « ⚙️ Clé API Gemini et modèle » : la clé reste sur l'appareil, n'est jamais écrite dans restaurants.json et survit à « Effacer les identifiants » — à saisir donc une fois par appareil, comme la clé Google Maps.",
+      "La dernière réponse reçue pour un restaurant est conservée le temps de la session : rouvrir la fenêtre la réaffiche aussitôt, sans nouvelle attente. Bouton « 📋 Copier » pour récupérer le texte, durée d'attente affichée en secondes, et fermer la fenêtre pendant l'attente abandonne la requête."
     ]}
   ];
 
@@ -1305,6 +1448,14 @@
   // Clé Google Maps stockée à part : elle ne concerne pas GitHub et ne doit pas disparaître
   // avec les identifiants du dépôt.
   const LS_CLE_GOOGLE_KEY = "restaurants.cleGoogleMaps.v1";
+  // Gemini (V56) : clé API, modèle, question posée et préférence de recherche web.
+  // Comme la clé Google Maps, la clé API reste strictement locale à l'appareil : elle n'entre
+  // jamais dans restaurants.json (publié sur GitHub) et n'est pas touchée par
+  // « Effacer les identifiants ».
+  const LS_CLE_GEMINI_KEY = "restaurants.cleGemini.v1";
+  const LS_MODELE_GEMINI_KEY = "restaurants.modeleGemini.v1";
+  const LS_QUESTION_GEMINI_KEY = "restaurants.questionGemini.v1";
+  const LS_RECHERCHE_GEMINI_KEY = "restaurants.rechercheGemini.v1";
   const LS_LISTES_KEY = "restaurantsListes.v1";
   const LS_LISTE_ACTUELLE_KEY = "restaurantsListeActuelle.v1";
   const LS_AFFICHER_LOG_KEY = "restaurantsAfficherLog.v1";
@@ -1569,6 +1720,18 @@
     ev.preventDefault();
     const [la, lo] = (lien.getAttribute("data-street") || "").split(",");
     ouvrirStreetView(parseFloat(la), parseFloat(lo));
+  });
+
+  // Bouton « Avis de Gemini » : un seul gestionnaire délégué pour ses deux emplacements
+  // (item de la liste latérale et bulle de la carte). Les clics à l'intérieur d'une bulle
+  // Leaflet remontent bien jusqu'à document — Leaflet n'arrête que mousedown/touchstart/
+  // dblclick/contextmenu — comme le fait déjà le lien Street View juste au-dessus.
+  document.addEventListener("click", (ev)=>{
+    const btnG = ev.target.closest ? ev.target.closest("[data-gemini]") : null;
+    if(!btnG) return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    ouvrirAvisGemini(btnG.getAttribute("data-gemini"));
   });
 
   document.getElementById("btnDebugLogCopier").addEventListener("click", async ()=>{
@@ -1894,6 +2057,7 @@
       <div class="popup-liens">
         ${lienMaps ? `<a class="popup-maps-link" href="${lienMaps}" target="_blank" rel="noopener">${texteLienMaps}</a>` : ""}
         ${(r.lat != null && r.lon != null) ? `<a class="popup-maps-link" href="${urlStreetViewWeb(r.lat, r.lon)}" data-street="${r.lat},${r.lon}">🧭 Voir en Street View ↗</a>` : ""}
+        <button class="popup-gemini-btn" data-gemini="${r.id}" title="Demander à Gemini ce qu'il pense de ce restaurant">✨ Avis de Gemini</button>
       </div>
       <div class="popup-actions">
         <span class="popup-date">${dateAff}</span>
@@ -2408,6 +2572,7 @@
         </div>
         <div class="actions">
           <button class="btn-photo" data-photo="${r.id}" title="Photos de ce restaurant (prendre, choisir, voir)">${ICONE_APPAREIL_PHOTO}${nbPhotos ? `<span class="photo-nb">${nbPhotos}</span>` : ""}</button>
+          <button class="btn-gemini" data-gemini="${r.id}" title="Demander à Gemini ce qu'il pense de ce restaurant">✨ Gemini</button>
           <button class="btn-edit${enEdition ? ' active' : ''}" data-edit="${r.id}" title="${enEdition ? "Valider les modifications de ce restaurant" : "Modifier le nom et l'adresse"}">${enEdition ? "✅ Valider" : "✏️ Modifier"}</button>
           ${enEdition ? `<button class="btn-annuler" data-cancel="${r.id}" title="Abandonner les modifications et revenir aux valeurs précédentes">✖️ Annuler</button>` : ""}
           <button class="btn-move${r.id===deplacableId ? ' active' : ''}" data-move="${r.id}">Déplacer</button>
@@ -2419,7 +2584,7 @@
     }).join("");
     body.querySelectorAll("[data-goto]").forEach(el=>{
       el.addEventListener("click",(ev)=>{
-        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.closest("[data-cancel]") || ev.target.closest("[data-photo]") || ev.target.closest(".item-liste-select") || ev.target.tagName === "INPUT") return;
+        if(ev.target.closest("[data-del]") || ev.target.closest("[data-move]") || ev.target.closest("[data-edit]") || ev.target.closest("[data-cancel]") || ev.target.closest("[data-photo]") || ev.target.closest("[data-gemini]") || ev.target.closest(".item-liste-select") || ev.target.tagName === "INPUT") return;
         definirSelection(el.getAttribute("data-goto"));
       });
     });
@@ -2912,6 +3077,354 @@
   document.getElementById("photoVisuFermer").addEventListener("click", ()=>{
     document.getElementById("photoVisuOverlay").classList.remove("open");
   });
+
+  // ==================== Avis Gemini (V56) ====================
+  // Demande à Gemini ce qu'il pense d'un restaurant. Contrairement au parcours ChatGPT/Claude
+  // d'autres applications (copier, ouvrir l'assistant, recoller la réponse), Gemini répond
+  // directement à l'application : la requête part du navigateur vers l'API Google avec la clé
+  // stockée sur l'appareil, et la réponse s'affiche dans la fenêtre.
+
+  const QUESTION_GEMINI_DEFAUT =
+    "Que penses-tu de ce restaurant ? Indique le type de cuisine, la fourchette de prix, " +
+    "les points forts et les points faibles qui ressortent des avis récents, et pour quelle " +
+    "occasion tu le conseillerais. Si tu ne connais pas cet établissement et ne trouves rien " +
+    "de fiable à son sujet, dis-le clairement plutôt que d'inventer.";
+
+  const GEMINI_MAX_PHOTOS = 4;
+
+  let geminiRestoId = null;      // restaurant actuellement affiché dans la fenêtre
+  let geminiAbort = null;        // requête en cours (abandonnée à la fermeture)
+  let geminiChrono = null;       // minuteur d'affichage du temps d'attente
+  const geminiCache = new Map(); // id restaurant -> dernière réponse reçue (durée de la session)
+
+  function cleGemini(){
+    try{ return (localStorage.getItem(LS_CLE_GEMINI_KEY) || "").trim(); }catch(e){ return ""; }
+  }
+  function modeleGemini(){
+    try{ return (localStorage.getItem(LS_MODELE_GEMINI_KEY) || "").trim() || "gemini-2.5-flash"; }
+    catch(e){ return "gemini-2.5-flash"; }
+  }
+  function questionGemini(){
+    try{ return (localStorage.getItem(LS_QUESTION_GEMINI_KEY) || "").trim() || QUESTION_GEMINI_DEFAUT; }
+    catch(e){ return QUESTION_GEMINI_DEFAUT; }
+  }
+  function rechercheGeminiActive(){
+    try{ return localStorage.getItem(LS_RECHERCHE_GEMINI_KEY) !== "0"; }catch(e){ return true; }
+  }
+
+  function geminiEtat(msg, erreur){
+    const el = document.getElementById("geminiEtat");
+    el.textContent = msg || "";
+    el.className = "gemini-etat" + (erreur ? " err" : "");
+  }
+
+  // Mise en forme légère de la réponse : Gemini répond souvent en Markdown simple. On échappe
+  // d'abord tout le HTML (la réponse vient d'un tiers), puis on ne restitue que le gras et les
+  // puces ; les retours à la ligne sont rendus par white-space:pre-wrap.
+  function formaterReponseGemini(texte){
+    let html = escHtml(texte);
+    html = html.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/^\s*#{1,6}\s*/gm, "");
+    html = html.replace(/^\s*[*-]\s+/gm, "\u2022 ");
+    return html;
+  }
+
+  function blobEnDataURL(blob){
+    return new Promise((resolve, reject)=>{
+      const fr = new FileReader();
+      fr.onload = ()=> resolve(fr.result);
+      fr.onerror = ()=> reject(new Error("lecture de l'image impossible"));
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  function decouperDataUrl(dataUrl){
+    const m = /^data:([^;,]+)[^,]*,(.*)$/.exec(dataUrl || "");
+    if(!m) throw new Error("image illisible");
+    return { mime: m[1] || "image/jpeg", base64: m[2] };
+  }
+
+  // Récupère une photo déjà enregistrée sous forme base64, pour l'envoyer à Gemini. Même
+  // stratégie que l'affichage des vignettes : URL brute du dépôt d'abord (rapide, mise en
+  // cache), repli sur l'API GitHub authentifiée ensuite (dépôt privé ou photo toute récente).
+  async function photoEnBase64(photo){
+    const enCache = photoCacheUrl.get(photo.id);
+    if(enCache && enCache.indexOf("data:") === 0) return decouperDataUrl(enCache);
+    try{
+      const res = await fetch(urlBrutePhoto(photo));
+      if(!res.ok) throw new Error("HTTP " + res.status);
+      const dataUrl = await blobEnDataURL(await res.blob());
+      photoCacheUrl.set(photo.id, dataUrl);
+      return decouperDataUrl(dataUrl);
+    }catch(e){
+      const src = await chargerPhotoViaApi(photo);
+      if(src.indexOf("data:") === 0){
+        photoCacheUrl.set(photo.id, src);
+        return decouperDataUrl(src);
+      }
+      const res2 = await fetch(src);
+      if(!res2.ok) throw new Error("HTTP " + res2.status);
+      const dataUrl2 = await blobEnDataURL(await res2.blob());
+      photoCacheUrl.set(photo.id, dataUrl2);
+      return decouperDataUrl(dataUrl2);
+    }
+  }
+
+  function construirePromptGemini(r, question){
+    const lignes = [question.trim(), "", "Restaurant concerné :", "- Nom : " + nomResto(r)];
+    if((r.address || "").trim()) lignes.push("- Adresse : " + r.address.trim());
+    if(r.lat != null && r.lon != null){
+      lignes.push("- Coordonnées GPS : " + Number(r.lat).toFixed(6) + ", " + Number(r.lon).toFixed(6));
+    }
+    lignes.push("", "Réponds en français, de façon concise (250 mots maximum).");
+    return lignes.join("\n");
+  }
+
+  // Appel de l'API Gemini (generateContent). La recherche web passe par l'outil google_search :
+  // sans elle, le modèle répond de mémoire et ignore la plupart des établissements.
+  async function appelerGemini(options){
+    const cle = cleGemini();
+    if(!cle) throw new Error("aucune clé API Gemini enregistrée sur cet appareil.");
+    const parts = [{ text: options.prompt }];
+    (options.images || []).forEach(img => parts.push({ inline_data: { mime_type: img.mime, data: img.base64 } }));
+    const corps = {
+      contents: [{ role: "user", parts: parts }],
+      generationConfig: { temperature: 0.4 }
+    };
+    if(options.recherche) corps.tools = [{ google_search: {} }];
+    const url = "https://generativelanguage.googleapis.com/v1beta/models/" +
+      encodeURIComponent(modeleGemini()) + ":generateContent?key=" + encodeURIComponent(cle);
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corps),
+      signal: options.signal
+    });
+    let data = null;
+    try{ data = await res.json(); }catch(e){ data = null; }
+    if(!res.ok){
+      const msg = (data && data.error && data.error.message) ? data.error.message : ("HTTP " + res.status);
+      throw new Error(msg);
+    }
+    const cand = (data && data.candidates && data.candidates[0]) || null;
+    const texte = (cand && cand.content && Array.isArray(cand.content.parts))
+      ? cand.content.parts.map(p => p.text || "").join("").trim()
+      : "";
+    if(!texte){
+      const motif = (data && data.promptFeedback && data.promptFeedback.blockReason)
+        || (cand && cand.finishReason) || "réponse vide";
+      throw new Error("Gemini n'a rien renvoyé (" + motif + ").");
+    }
+    const gm = (cand && cand.groundingMetadata) || null;
+    const sources = [];
+    if(gm && Array.isArray(gm.groundingChunks)){
+      gm.groundingChunks.forEach(ch => {
+        if(ch && ch.web && ch.web.uri) sources.push({ titre: ch.web.title || ch.web.uri, url: ch.web.uri });
+      });
+    }
+    return { texte: texte, sources: sources };
+  }
+
+  function afficherReponseGemini(res){
+    document.getElementById("geminiReponse").innerHTML = formaterReponseGemini(res.texte);
+    const elSrc = document.getElementById("geminiSources");
+    if(res.sources && res.sources.length){
+      elSrc.innerHTML = "Sources consultées : " + res.sources.map(sce =>
+        '<a href="' + escHtml(sce.url) + '" target="_blank" rel="noopener">' + escHtml(sce.titre) + '</a>'
+      ).join(" · ");
+    }else{
+      elSrc.innerHTML = "";
+    }
+  }
+
+  async function lancerAvisGemini(){
+    const r = restaurants.find(x => x.id === geminiRestoId);
+    if(!r) return;
+    if(!cleGemini()){
+      document.getElementById("geminiReglages").open = true;
+      geminiEtat("Renseignez d'abord votre clé API Gemini ci-dessus.", true);
+      return;
+    }
+    if(geminiAbort) geminiAbort.abort();
+    geminiAbort = new AbortController();
+    const signal = geminiAbort.signal;
+    const btn = document.getElementById("geminiDemander");
+    btn.disabled = true;
+    document.getElementById("geminiReponse").innerHTML = "";
+    document.getElementById("geminiSources").innerHTML = "";
+
+    const question = document.getElementById("geminiQuestion").value.trim() || QUESTION_GEMINI_DEFAUT;
+    const recherche = document.getElementById("geminiRecherche").checked;
+    const avecPhotos = document.getElementById("geminiPhotos").checked;
+
+    // Préparation des photos éventuelles, avec décompte de progression : chacune peut devoir
+    // être retéléchargée depuis GitHub, ce qui prend un instant en 4G.
+    const images = [];
+    if(avecPhotos){
+      const photos = photosDe(r).slice(0, GEMINI_MAX_PHOTOS);
+      for(let i = 0; i < photos.length; i++){
+        if(signal.aborted){ btn.disabled = false; return; }
+        geminiEtat("Préparation des photos : " + (i + 1) + "/" + photos.length +
+          " (" + (photos.length - i - 1) + " restante(s))…");
+        try{
+          images.push(await photoEnBase64(photos[i]));
+        }catch(e){
+          debugLog("Gemini : photo ignorée (" + e.message + ")");
+        }
+      }
+    }
+
+    const depart = Date.now();
+    const majChrono = function(){
+      geminiEtat("Interrogation de Gemini (" + modeleGemini() + ")… " +
+        Math.round((Date.now() - depart) / 1000) + " s" +
+        (images.length ? " — " + images.length + " photo(s) jointe(s)" : ""));
+    };
+    majChrono();
+    clearInterval(geminiChrono);
+    geminiChrono = setInterval(majChrono, 1000);
+
+    debugLog('Gemini : requête pour "' + nomResto(r) + '" (modèle ' + modeleGemini() +
+      ', recherche web ' + (recherche ? "activée" : "désactivée") + ', ' + images.length + ' photo(s))');
+    try{
+      const res = await appelerGemini({
+        prompt: construirePromptGemini(r, question),
+        images: images,
+        recherche: recherche,
+        signal: signal
+      });
+      clearInterval(geminiChrono);
+      if(signal.aborted) return;
+      res.quand = new Date();
+      geminiCache.set(r.id, res);
+      afficherReponseGemini(res);
+      geminiEtat("Réponse reçue en " + Math.round((Date.now() - depart) / 1000) + " s" +
+        (recherche ? " (avec recherche web)" : "") + ".");
+      debugLog("Gemini : réponse reçue (" + res.texte.length + " caractères, " + res.sources.length + " source(s))");
+    }catch(e){
+      clearInterval(geminiChrono);
+      if(e && e.name === "AbortError") return;
+      geminiEtat("Échec : " + e.message, true);
+      debugLog("Gemini : échec — " + e.message);
+    }finally{
+      btn.disabled = false;
+      geminiAbort = null;
+    }
+  }
+
+  function ouvrirAvisGemini(id){
+    const r = restaurants.find(x => x.id === id);
+    if(!r) return;
+    geminiRestoId = id;
+
+    const adr = (r.address || "").trim();
+    document.getElementById("geminiHint").textContent = nomResto(r) + (adr ? " — " + adr : "");
+    document.getElementById("geminiQuestion").value = questionGemini();
+    document.getElementById("geminiCle").value = cleGemini();
+    document.getElementById("geminiModele").value = modeleGemini();
+    document.getElementById("geminiRecherche").checked = rechercheGeminiActive();
+    document.getElementById("geminiReglages").open = !cleGemini();
+
+    const photos = photosDe(r);
+    const wrap = document.getElementById("geminiPhotosWrap");
+    wrap.style.display = photos.length ? "inline-flex" : "none";
+    document.getElementById("geminiPhotosNb").textContent = photos.length;
+    document.getElementById("geminiPhotos").checked = false;
+
+    document.getElementById("geminiReponse").innerHTML = "";
+    document.getElementById("geminiSources").innerHTML = "";
+    document.getElementById("geminiDemander").disabled = false;
+    document.getElementById("geminiOverlay").classList.add("open");
+
+    const dejaVu = geminiCache.get(id);
+    if(dejaVu){
+      // Une réponse a déjà été obtenue dans cette session : on la réaffiche telle quelle plutôt
+      // que de refaire attendre. Le bouton permet d'en redemander une nouvelle.
+      afficherReponseGemini(dejaVu);
+      geminiEtat("Réponse obtenue à " + dejaVu.quand.toLocaleTimeString("fr-FR") +
+        " — « Redemander à Gemini » pour la renouveler.");
+      document.getElementById("geminiDemander").textContent = "🔄 Redemander à Gemini";
+    }else{
+      document.getElementById("geminiDemander").textContent = "✨ Demander à Gemini";
+      geminiEtat("");
+      if(cleGemini()){
+        lancerAvisGemini();
+      }else{
+        geminiEtat("Renseignez d'abord votre clé API Gemini ci-dessus, puis appuyez sur « Demander à Gemini ».", true);
+      }
+    }
+  }
+
+  function fermerAvisGemini(){
+    // Fermer pendant une attente abandonne la requête : inutile de laisser tourner un appel
+    // dont on ne verra jamais la réponse.
+    if(geminiAbort){ geminiAbort.abort(); geminiAbort = null; }
+    clearInterval(geminiChrono);
+    document.getElementById("geminiOverlay").classList.remove("open");
+  }
+
+  (function initGemini(){
+    const champCle = document.getElementById("geminiCle");
+    champCle.addEventListener("input", function(){
+      const v = champCle.value.trim();
+      try{
+        if(v) localStorage.setItem(LS_CLE_GEMINI_KEY, v);
+        else localStorage.removeItem(LS_CLE_GEMINI_KEY);
+      }catch(e){}
+      if(v) geminiEtat("Clé enregistrée sur cet appareil. Appuyez sur « Demander à Gemini ».");
+    });
+
+    const champModele = document.getElementById("geminiModele");
+    champModele.addEventListener("change", function(){
+      try{ localStorage.setItem(LS_MODELE_GEMINI_KEY, champModele.value); }catch(e){}
+    });
+
+    const champQuestion = document.getElementById("geminiQuestion");
+    champQuestion.addEventListener("input", function(){
+      try{ localStorage.setItem(LS_QUESTION_GEMINI_KEY, champQuestion.value); }catch(e){}
+    });
+
+    const caseRecherche = document.getElementById("geminiRecherche");
+    caseRecherche.addEventListener("change", function(){
+      try{ localStorage.setItem(LS_RECHERCHE_GEMINI_KEY, caseRecherche.checked ? "1" : "0"); }catch(e){}
+    });
+
+    document.getElementById("geminiInit").addEventListener("click", function(){
+      champQuestion.value = QUESTION_GEMINI_DEFAUT;
+      try{ localStorage.removeItem(LS_QUESTION_GEMINI_KEY); }catch(e){}
+      geminiEtat("Question par défaut rétablie.");
+    });
+
+    document.getElementById("geminiDemander").addEventListener("click", function(){
+      document.getElementById("geminiDemander").textContent = "🔄 Redemander à Gemini";
+      lancerAvisGemini();
+    });
+
+    document.getElementById("geminiFermer").addEventListener("click", fermerAvisGemini);
+
+    document.getElementById("geminiCopier").addEventListener("click", async function(){
+      const res = geminiCache.get(geminiRestoId);
+      const texte = res ? res.texte : (document.getElementById("geminiReponse").textContent || "");
+      if(!texte.trim()){ geminiEtat("Rien à copier pour l'instant.", true); return; }
+      try{
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          await navigator.clipboard.writeText(texte);
+        }else{
+          const ta = document.createElement("textarea");
+          ta.value = texte;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.focus(); ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+        geminiEtat("Réponse copiée dans le presse-papier.");
+      }catch(e){
+        geminiEtat("Copie impossible : " + e.message, true);
+      }
+    });
+  })();
 
   function toutRedessiner(){
     Object.keys(markers).forEach(supprimerMarqueur);
