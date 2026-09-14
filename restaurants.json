@@ -7,7 +7,14 @@
       "name": "Le Mûrier",
       "address": "42 Rue Olivier de Serres, 75015 Paris",
       "maj": "2026-08-04T16:31:32.173Z",
-      "liste": "Paris"
+      "liste": "Paris",
+      "gemini": {
+        "texte": "D'après les informations dont je dispose, le restaurant **Le Mûrier** situé au 42 Rue Olivier de Serres, 75015 Paris, est malheureusement **fermé définitivement**.\n\nPar conséquent, je ne peux pas te fournir d'avis récents, de fourchette de prix actuelle, ni de points forts ou faibles pertinents pour cet établissement. Toute information que je pourrais te donner serait obsolète ou inventée, ce qui irait à l'encontre de ta demande.",
+        "sources": [],
+        "quand": "2026-09-14T07:10:58.572Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_msbmjdea_1bfbfc",
@@ -475,5 +482,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T07:10:04.357Z"
+  "maj": "2026-09-14T07:10:59.788Z"
 }
