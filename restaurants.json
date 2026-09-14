@@ -59,7 +59,15 @@
       "name": "Giocco",
       "address": "25 Av. de Ségur, 75007 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T09:25:18.859Z"
+      "maj": "2026-08-04T09:25:18.859Z",
+      "photos": [],
+      "gemini": {
+        "texte": "Oui, je connais le restaurant Giocco.\n\n*   **Type de cuisine :** Il s'agit d'un restaurant **italien** proposant une cuisine authentique et raffinée, mettant l'accent sur des produits frais et de qualité.\n*   **Fourchette de prix :** La fourchette de prix se situe dans le **moyen-haut de gamme (€€€)**. Comptez environ 40-60€ par personne pour un plat, boisson et potentiellement entrée/dessert.\n*   **Points forts (selon les avis récents) :**\n    *   L'excellence et l'authenticité des plats, notamment les pâtes fraîches et les spécialités à la truffe.\n    *   La qualité des produits utilisés.\n    *   Le service attentionné, efficace et chaleureux.\n    *   Le cadre élégant, intime et l'ambiance agréable.\n*   **Points faibles (selon les avis récents) :**\n    *   Certains avis mentionnent un niveau sonore parfois élevé lorsque le restaurant est plein.\n    *   Les prix, bien que souvent justifiés par la qualité, peuvent être considérés comme un peu élevés par certains.\n*   **Occasion conseillée :** Je le conseillerais pour un **dîner en couple (romantique)**, un **repas entre amis** appréciant la bonne cuisine italienne, ou un **déjeuner/dîner d'affaires informel**. C'est une excellente adresse pour une occasion spéciale sans être trop formelle.",
+        "sources": [],
+        "quand": "2026-09-14T07:05:52.756Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_mseimj9d_rkw2l3",
@@ -446,5 +454,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T07:05:09.373Z"
+  "maj": "2026-09-14T07:05:53.960Z"
 }
