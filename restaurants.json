@@ -16,7 +16,14 @@
       "name": "Les Belles Plantes",
       "address": "Cour Cuvier, 75005 Paris",
       "maj": "2026-08-04T16:31:34.317Z",
-      "liste": "Paris"
+      "liste": "Paris",
+      "gemini": {
+        "texte": "Oui, je connais ce restaurant.\n\n*   **Type de cuisine :** Brasserie française, avec des plats classiques de bistrot, salades, quiches et sandwichs.\n*   **Fourchette de prix :** Modérée. Comptez environ 25-40€ par personne pour un repas complet (plat, dessert, boisson simple).\n*   **Points forts (selon les avis récents) :**\n    *   **Cadre exceptionnel :** Situé au cœur du Jardin des Plantes, avec une agréable terrasse, il offre un environnement calme et verdoyant.\n    *   **Idéal pour une pause :** Parfait pour se restaurer ou prendre un verre lors d'une visite du jardin ou du Muséum national d'Histoire naturelle.\n*   **Points faibles (selon les avis récents) :**\n    *   **Service :** Parfois jugé lent ou inattentif, surtout en période d'affluence.\n    *   **Qualité de la cuisine :** Souvent décrite comme correcte mais sans grande originalité, pouvant être un peu chère pour ce qui est proposé.\n*   **Occasion conseillée :** Je le conseillerais pour un déjeuner ou un goûter décontracté en famille ou entre amis, lors d'une visite du Jardin des Plantes ou des musées alentour. C'est une bonne option pour profiter du cadre par beau temps, plutôt que pour une expérience gastronomique recherchée.",
+        "sources": [],
+        "quand": "2026-09-14T07:09:23.881Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_msca73zb_ktn8bf",
@@ -461,5 +468,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T07:08:53.353Z"
+  "maj": "2026-09-14T07:09:25.095Z"
 }
