@@ -98,8 +98,17 @@
     border:1px solid var(--line);
   }
   #btnSettings{display:none;}
-  /* Toujours repoussée à l'extrême droite de sa rangée (cf. la règle d'ordre en petite largeur). */
-  body.mode-modif #btnSettings{display:inline-block;margin-left:auto;order:99;}
+  /* Toujours repoussée à l'extrême droite de sa rangée. L'ordre, lui, dépend de la largeur :
+     en fin d'en-tête sur grand écran (une seule rangée), et sur la rangée du titre en petite
+     largeur — voir les deux requêtes média ci-dessous. Elles emploient le même sélecteur
+     « body.mode-modif #btnSettings » que cette règle : à spécificité égale, c'est bien la règle
+     de la requête média active qui l'emporte. Avec un simple « #btnSettings », l'ordre défini
+     en petite largeur était au contraire écrasé par celui-ci, et la roue repartait seule sur une
+     troisième rangée. */
+  body.mode-modif #btnSettings{display:inline-block;margin-left:auto;}
+  @media (min-width:721px){
+    body.mode-modif #btnSettings{order:99;}
+  }
   /* « Nouveau restaurant » est masqué en mode Modifier : on crée une fiche en mode normal, où le
      bouton est en permanence disponible ; le mode Modifier ne sert qu'à retoucher l'existant. */
   body.mode-modif #btnNouveau{display:none;}
@@ -583,7 +592,7 @@
        titre et du numéro de version — l'endroit où l'œil va chercher un réglage, même si ce
        n'est pas la place habituelle d'un bouton de mode. Elle n'apparaît qu'en mode Modifier,
        cette rangée reste donc inchangée le reste du temps. */
-    #btnSettings{order:3;margin-left:auto;}
+    body.mode-modif #btnSettings{order:3;}
     .hbreak{display:block;flex-basis:100%;height:0;}
     #hbreak1{order:4;}
     #btnModifier{order:5;}
@@ -1420,7 +1429,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V64";
+  const VERSION = "V65";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1715,6 +1724,10 @@
     { v:"V64", resume:[
       "La roue dentée du paramétrage passe sur la toute première rangée de l'en-tête, à l'extrême droite, en face du titre et du numéro de version. Elle n'apparaît toujours qu'en mode Modifier : cette rangée reste donc strictement inchangée le reste du temps.",
       "La rangée des boutons de modification n'en est que plus lisible : « Valider et terminer » et « Tout annuler » s'y retrouvent seuls."
+    ]},
+    { v:"V65", resume:[
+      "Correction de la V64 : la roue dentée repartait en fait sur une troisième rangée, seule. En cause, la règle qui la rend visible en mode Modifier, plus spécifique que celle qui fixait sa place : elle écrasait l'ordre voulu. Les deux emploient désormais le même sélecteur, et la roue s'affiche bien à l'extrême droite de la rangée du titre et de la version.",
+      "L'en-tête du mode Modifier tient donc enfin sur deux rangées : titre, version et roue dentée sur la première, « Valider et terminer » et « Tout annuler » sur la seconde."
     ]}
   ];
 
