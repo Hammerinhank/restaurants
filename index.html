@@ -428,10 +428,13 @@
   }
   /* Combo box "liste actuelle" + bouton "Nouvelle liste", affichés uniquement en mode Modifier,
      à la place du titre "Liste (N)". */
+  /* V66 : la combo et son bouton sont sur la MÊME ligne (la combo prend la place restante),
+     au lieu d'être empilés — une rangée de gagnée en haut de la liste. */
   #listeHeaderCombo{
     display:none;
-    flex-direction:column;
-    gap:6px;
+    flex-direction:row;
+    align-items:center;
+    gap:8px;
     padding:10px 12px 8px;
     border-bottom:1px solid var(--line);
   }
@@ -444,12 +447,35 @@
     border:1px solid var(--line);
     border-radius:7px;
     background:#fff;
+    flex:1 1 auto;
+    min-width:0;
   }
   #listeHeaderCombo .btn-ghost{
-    align-self:flex-start;
+    flex:0 0 auto;
     font-size:12px;
-    padding:6px 10px;
+    padding:7px 10px;
+    white-space:nowrap;
   }
+
+  /* Fenêtre de gestion des listes (V66). */
+  .liste-ligne{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    padding:8px 0;
+    border-top:1px solid var(--line);
+  }
+  .liste-ligne .liste-nom{flex:1 1 auto;min-width:0;font-size:13.5px;font-weight:600;}
+  .liste-ligne .liste-nb{display:block;font-size:11px;font-weight:400;color:var(--muted);}
+  .liste-ligne .liste-actions{flex:0 0 auto;display:flex;gap:6px;}
+  .liste-ligne .liste-actions button{font-size:12px;padding:5px 9px;}
+  .liste-ligne.actuelle .liste-nom::after{
+    content:" — liste affichée";
+    font-size:11px;
+    font-weight:400;
+    color:var(--accent);
+  }
+  .liste-defaut{color:var(--muted);font-style:italic;}
   /* Combo box "liste" de chaque item, affichée uniquement en mode Modifier. */
   .item-liste-row{
     display:none;
@@ -1140,7 +1166,7 @@
     <h2 id="listeTitreH2" title="Cliquer pour changer de liste">Liste (<span id="countLbl">0</span>) <span id="listeNomLbl"></span><select id="selectListeInline"></select> <span id="listeTriLbl"></span></h2>
     <div id="listeHeaderCombo">
       <select id="selectListeActuelle" title="Liste affichée"></select>
-      <button class="btn-ghost" id="btnNouvelleListe">+ Nouvelle liste</button>
+      <button class="btn-ghost" id="btnNouvelleListe" title="Créer une liste, en renommer ou en supprimer une">🗂 Listes…</button>
     </div>
     <div id="listBody"></div>
   </div>
@@ -1300,6 +1326,33 @@
   </div>
 </div>
 
+<!-- ===== Gestion des listes (V66) =====
+     L'ancien bouton « + Nouvelle liste » ne savait que créer, via une boîte de saisie du
+     navigateur : une liste mal nommée était là pour toujours. -->
+<div class="modal-overlay" id="listesOverlay">
+  <div class="modal-box modal-box-gemini">
+    <div class="gemini-entete">
+      <h3>🗂 Listes</h3>
+      <button class="modal-fermer" id="listesFermerHaut" title="Fermer">✕</button>
+    </div>
+    <div class="modal-hint">Créer une liste, en renommer ou en supprimer une.</div>
+
+    <label>Nom de la nouvelle liste
+      <input type="text" id="listeNouveauNom" autocomplete="off" placeholder="ex. : Lyon, Coups de cœur, À essayer…">
+    </label>
+    <div class="gemini-options">
+      <button class="btn-primary btn-small" id="btnListeCreer">+ Créer cette liste</button>
+    </div>
+
+    <div id="listesTable"></div>
+    <div class="gemini-etat" id="listesEtat"></div>
+
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="listesFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Nouveau restaurant (V62) =====
      Deux façons de créer une fiche, réunies là où on les cherche. La seconde remplace l'ancien
      bouton « 📋 Depuis presse-papier » de l'en-tête, dont l'intitulé ne disait ni ce qu'il
@@ -1429,7 +1482,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V65";
+  const VERSION = "V66";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1728,6 +1781,13 @@
     { v:"V65", resume:[
       "Correction de la V64 : la roue dentée repartait en fait sur une troisième rangée, seule. En cause, la règle qui la rend visible en mode Modifier, plus spécifique que celle qui fixait sa place : elle écrasait l'ordre voulu. Les deux emploient désormais le même sélecteur, et la roue s'affiche bien à l'extrême droite de la rangée du titre et de la version.",
       "L'en-tête du mode Modifier tient donc enfin sur deux rangées : titre, version et roue dentée sur la première, « Valider et terminer » et « Tout annuler » sur la seconde."
+    ]},
+    { v:"V66", resume:[
+      "En mode Modifier, le bouton des listes est passé à droite de la combo de sélection, sur la même ligne (la combo prend la place restante) : une rangée de gagnée en haut de la liste.",
+      "Ce bouton ouvre désormais une vraie fenêtre de gestion des listes, au lieu de la simple boîte de saisie du navigateur qui ne savait que créer — une liste mal nommée était là pour toujours.",
+      "On y crée une liste (elle devient aussitôt la liste affichée, prête à recevoir les restaurants suivants), et on voit toutes les listes existantes avec le nombre de restaurants de chacune, celle affichée étant signalée.",
+      "Chaque liste peut être renommée (✏️) ou supprimée (🗑). Renommer réécrit la liste d'appartenance de tous ses restaurants, qui la suivent donc. Supprimer ne perd rien : les restaurants concernés sont rangés dans la liste par défaut, et la fenêtre de confirmation annonce combien ils sont.",
+      "La liste par défaut (sans nom) ne peut être ni renommée ni supprimée : elle sert de point de chute aux restaurants dont la liste disparaît."
     ]}
   ];
 
@@ -5162,17 +5222,123 @@
     toutRedessiner();
     pousserVersGithubDifféré();
   });
-  document.getElementById("btnNouvelleListe").addEventListener("click", ()=>{
-    const saisie = prompt("Nom de la nouvelle liste :");
-    if(saisie === null) return; // annulé
-    const nom = saisie.trim();
-    ajouterListe(nom);
-    listeActuelle = nom;
-    listeActuelleMaj = new Date().toISOString();
+  // ---------- Gestion des listes (V66) ----------
+  // Créer, renommer, supprimer. Les restaurants portent le NOM de leur liste (champ .liste) :
+  // renommer une liste revient donc à réécrire ce champ sur chacun d'eux, et supprimer une liste
+  // à les renvoyer vers la liste par défaut plutôt qu'à les perdre. Chaque restaurant touché voit
+  // sa date de modification mise à jour, ce qui fait gagner l'opération à la fusion GitHub.
+
+  function nbRestaurantsDeListe(nom){
+    return restaurants.filter(r => (r.liste || "") === nom).length;
+  }
+  function listesEtat(msg, erreur){
+    const el = document.getElementById("listesEtat");
+    el.textContent = msg || "";
+    el.className = "gemini-etat" + (erreur ? " err" : "");
+  }
+  function appliquerChangementListes(){
+    sauverListes();
+    sauverLocal();
     sauverListeActuelle();
     remplirSelectListeActuelle();
     toutRedessiner();
     pousserVersGithubDifféré();
+    dessinerTableListes();
+  }
+
+  function dessinerTableListes(){
+    const el = document.getElementById("listesTable");
+    el.innerHTML = listes.map(nom => {
+      const nb = nbRestaurantsDeListe(nom);
+      const libelle = nom === ""
+        ? '<span class="liste-defaut">(sans nom) — liste par défaut</span>'
+        : escHtml(nom);
+      const compte = nb === 0 ? "aucun restaurant" : (nb === 1 ? "1 restaurant" : nb + " restaurants");
+      // La liste par défaut ne peut être ni renommée ni supprimée : elle est le point de chute
+      // des restaurants dont la liste disparaît, il faut donc qu'elle existe toujours.
+      const boutons = nom === "" ? "" : `
+          <div class="liste-actions">
+            <button class="btn-ghost btn-small" data-renommer="${escHtml(nom)}" title="Renommer cette liste">✏️</button>
+            <button class="btn-ghost btn-small" data-supprimerliste="${escHtml(nom)}" title="Supprimer cette liste">🗑</button>
+          </div>`;
+      return `
+        <div class="liste-ligne${nom === listeActuelle ? " actuelle" : ""}">
+          <div class="liste-nom">${libelle}<span class="liste-nb">${compte}</span></div>${boutons}
+        </div>`;
+    }).join("");
+
+    el.querySelectorAll("[data-renommer]").forEach(b =>
+      b.addEventListener("click", ()=> renommerListe(b.getAttribute("data-renommer"))));
+    el.querySelectorAll("[data-supprimerliste]").forEach(b =>
+      b.addEventListener("click", ()=> supprimerListe(b.getAttribute("data-supprimerliste"))));
+  }
+
+  function creerListe(){
+    const champ = document.getElementById("listeNouveauNom");
+    const nom = champ.value.trim();
+    if(!nom){ listesEtat("Donnez d'abord un nom à la nouvelle liste.", true); return; }
+    if(listes.includes(nom)){ listesEtat("Une liste porte déjà ce nom.", true); return; }
+    listes.push(nom);
+    listeActuelle = nom;
+    listeActuelleMaj = new Date().toISOString();
+    champ.value = "";
+    appliquerChangementListes();
+    listesEtat("Liste « " + nom + " » créée, et affichée dès maintenant : les restaurants que vous créerez y seront rangés.");
+  }
+
+  function renommerListe(ancien){
+    const saisie = prompt("Nouveau nom de la liste « " + ancien + " » :", ancien);
+    if(saisie === null) return;
+    const nouveau = saisie.trim();
+    if(!nouveau){ listesEtat("Le nom ne peut pas être vide.", true); return; }
+    if(nouveau === ancien) return;
+    if(listes.includes(nouveau)){ listesEtat("Une liste porte déjà le nom « " + nouveau + " ».", true); return; }
+    const maintenant = new Date().toISOString();
+    let touches = 0;
+    restaurants.forEach(r => {
+      if((r.liste || "") === ancien){ r.liste = nouveau; r.maj = maintenant; touches++; }
+    });
+    listes = listes.map(n => n === ancien ? nouveau : n);
+    if(listeActuelle === ancien){ listeActuelle = nouveau; listeActuelleMaj = maintenant; }
+    appliquerChangementListes();
+    listesEtat("Liste renommée en « " + nouveau + " »" +
+      (touches ? " (" + touches + " restaurant(s) suivis)." : "."));
+  }
+
+  function supprimerListe(nom){
+    const nb = nbRestaurantsDeListe(nom);
+    const message = nb
+      ? "Supprimer la liste « " + nom + " » ?\n\nSes " + nb + " restaurant(s) ne seront pas perdus : ils seront rangés dans la liste par défaut (sans nom)."
+      : "Supprimer la liste « " + nom + " » ? Elle ne contient aucun restaurant.";
+    if(!confirm(message)) return;
+    const maintenant = new Date().toISOString();
+    restaurants.forEach(r => {
+      if((r.liste || "") === nom){ r.liste = ""; r.maj = maintenant; }
+    });
+    listes = listes.filter(n => n !== nom);
+    if(!listes.includes("")) listes.unshift("");
+    if(listeActuelle === nom){ listeActuelle = ""; listeActuelleMaj = maintenant; }
+    appliquerChangementListes();
+    listesEtat("Liste « " + nom + " » supprimée" +
+      (nb ? " ; " + nb + " restaurant(s) déplacé(s) vers la liste par défaut." : "."));
+  }
+
+  function ouvrirGestionListes(){
+    document.getElementById("listeNouveauNom").value = "";
+    listesEtat("");
+    dessinerTableListes();
+    document.getElementById("listesOverlay").classList.add("open");
+  }
+  function fermerGestionListes(){
+    document.getElementById("listesOverlay").classList.remove("open");
+  }
+
+  document.getElementById("btnNouvelleListe").addEventListener("click", ouvrirGestionListes);
+  document.getElementById("listesFermer").addEventListener("click", fermerGestionListes);
+  document.getElementById("listesFermerHaut").addEventListener("click", fermerGestionListes);
+  document.getElementById("btnListeCreer").addEventListener("click", creerListe);
+  document.getElementById("listeNouveauNom").addEventListener("keydown", (ev)=>{
+    if(ev.key === "Enter"){ ev.preventDefault(); creerListe(); }
   });
 
   // ---------- Sélecteur rapide de liste (clic sur la ligne "Liste (N) nom") ----------
