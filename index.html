@@ -98,7 +98,8 @@
     border:1px solid var(--line);
   }
   #btnSettings{display:none;}
-  body.mode-modif #btnSettings{display:inline-block;}
+  /* Toujours repoussée à l'extrême droite de sa rangée (cf. la règle d'ordre en petite largeur). */
+  body.mode-modif #btnSettings{display:inline-block;margin-left:auto;order:99;}
   /* « Nouveau restaurant » est masqué en mode Modifier : on crée une fiche en mode normal, où le
      bouton est en permanence disponible ; le mode Modifier ne sert qu'à retoucher l'existant. */
   body.mode-modif #btnNouveau{display:none;}
@@ -578,13 +579,17 @@
          paramétrage et le parcours "Nouveau restaurant". */
     header h1{order:1;}
     #versionBadge{order:2;}
+    /* V64 : la roue dentée rejoint la toute première rangée, à l'extrême droite, en face du
+       titre et du numéro de version — l'endroit où l'œil va chercher un réglage, même si ce
+       n'est pas la place habituelle d'un bouton de mode. Elle n'apparaît qu'en mode Modifier,
+       cette rangée reste donc inchangée le reste du temps. */
+    #btnSettings{order:3;margin-left:auto;}
     .hbreak{display:block;flex-basis:100%;height:0;}
-    #hbreak1{order:3;}
-    #btnModifier{order:4;}
-    #btnAnnulerTout{order:5;}
-    header .spacer{order:6;}
-    #btnNouveau{order:7;}
-    #btnSettings{order:8;}
+    #hbreak1{order:4;}
+    #btnModifier{order:5;}
+    #btnAnnulerTout{order:6;}
+    header .spacer{order:7;}
+    #btnNouveau{order:8;}
     #hbreak2{display:none;}  /* plus de troisième rangée à ouvrir */
   }
 
@@ -935,6 +940,22 @@
   /* --- V58 : la fenêtre d'avis ne montre plus que l'avis ------------------------------- */
   /* Ligne de titre avec la roue dentée à droite : tous les réglages techniques (clé, modèle,
      question, options) sont partis derrière elle, dans une page de paramétrage séparée. */
+  /* V63 : croix de fermeture en haut à droite, doublant le bouton « Fermer » du bas — sur
+     iPhone, celui-ci se retrouve loin du pouce dès que la fenêtre est un peu haute. */
+  .modal-fermer{
+    flex:0 0 auto;
+    background:transparent;
+    border:1px solid var(--line);
+    border-radius:9px;
+    width:30px;
+    height:30px;
+    padding:0;
+    font-size:15px;
+    line-height:1;
+    color:var(--muted);
+    cursor:pointer;
+  }
+  .modal-fermer:hover{background:#f2efe9;color:var(--ink);}
   .gemini-entete{display:flex;align-items:center;gap:8px;margin:0 0 4px;}
   .gemini-entete h3{margin:0;flex:1 1 auto;}
   .gemini-roue{
@@ -1276,7 +1297,10 @@
      attendait, ni ce qu'il allait en faire. -->
 <div class="modal-overlay" id="nouveauOverlay">
   <div class="modal-box modal-box-gemini">
-    <h3>📍 Nouveau restaurant</h3>
+    <div class="gemini-entete">
+      <h3>📍 Nouveau restaurant</h3>
+      <button class="modal-fermer" id="btnNouveauFermerHaut" title="Fermer">✕</button>
+    </div>
     <div class="modal-hint">Deux façons de créer une fiche.</div>
 
     <button class="btn-primary" id="btnNouveauIci" style="width:100%;padding:12px;font-size:15px;">📍 À ma position actuelle</button>
@@ -1317,6 +1341,7 @@
     <div class="gemini-entete">
       <h3>✨ Avis de Gemini</h3>
       <button class="gemini-roue" id="geminiParams" title="Réglages : clé API, modèle, question posée, options">⚙️</button>
+      <button class="modal-fermer" id="geminiFermerHaut" title="Fermer">✕</button>
     </div>
     <div class="modal-hint" id="geminiHint"></div>
 
@@ -1344,7 +1369,10 @@
      prochaine demande d'avis. -->
 <div class="modal-overlay" id="geminiParamsOverlay">
   <div class="modal-box modal-box-gemini">
-    <h3>⚙️ Réglages de Gemini</h3>
+    <div class="gemini-entete">
+      <h3>⚙️ Réglages de Gemini</h3>
+      <button class="modal-fermer" id="geminiParamsFermerHaut" title="Fermer">✕</button>
+    </div>
     <div class="modal-hint">Ces réglages s'appliquent à la prochaine demande d'avis.</div>
 
     <label>Clé API Gemini
@@ -1392,7 +1420,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V62";
+  const VERSION = "V64";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1679,6 +1707,14 @@
       "Le paramétrage est passé derrière une simple roue dentée ⚙️ : identifiants GitHub et clé Google Maps comme avant, plus deux sections rapatriées de l'en-tête — « Assistant IA » (accès aux réglages de Gemini, définis à un seul endroit et non dupliqués) et « Diagnostic » (bouton Test et case du journal de debug). Modifier un restaurant et paramétrer l'application sont deux intentions différentes.",
       "L'ancien bouton « 📋 Depuis presse-papier », dont l'intitulé ne disait ni ce qu'il attendait ni ce qu'il allait en faire, est remplacé par une section dépliable dans le parcours « Nouveau restaurant », qui propose désormais les deux façons de créer une fiche : à la position actuelle (inchangé, toujours en un seul appui) ou depuis un texte collé.",
       "Cette section explique ce qu'elle sait reconnaître (adresse, fiche Google Maps copiée, message reçu…) et ce qu'elle en fera, et offre une zone de texte qu'on peut relire et corriger avant de lancer la recherche. Le presse-papier y est lu automatiquement au dépliage de la section, et un bouton « 📋 Coller le presse-papier » permet de le redemander ; si Safari refuse la lecture — ce qu'il fait souvent — la zone rappelle qu'un appui long suivi de « Coller » fonctionne toujours, lui."
+    ]},
+    { v:"V63", resume:[
+      "Croix de fermeture ✕ en haut à droite de la fenêtre « Nouveau restaurant », doublant le bouton « Fermer » du bas : dès que la section « Depuis un texte collé » est dépliée, celui-ci se retrouve loin du pouce.",
+      "Même croix ajoutée sur la fenêtre d'avis de Gemini (à droite de la roue dentée) et sur sa page de réglages, pour que toutes les fenêtres se ferment de la même façon."
+    ]},
+    { v:"V64", resume:[
+      "La roue dentée du paramétrage passe sur la toute première rangée de l'en-tête, à l'extrême droite, en face du titre et du numéro de version. Elle n'apparaît toujours qu'en mode Modifier : cette rangée reste donc strictement inchangée le reste du temps.",
+      "La rangée des boutons de modification n'en est que plus lisible : « Valider et terminer » et « Tout annuler » s'y retrouvent seuls."
     ]}
   ];
 
@@ -3956,6 +3992,8 @@
     });
 
     document.getElementById("geminiFermer").addEventListener("click", fermerAvisGemini);
+    document.getElementById("geminiFermerHaut").addEventListener("click", fermerAvisGemini);
+    document.getElementById("geminiParamsFermerHaut").addEventListener("click", fermerParamsGemini);
 
     document.getElementById("geminiCopier").addEventListener("click", async function(){
       const r = restaurants.find(x => x.id === geminiRestoId);
@@ -4754,6 +4792,7 @@
 
   document.getElementById("btnNouveau").addEventListener("click", ouvrirNouveauRestaurant);
   document.getElementById("btnNouveauFermer").addEventListener("click", fermerNouveauRestaurant);
+  document.getElementById("btnNouveauFermerHaut").addEventListener("click", fermerNouveauRestaurant);
 
   document.getElementById("btnNouveauIci").addEventListener("click", ()=>{
     fermerNouveauRestaurant();
