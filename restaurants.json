@@ -249,7 +249,14 @@
       "name": "Restaurant Émile",
       "address": "Place Saint-Georges, 31000 Toulouse",
       "liste": "Province",
-      "maj": "2026-09-05T05:57:48.257Z"
+      "maj": "2026-09-05T05:57:48.257Z",
+      "gemini": {
+        "texte": "Le Restaurant Émile, situé Place Saint-Georges à Toulouse, est une institution reconnue pour sa cuisine du Sud-Ouest.\n\n*   **Type de cuisine :** Cuisine française traditionnelle, avec une forte emphase sur les spécialités régionales du Sud-Ouest, notamment l'incontournable cassoulet toulousain.\n*   **Fourchette de prix :** Moyenne à supérieure. Comptez environ 35-60€ par personne pour un repas complet (entrée, plat, dessert), hors boissons.\n*   **Points forts :**\n    *   Le fameux cassoulet, souvent cité comme l'un des meilleurs de la ville.\n    *   L'emplacement privilégié sur la Place Saint-Georges, offrant un cadre agréable et animé.\n    *   La qualité des produits et le respect des recettes traditionnelles.\n    *   Un service généralement professionnel et attentif.\n    *   L'ambiance classique et chaleureuse.\n*   **Points faibles :**\n    *   Les prix peuvent être considérés comme élevés par certains, même si la qualité est au rendez-vous.\n    *   Le restaurant peut être très fréquenté et bruyant, surtout aux heures de pointe.\n    *   Les options pour les végétariens sont limitées, comme souvent dans ce type de cuisine.\n*   **Occasion conseillée :** Idéal pour découvrir la gastronomie toulousaine authentique, un repas d'affaires, un dîner en famille ou entre amis cherchant une expérience culinaire traditionnelle et de qualité.",
+        "sources": [],
+        "quand": "2026-09-14T07:17:16.880Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     }
   ],
   "suppressions": [
@@ -489,5 +496,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-14T07:15:53.659Z",
-  "maj": "2026-09-14T07:16:08.232Z"
+  "maj": "2026-09-14T07:17:18.091Z"
 }
