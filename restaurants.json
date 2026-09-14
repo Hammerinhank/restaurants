@@ -163,7 +163,14 @@
       "name": "Aux terrasses",
       "address": "18 Av. du 23 Janvier, 71700 Tournus",
       "liste": "Province",
-      "maj": "2026-08-04T12:41:32.793Z"
+      "maj": "2026-08-04T12:41:32.793Z",
+      "gemini": {
+        "texte": "J'ai trouvé des informations fiables sur l'**Hôtel Restaurant Aux Terrasses** à Tournus.\n\n*   **Type de cuisine :** Cuisine française traditionnelle et régionale. Le restaurant met en avant des plats classiques, des salades, et parfois des options comme des burgers, préparés avec des produits frais.\n*   **Fourchette de prix :** Moyenne gamme (€€ à €€€). Comptez environ 25-40€ pour un repas complet (plat + boisson/dessert), avec des menus souvent proposés à des prix raisonnables.\n*   **Points forts :**\n    *   La grande et agréable **terrasse**, très appréciée par beau temps.\n    *   L'accueil et le service, souvent décrits comme **chaleureux et efficaces**.\n    *   La qualité et la générosité des plats, avec un **bon rapport qualité-prix**.\n    *   La situation, proche de la Saône.\n*   **Points faibles :**\n    *   Peu de points faibles majeurs ressortent. Certains pourraient trouver la décoration intérieure un peu classique ou le menu manquant d'originalité pour les palais très aventureux, mais cela reste subjectif.\n*   **Occasion conseillée :** Je le conseillerais pour un repas décontracté en famille ou entre amis, un déjeuner d'affaires informel, ou pour les touristes de passage souhaitant découvrir une cuisine locale simple et efficace dans un cadre agréable, surtout en été pour profiter de la terrasse.",
+        "sources": [],
+        "quand": "2026-09-14T07:16:07.022Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_mseskz9w_edvc2m",
@@ -482,5 +489,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-14T07:15:53.659Z",
-  "maj": "2026-09-14T07:15:54.873Z"
+  "maj": "2026-09-14T07:16:08.232Z"
 }
