@@ -97,8 +97,11 @@
     color:var(--ink);
     border:1px solid var(--line);
   }
-  #btnSettings, #btnDiagTest, #btnPresseCollePapier{display:none;}
-  body.mode-modif #btnSettings, body.mode-modif #btnDiagTest, body.mode-modif #btnPresseCollePapier{display:inline-block;}
+  #btnSettings{display:none;}
+  body.mode-modif #btnSettings{display:inline-block;}
+  /* « Nouveau restaurant » est masqué en mode Modifier : on crée une fiche en mode normal, où le
+     bouton est en permanence disponible ; le mode Modifier ne sert qu'à retoucher l'existant. */
+  body.mode-modif #btnNouveau{display:none;}
   /* Le bouton "Modifier" lui-même n'est proposé que si l'accès a été débloqué sur cet appareil
      (jeton GitHub fonctionnel, vérifié dynamiquement auprès de l'API, ou restaurant secret
      nommé "github" déjà créé — voir majAccesModifier()/verifierDeblocageParNom() dans le JS). */
@@ -108,17 +111,28 @@
      cours, donc masqué le reste du temps. */
   #btnAnnulerTout{display:none;}
   body.mode-modif #btnAnnulerTout{display:inline-block;}
+  /* Les deux outils de diagnostic vivent désormais dans la page de paramétrage (V62), qui
+     n'est elle-même accessible qu'en mode Modifier : plus besoin de les masquer séparément. */
   #chkAfficherLogWrap{
-    display:none;
+    display:inline-flex;
     align-items:center;
     gap:5px;
-    font-size:12px;
+    font-size:13px;
     color:var(--muted);
     user-select:none;
     cursor:pointer;
     flex:0 0 auto;
   }
-  body.mode-modif #chkAfficherLogWrap{display:inline-flex;}
+  .settings-separateur{
+    font-size:11px;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--muted);
+    border-top:1px solid var(--line);
+    padding-top:8px;
+    margin-top:4px;
+  }
   #chkAfficherLogWrap input{margin:0;cursor:pointer;}
   #btnModifier.active{
     background:var(--accent);
@@ -557,11 +571,11 @@
     /* Sur iPhone, le header passe sur plusieurs rangées grâce à des "order" CSS (la position dans
        le HTML ne change pas, seul l'ordre visuel est modifié) :
        - Rangée 1 : titre + badge de version (inchangé).
-       - Rangée 2 : bouton "Modifier" à gauche, bouton "Nouveau restaurant" à droite — cette
-         rangée reste la même qu'on soit en mode normal ou en mode Modifier.
-       - Rangée 3 (mode Modifier uniquement, les autres boutons étant sinon masqués) : boutons
-         "GitHub", "Test" et la case "Log", qui passent donc sur une nouvelle rangée sous la
-         rangée 2 au lieu de s'intercaler avant le bouton "Modifier". */
+       - Rangée 2 : "Modifier" (ou "Valider et terminer") à gauche ; à droite, "Nouveau
+         restaurant" en mode normal, la roue dentée du paramétrage en mode Modifier. Depuis la
+         V62, l'en-tête tient donc sur deux rangées dans les deux modes : la troisième rangée
+         (GitHub, Test, Log, presse-papier) a disparu, son contenu ayant rejoint la page de
+         paramétrage et le parcours "Nouveau restaurant". */
     header h1{order:1;}
     #versionBadge{order:2;}
     .hbreak{display:block;flex-basis:100%;height:0;}
@@ -570,11 +584,8 @@
     #btnAnnulerTout{order:5;}
     header .spacer{order:6;}
     #btnNouveau{order:7;}
-    #hbreak2{order:8;}
-    #btnSettings{order:9;}
-    #btnDiagTest{order:10;}
-    #btnPresseCollePapier{order:11;}
-    #chkAfficherLogWrap{order:12;}
+    #btnSettings{order:8;}
+    #hbreak2{display:none;}  /* plus de troisième rangée à ouvrir */
   }
 
   /* Marker */
@@ -978,6 +989,22 @@
   /* La page ne défilant plus (V57), les deux fenêtres Gemini défilent elles-mêmes si leur
      contenu dépasse la hauteur de l'écran (avis long, ou page de réglages sur iPhone). */
   .modal-box-gemini{max-width:620px;width:96vw;max-height:88dvh;overflow-y:auto;}
+  #nouveauTexte{
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px 12px;
+    margin:14px 0 4px;
+    background:#faf8f3;
+  }
+  #nouveauTexte summary{
+    cursor:pointer;
+    font-size:13px;
+    font-weight:600;
+    color:var(--ink);
+  }
+  #nouveauTexte .gemini-aide{margin-top:8px;}
+  #nouveauTexte textarea{margin-top:8px;}
+  #nouveauTexteZone{min-height:84px;}
   .gemini-aide{font-size:11px;color:var(--muted);line-height:1.45;}
   .gemini-options{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 10px;}
   /* .modal-box label est en colonne : on rétablit une disposition en ligne pour les cases. */
@@ -1018,12 +1045,11 @@
   <span class="badge" id="versionBadge" title="Historique des versions">V1</span>
   <div class="hbreak" id="hbreak1"></div>
   <div class="spacer"></div>
-  <button class="btn-ghost" id="btnSettings">⚙️ GitHub</button>
-  <button class="btn-ghost" id="btnDiagTest" title="Diagnostic réseau détaillé (Overpass, géolocalisation, etc.)">🔧 Test</button>
-  <label id="chkAfficherLogWrap" title="Afficher/masquer le panneau de debug en bas de l'écran">
-    <input type="checkbox" id="chkAfficherLog"> 🐞 Log
-  </label>
-  <button class="btn-ghost" id="btnPresseCollePapier" title="Créer un restaurant à partir d'une adresse copiée dans le presse-papier">📋 Depuis presse-papier</button>
+  <!-- V62 : l'en-tête du mode Modifier ne contient plus que ce qui relève de la modification.
+       Le paramétrage (identifiants GitHub, diagnostic, Gemini) est passé derrière la seule roue
+       dentée ci-dessous, et la création depuis un texte a rejoint le parcours « Nouveau
+       restaurant », où elle a sa place. -->
+  <button class="btn-ghost" id="btnSettings" title="Paramétrage : identifiants GitHub, diagnostic, Gemini">⚙️</button>
   <button class="btn-ghost" id="btnModifier">✏️ Modifier</button>
   <button class="btn-ghost" id="btnAnnulerTout" title="Abandonner toutes les modifications en cours (restaurants en cours d'édition) et quitter le mode Modifier">✖️ Tout annuler</button>
   <button class="btn-primary" id="btnNouveau">📍 Nouveau restaurant</button>
@@ -1062,6 +1088,19 @@
     <button class="btn-ghost btn-small" id="btnClearCfg">Effacer les identifiants</button>
     <button class="btn-ghost btn-small" id="btnPush">⬆️ Envoyer vers GitHub</button>
     <button class="btn-ghost btn-small" id="btnPull">⬇️ Récupérer depuis GitHub</button>
+  </div>
+  <!-- V62 : rapatriés de l'en-tête, où ils n'avaient pas leur place — modifier un restaurant et
+       paramétrer l'application sont deux intentions différentes. -->
+  <div class="settings-separateur">Assistant IA</div>
+  <div class="settings-actions">
+    <button class="btn-ghost btn-small" id="btnReglagesGemini" title="Clé API Gemini, modèle et question posée">✨ Réglages de Gemini</button>
+  </div>
+  <div class="settings-separateur">Diagnostic</div>
+  <div class="settings-actions">
+    <button class="btn-ghost btn-small" id="btnDiagTest" title="Diagnostic réseau détaillé (Overpass, géolocalisation, etc.)">🔧 Test</button>
+    <label id="chkAfficherLogWrap" title="Afficher/masquer le panneau de debug en bas de l'écran">
+      <input type="checkbox" id="chkAfficherLog"> 🐞 Journal de debug
+    </label>
   </div>
 </div>
 
@@ -1231,6 +1270,44 @@
   </div>
 </div>
 
+<!-- ===== Nouveau restaurant (V62) =====
+     Deux façons de créer une fiche, réunies là où on les cherche. La seconde remplace l'ancien
+     bouton « 📋 Depuis presse-papier » de l'en-tête, dont l'intitulé ne disait ni ce qu'il
+     attendait, ni ce qu'il allait en faire. -->
+<div class="modal-overlay" id="nouveauOverlay">
+  <div class="modal-box modal-box-gemini">
+    <h3>📍 Nouveau restaurant</h3>
+    <div class="modal-hint">Deux façons de créer une fiche.</div>
+
+    <button class="btn-primary" id="btnNouveauIci" style="width:100%;padding:12px;font-size:15px;">📍 À ma position actuelle</button>
+    <div class="gemini-aide" style="margin-top:6px;">
+      Vos coordonnées GPS sont relevées, les restaurants connus à proximité sont recherchés,
+      et il ne reste qu'à désigner le bon dans la liste proposée.
+    </div>
+
+    <details id="nouveauTexte">
+      <summary>📋 Depuis un texte collé (adresse, fiche Google Maps…)</summary>
+      <div class="gemini-aide">
+        Collez ci-dessous une adresse, une fiche de restaurant copiée depuis Google Maps, un
+        message reçu… bref n'importe quel texte contenant une adresse. Elle sera recherchée sur
+        la carte, puis, comme ci-dessus, les restaurants connus à cet endroit vous seront
+        proposés. Si l'adresse n'est pas reconnue, vous pourrez corriger le texte et réessayer.
+      </div>
+      <textarea id="nouveauTexteZone" rows="4" placeholder="Appui long ici → Coller, ou bouton « 📋 Coller » ci-dessous."></textarea>
+      <div class="gemini-options">
+        <button class="btn-ghost btn-small" id="btnNouveauColler" title="Recopier ici le contenu du presse-papier">📋 Coller le presse-papier</button>
+        <button class="btn-ghost btn-small" id="btnNouveauViderTexte" title="Vider la zone de texte">🗑 Vider</button>
+      </div>
+      <div class="gemini-etat" id="nouveauTexteEtat"></div>
+      <button class="btn-primary btn-small" id="btnNouveauDepuisTexte">Chercher cette adresse et créer</button>
+    </details>
+
+    <div class="modal-actions">
+      <button class="btn-ghost btn-small" id="btnNouveauFermer">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- ===== Avis Gemini : fenêtre de lecture (V56, remaniée en V58) =====
      Cette fenêtre ne montre que l'avis lui-même : soit l'avis déjà enregistré, soit l'attente
      de la réponse, soit la nature du problème rencontré et la façon d'y remédier. Tous les
@@ -1315,7 +1392,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V61";
+  const VERSION = "V62";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1596,6 +1673,12 @@
       "Les autres lignes portent un liseré pointillé à gauche pour rappeler qu'elles sont modifiables elles aussi : il suffit de les toucher.",
       "Si le nom ou l'adresse était en cours de saisie sur le restaurant que l'on quitte, la modification est validée plutôt que perdue — exactement comme un appui sur « Valider » — et un message le signale. Même chose en sortant du mode Modifier, où une saisie restée ouverte se serait sinon retrouvée sans bouton pour la valider ni l'annuler.",
       "À l'entrée dans le mode Modifier, un message rappelle que les outils s'affichent sur le restaurant choisi, et invite à en toucher un si aucun n'est encore sélectionné."
+    ]},
+    { v:"V62", resume:[
+      "En-tête allégé : il tient maintenant sur deux rangées dans les deux modes, au lieu de cinq en mode Modifier. « Nouveau restaurant » y est masqué en mode Modifier (on crée une fiche en mode normal, où le bouton est toujours là ; le mode Modifier ne sert qu'à retoucher l'existant), et la troisième rangée — GitHub, Test, Log, presse-papier — a entièrement disparu.",
+      "Le paramétrage est passé derrière une simple roue dentée ⚙️ : identifiants GitHub et clé Google Maps comme avant, plus deux sections rapatriées de l'en-tête — « Assistant IA » (accès aux réglages de Gemini, définis à un seul endroit et non dupliqués) et « Diagnostic » (bouton Test et case du journal de debug). Modifier un restaurant et paramétrer l'application sont deux intentions différentes.",
+      "L'ancien bouton « 📋 Depuis presse-papier », dont l'intitulé ne disait ni ce qu'il attendait ni ce qu'il allait en faire, est remplacé par une section dépliable dans le parcours « Nouveau restaurant », qui propose désormais les deux façons de créer une fiche : à la position actuelle (inchangé, toujours en un seul appui) ou depuis un texte collé.",
+      "Cette section explique ce qu'elle sait reconnaître (adresse, fiche Google Maps copiée, message reçu…) et ce qu'elle en fera, et offre une zone de texte qu'on peut relire et corriger avant de lancer la recherche. Le presse-papier y est lu automatiquement au dépliage de la section, et un bouton « 📋 Coller le presse-papier » permet de le redemander ; si Safari refuse la lecture — ce qu'il fait souvent — la zone rappelle qu'un appui long suivi de « Coller » fonctionne toujours, lui."
     ]}
   ];
 
@@ -3965,7 +4048,7 @@
   // bouton "Nouveau restaurant"). Sinon, propose de corriger le texte et de resoumettre, ou
   // d'annuler complètement.
   async function traiterAdresseDepuisTexte(texteInitial){
-    const btn = document.getElementById("btnPresseCollePapier");
+    const btn = document.getElementById("btnNouveauDepuisTexte");
     let texte = texteInitial;
     while(true){
       if(btn) btn.disabled = true;
@@ -4002,35 +4085,6 @@
       // on reboucle avec le texte corrigé
     }
   }
-
-  document.getElementById("btnPresseCollePapier").addEventListener("click", async ()=>{
-    let texte = null;
-    if(navigator.clipboard && navigator.clipboard.readText){
-      try{
-        texte = (await navigator.clipboard.readText() || "").trim();
-      }catch(e){
-        texte = null; // on bascule sur le repli manuel ci-dessous (cf. commentaire)
-      }
-    }
-    if(texte){
-      await traiterAdresseDepuisTexte(texte);
-      return;
-    }
-    // Repli : lecture programmatique indisponible, refusée, ou presse-papier vide/non-texte.
-    // Fréquent sur iOS Safari, qui restreint fortement l'API Clipboard asynchrone (échec
-    // possible même sur un appui direct sur ce bouton). On demande alors à l'utilisateur de
-    // coller manuellement (appui long > "Coller") dans le champ de la boîte de dialogue
-    // existante : le collage natif (événement "paste") n'est lui jamais bloqué par iOS.
-    const choix = await ouvrirModalAdresseNonReconnue(
-      "",
-      "Lecture automatique indisponible : appuyez ci-dessous puis appui long > « Coller »."
-    );
-    if(!choix.ok || !choix.texte){
-      statut("Création annulée.", "");
-      return;
-    }
-    await traiterAdresseDepuisTexte(choix.texte);
-  });
 
   // Bouton "📍 Adresse" de la liste (visible en mode Modifier) : géocode l'adresse actuellement
   // saisie pour ce restaurant et, si elle est identifiable, déplace son icône sur la carte à
@@ -4635,7 +4689,53 @@
     return r;
   }
 
-  document.getElementById("btnNouveau").addEventListener("click", async ()=>{
+  // ---------- Parcours « Nouveau restaurant » (V62) ----------
+  // Le bouton ouvre désormais une fenêtre proposant les deux façons de créer une fiche : à la
+  // position actuelle (le comportement historique, resté au premier plan et en un seul appui),
+  // ou depuis un texte collé — ce que faisait l'ancien bouton « 📋 Depuis presse-papier » de
+  // l'en-tête, sans jamais dire ce qu'il attendait ni ce qu'il en ferait.
+
+  function nouveauTexteEtat(msg, erreur){
+    const el = document.getElementById("nouveauTexteEtat");
+    el.textContent = msg || "";
+    el.className = "gemini-etat" + (erreur ? " err" : "");
+  }
+
+  // Lecture du presse-papier. Safari iOS restreint fortement cette API : l'appel peut échouer
+  // ou rester sans réponse même déclenché par un appui. On ne considère donc jamais l'échec
+  // comme une impasse — le collage manuel (appui long → Coller) fonctionne toujours, lui.
+  async function collerDansZoneNouveau(silencieux){
+    const zone = document.getElementById("nouveauTexteZone");
+    if(!(navigator.clipboard && navigator.clipboard.readText)){
+      if(!silencieux) nouveauTexteEtat("Ce navigateur ne permet pas de lire le presse-papier : appui long dans la zone ci-dessus, puis « Coller ».", true);
+      return false;
+    }
+    try{
+      const texte = (await navigator.clipboard.readText() || "").trim();
+      if(!texte){
+        if(!silencieux) nouveauTexteEtat("Le presse-papier est vide.", true);
+        return false;
+      }
+      zone.value = texte;
+      nouveauTexteEtat("Presse-papier collé (" + texte.length + " caractères). Vérifiez, corrigez si besoin, puis lancez la recherche.");
+      return true;
+    }catch(e){
+      if(!silencieux) nouveauTexteEtat("Safari a refusé la lecture du presse-papier : appui long dans la zone ci-dessus, puis « Coller ».", true);
+      return false;
+    }
+  }
+
+  function ouvrirNouveauRestaurant(){
+    document.getElementById("nouveauTexte").open = false;
+    document.getElementById("nouveauTexteZone").value = "";
+    nouveauTexteEtat("");
+    document.getElementById("nouveauOverlay").classList.add("open");
+  }
+  function fermerNouveauRestaurant(){
+    document.getElementById("nouveauOverlay").classList.remove("open");
+  }
+
+  async function creerALaPositionActuelle(){
     if(!navigator.geolocation){
       statut("La géolocalisation n'est pas disponible sur cet appareil.", "err");
       return;
@@ -4643,7 +4743,6 @@
     const btn = document.getElementById("btnNouveau");
     btn.disabled = true;
     statut("Localisation en cours…");
-
     navigator.geolocation.getCurrentPosition(async (pos)=>{
       btn.disabled = false;
       await creerRestaurantALaPosition(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
@@ -4651,6 +4750,45 @@
       btn.disabled = false;
       statut("Localisation refusée ou indisponible : " + err.message, "err");
     }, {enableHighAccuracy:true, timeout:12000, maximumAge:0});
+  }
+
+  document.getElementById("btnNouveau").addEventListener("click", ouvrirNouveauRestaurant);
+  document.getElementById("btnNouveauFermer").addEventListener("click", fermerNouveauRestaurant);
+
+  document.getElementById("btnNouveauIci").addEventListener("click", ()=>{
+    fermerNouveauRestaurant();
+    creerALaPositionActuelle();
+  });
+
+  // Déplier la section est un geste de l'utilisateur : c'est donc le moment où le navigateur
+  // accepte (parfois) de livrer le presse-papier. On tente la lecture tout de suite, pour que le
+  // texte soit déjà là sans avoir à y penser ; en cas de refus, la zone reste vide avec son
+  // invitation à coller, et aucun message d'échec n'est affiché — rien n'est perdu.
+  document.getElementById("nouveauTexte").addEventListener("toggle", async (ev)=>{
+    if(!ev.target.open) return;
+    const zone = document.getElementById("nouveauTexteZone");
+    if(!zone.value.trim()){
+      nouveauTexteEtat("Lecture du presse-papier…");
+      const ok = await collerDansZoneNouveau(true);
+      if(!ok) nouveauTexteEtat("Collez le texte dans la zone ci-dessus (appui long → Coller), ou utilisez le bouton « 📋 Coller le presse-papier ».");
+    }
+  });
+
+  document.getElementById("btnNouveauColler").addEventListener("click", ()=> collerDansZoneNouveau(false));
+
+  document.getElementById("btnNouveauViderTexte").addEventListener("click", ()=>{
+    document.getElementById("nouveauTexteZone").value = "";
+    nouveauTexteEtat("Zone vidée.");
+  });
+
+  document.getElementById("btnNouveauDepuisTexte").addEventListener("click", async ()=>{
+    const texte = document.getElementById("nouveauTexteZone").value.trim();
+    if(!texte){
+      nouveauTexteEtat("Rien à chercher : la zone de texte est vide.", true);
+      return;
+    }
+    fermerNouveauRestaurant();
+    await traiterAdresseDepuisTexte(texte);
   });
 
   // ---------- Réglages GitHub ----------
@@ -4670,6 +4808,10 @@
   document.getElementById("btnSettings").addEventListener("click", ()=>{
     document.getElementById("settings").classList.toggle("open");
   });
+
+  // Les réglages de Gemini restent définis à un seul endroit (la fenêtre d'avis) : on ouvre
+  // cette même page depuis le paramétrage plutôt que d'en dupliquer les champs.
+  document.getElementById("btnReglagesGemini").addEventListener("click", ouvrirParamsGemini);
 
   (function initCleGoogle(){
     const champ = document.getElementById("cfgCleGoogle");
