@@ -352,11 +352,12 @@
   #listBody{
     flex:1 1 auto;
     min-height:0;
-    overflow-y:auto;
+    overflow-y:auto;              /* molette et trackpad sur iMac ; défilement programmable partout */
     -webkit-overflow-scrolling:touch;
     overscroll-behavior:contain;
-    touch-action:pan-y;
+    touch-action:none;            /* le doigt est géré par le code (cf. .resto-item ci-dessus) */
   }
+  .empty-hint{touch-action:none;}
   #listPanel h2{
     font-size:12px;
     text-transform:uppercase;
@@ -453,9 +454,14 @@
     font-size:13px;
     color:var(--muted);
   }
-  /* Toute la ligne (et pas seulement ses zones de texte) déclare le glissement vertical comme
-     un défilement : aucune zone « morte » où le doigt ne ferait rien. */
-  .resto-item, .resto-item *{touch-action:pan-y;}
+  /* V60 : sur la liste, le défilement tactile n'est plus confié à WebKit du tout — il est
+     piloté par le code (voir initDefilementListe). « touch-action:none » lui retire la main sur
+     le geste et garantit que chaque mouvement du doigt nous parvient, d'où qu'il parte dans la
+     ligne (texte, bouton, marge). C'est la seule façon d'obtenir un comportement identique à
+     chaque fois : les réglages précédents (manipulation, puis pan-y) laissaient WebKit décider
+     s'il s'agissait d'un appui ou d'un défilement, et il se trompait une fois sur deux.
+     Sur iMac, rien ne change : la molette et le trackpad passent par overflow-y:auto. */
+  .resto-item, .resto-item *{touch-action:none;}
   .resto-item{
     padding:10px 12px;
     border-top:1px solid var(--line);
@@ -1295,7 +1301,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V59";
+  const VERSION = "V60";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1563,6 +1569,13 @@
       "Ces éléments déclarent désormais « touch-action: pan-y », qui empêche toujours le zoom au double-tap mais autorise explicitement le glissement vertical. La règle est étendue à toute la ligne : plus aucune zone morte où le doigt ne ferait rien.",
       "La même déclaration a été retirée du body (où elle couvrait toute la page, liste comprise) et reportée sur la carte, seul endroit où elle était réellement nécessaire.",
       "Trois garde-fous complètent la correction : un redessin de la liste survenant pendant le geste est différé à la fin de celui-ci (le contenu n'est plus remplacé sous le doigt) ; la position de défilement est conservée d'un redessin à l'autre (elle repartait de zéro à chaque sélection) ; et le « clic » que iOS émet à la fin d'un glissement ne sélectionne plus de restaurant — faire défiler ne recentre donc plus la carte ni n'ouvre de bulle au passage."
+    ]},
+    { v:"V60", resume:[
+      "Le défilement de la liste ne dépend plus du tout de WebKit. Les corrections précédentes (V57 puis V59) réglaient bien leurs problèmes respectifs, mais laissaient au navigateur la décision finale : appui ou défilement ? Sur iPhone, selon l'endroit exact où le doigt se posait, il tranchait « appui » et la liste ne bougeait pas — d'où un défilement qui marchait une fois sur deux.",
+      "La liste est désormais déplacée directement par le code : chaque mouvement du doigt la fait défiler d'autant de pixels, sans exception et quel que soit l'endroit où le doigt s'est posé (texte, bouton, marge). Le navigateur est explicitement dessaisi du geste (touch-action:none) pour qu'aucun traitement concurrent ne vienne l'interrompre.",
+      "Une inertie de fin de geste a été ajoutée pour retrouver la souplesse du défilement natif : la liste continue sur sa lancée puis s'amortit, et s'arrête net sur les butées haute et basse.",
+      "Sur iMac, rien ne change : molette et trackpad continuent de passer par le défilement ordinaire. Les champs de saisie et les listes déroulantes restent eux aussi gérés normalement par le navigateur.",
+      "Le journal de debug (case « 🐞 Log ») trace maintenant chaque geste sur la liste : position de départ, course totale disponible, hauteur du contenu et de la zone visible, position et vitesse en fin de geste."
     ]}
   ];
 
@@ -2833,20 +2846,78 @@
   }
 
   // Suivi du geste tactile sur la liste (voir les trois garde-fous ci-dessus).
+  // ---------- Défilement tactile de la liste (V60) ----------
+  // Le défilement tactile de la liste est entièrement piloté ici, et non plus laissé à WebKit.
+  // Sur iPhone, laisser le navigateur décider donnait un résultat imprévisible : selon l'endroit
+  // exact où le doigt se posait, il classait le geste comme un appui et la liste ne bougeait pas.
+  // Ici, chaque mouvement du doigt déplace la liste d'autant de pixels, sans exception, avec une
+  // inertie en fin de geste pour retrouver la souplesse du défilement natif.
   (function initDefilementListe(){
     const zone = document.getElementById("listBody");
     if(!zone) return;
+
+    let actif = false;
+    let yDepart = 0, defilementDepart = 0;
+    let yPrec = 0, tPrec = 0, vitesse = 0;   // vitesse en pixels par milliseconde
+    let animation = null;
+
+    const course = ()=> Math.max(0, zone.scrollHeight - zone.clientHeight);
+    const poser = (valeur)=>{
+      zone.scrollTop = Math.min(course(), Math.max(0, valeur));
+    };
+    const stopperInertie = ()=>{
+      if(animation){ cancelAnimationFrame(animation); animation = null; }
+    };
+
     zone.addEventListener("touchstart", (ev)=>{
+      if(ev.touches.length !== 1) return;
+      // Un appui dans un champ de saisie ou une liste déroulante reste au navigateur.
+      if(ev.target.closest && ev.target.closest("input, textarea, select")) return;
+      stopperInertie();
+      actif = true;
       listeGesteEnCours = true;
       listeGesteADeplace = false;
-      listeGesteY0 = ev.touches[0] ? ev.touches[0].clientY : 0;
+      yDepart = yPrec = ev.touches[0].clientY;
+      tPrec = Date.now();
+      defilementDepart = zone.scrollTop;
+      vitesse = 0;
+      debugLog(`liste : début du geste — position ${Math.round(zone.scrollTop)}, course totale ${Math.round(course())} px (contenu ${zone.scrollHeight} px pour ${zone.clientHeight} px visibles)`);
     }, {passive:true});
+
+    // Non passif : c'est ce qui permet de reprendre la main sur le geste (preventDefault) et
+    // d'empêcher tout traitement concurrent du navigateur.
     zone.addEventListener("touchmove", (ev)=>{
-      const y = ev.touches[0] ? ev.touches[0].clientY : listeGesteY0;
-      if(Math.abs(y - listeGesteY0) > 8) listeGesteADeplace = true;
-    }, {passive:true});
+      if(!actif || ev.touches.length !== 1) return;
+      const y = ev.touches[0].clientY;
+      const ecart = y - yDepart;
+      if(!listeGesteADeplace && Math.abs(ecart) > 4) listeGesteADeplace = true;
+      if(listeGesteADeplace && ev.cancelable) ev.preventDefault();
+      poser(defilementDepart - ecart);
+      const t = Date.now();
+      if(t > tPrec) vitesse = (yPrec - y) / (t - tPrec);
+      yPrec = y;
+      tPrec = t;
+    }, {passive:false});
+
     const finDuGeste = ()=>{
+      if(!actif) return;
+      actif = false;
       listeGesteEnCours = false;
+      debugLog(`liste : fin du geste — position ${Math.round(zone.scrollTop)}, vitesse ${vitesse.toFixed(2)} px/ms`);
+      // Inertie : le défilement continue sur sa lancée puis s'amortit, comme le ferait iOS.
+      // Négligée si le doigt était pratiquement immobile ou s'il s'est arrêté avant de lâcher.
+      let v = vitesse * 16;                       // pixels par image (60 images/seconde)
+      if(Math.abs(v) > 0.8 && (Date.now() - tPrec) < 90){
+        const pas = ()=>{
+          v *= 0.94;
+          if(Math.abs(v) < 0.4){ animation = null; return; }
+          const avant = zone.scrollTop;
+          poser(avant + v);
+          if(zone.scrollTop === avant){ animation = null; return; }  // butée haute ou basse
+          animation = requestAnimationFrame(pas);
+        };
+        animation = requestAnimationFrame(pas);
+      }
       if(listeRedessinEnAttente){
         listeRedessinEnAttente = false;
         rafraichirListe();
@@ -2854,10 +2925,11 @@
     };
     zone.addEventListener("touchend", finDuGeste, {passive:true});
     zone.addEventListener("touchcancel", finDuGeste, {passive:true});
+
     // Un glissement qui se termine sur une ligne produit quand même un « click » sur iOS.
     // Intercepté ici en phase de capture, donc avant les gestionnaires des lignes : faire
     // défiler la liste ne sélectionne plus un restaurant au passage (ce qui recentrait la
-    // carte, rouvrait un popup et redessinait la liste en pleine manœuvre).
+    // carte, rouvrait une bulle et redessinait la liste en pleine manœuvre).
     zone.addEventListener("click", (ev)=>{
       if(!listeGesteADeplace) return;
       listeGesteADeplace = false;
