@@ -227,7 +227,14 @@
       "name": "La coupole",
       "address": "102 Boulevard du Montparnasse, 75014 Paris",
       "liste": "Paris",
-      "maj": "2026-08-04T17:03:15.796Z"
+      "maj": "2026-08-04T17:03:15.796Z",
+      "gemini": {
+        "texte": "La Coupole est une institution parisienne emblématique.\n\n*   **Type de cuisine :** Brasserie française classique, réputée pour ses plateaux de fruits de mer frais, ses viandes et ses plats traditionnels (choucroute, sole meunière).\n*   **Fourchette de prix :** Plutôt élevée (€€€). Comptez 50-80€ par personne minimum pour un plat et un verre, sans les fruits de mer qui peuvent faire grimper l'addition.\n\n**Points forts :**\n*   **Ambiance et décor :** Magnifique cadre Art Déco historique, grand et vivant, offrant une véritable immersion dans le Paris d'antan.\n*   **Service :** Généralement professionnel et efficace, dans le style brasserie parisienne.\n*   **Qualité des produits :** Les fruits de mer sont souvent salués pour leur fraîcheur.\n*   **L'expérience :** C'est un lieu mythique, plus qu'un simple restaurant.\n\n**Points faibles :**\n*   **Prix :** Peut être jugé cher pour une cuisine de brasserie, même de qualité.\n*   **Bruit et affluence :** Très fréquenté, l'ambiance peut être bruyante, surtout aux heures de pointe.\n*   **Cuisine :** Classique, certains la trouvent peu innovante ou \"standard\" pour le prix.\n\n**Occasion conseillée :** Idéal pour une occasion spéciale (anniversaire, célébration), pour découvrir un monument historique parisien, un dîner d'affaires ou un repas entre amis désireux de vivre une expérience typiquement parisienne dans un cadre grandiose.",
+        "sources": [],
+        "quand": "2026-09-14T07:34:51.330Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_mtn8kkah_4xztak",
@@ -510,5 +517,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-14T07:18:23.543Z",
-  "maj": "2026-09-14T07:34:23.752Z"
+  "maj": "2026-09-14T07:34:52.547Z"
 }
