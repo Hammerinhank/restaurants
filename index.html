@@ -1537,7 +1537,7 @@
 (function(){
   "use strict";
 
-  const VERSION = "V69";
+  const VERSION = "V70";
   document.getElementById("versionBadge").textContent = VERSION;
 
   // Historique des versions : résumé des modifications apportées à chaque version,
@@ -1859,6 +1859,12 @@
     { v:"V69", resume:[
       "Le paramétrage s'affiche désormais seul : la carte et la liste sont masquées tant qu'il est ouvert, et il occupe toute la page sous l'en-tête. Il partageait auparavant l'écran avec elles et se retrouvait comprimé au tiers de la hauteur — on ne voyait jamais plus de deux réglages à la fois, alors qu'on n'a précisément besoin de rien d'autre à ce moment-là.",
       "Un titre « ⚙️ Paramétrage » et une croix de fermeture ont été ajoutés en tête de la page, et les réglages GitHub ont reçu leur intitulé de section comme les deux autres (Assistant IA, Diagnostic). Sortir du mode Modifier referme la page comme avant."
+    ]},
+    { v:"V70", resume:[
+      "Le diagnostic réseau se contredisait : il concluait au « blocage local » pour des serveurs qui avaient en réalité laissé le délai s'écouler entièrement — alors qu'un blocage local (filtre DNS, bloqueur, pare-feu) refuse la connexion en quelques dizaines de millisecondes. C'est désormais la durée de l'échec qui tranche : instantané = blocage local, délai entièrement écoulé = serveur injoignable ou saturé, interruption en cours de route = serveur en difficulté ou réseau instable.",
+      "La synthèse ne dramatise plus l'échec d'un miroir de secours : si le serveur principal répond — et c'est lui que l'application interroge en premier — elle le dit clairement, l'indisponibilité des autres n'ayant aucune conséquence pratique. À l'inverse, elle précise ce qui reste possible quand aucun ne répond.",
+      "Délai porté de 8 à 12 secondes, dans le diagnostic comme dans l'application : Overpass est lent par nature, et 8 secondes suffisaient à faire passer un serveur simplement chargé pour un serveur mort.",
+      "Le miroir overpass.openstreetmap.ru, injoignable de façon répétée, cède sa place à l'instance française api.openstreetmap.fr."
     ]}
   ];
 
@@ -4423,10 +4429,14 @@
   // Note : overpass.private.coffee est le nom actuel du service précédemment connu sous
   // overpass.kumi.systems (renommage officiel d'après le wiki OpenStreetMap) — l'ancien
   // nom peut être beaucoup plus lent selon la route réseau empruntée.
+  // V70 : overpass.openstreetmap.ru, injoignable de façon répétée, cède sa place à l'instance
+  // française api.openstreetmap.fr. L'ordre compte : overpass-api.de est l'instance de
+  // référence, tenue à jour en continu ; les suivantes ne servent que si elle ne répond pas,
+  // et peuvent servir des données moins fraîches.
   const OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
-    "https://overpass.openstreetmap.ru/api/interpreter"
+    "https://api.openstreetmap.fr/oapi/interpreter"
   ];
 
   function extraireRestaurants(data, lat, lon, limite){
@@ -4453,7 +4463,7 @@
     const res = await fetchAvecDelai(endpoint, {
       method: "POST",
       body: "data=" + encodeURIComponent(requete)
-    }, 8000, signal);
+    }, 12000, signal);   // V70 : 8 s étaient trop courtes pour Overpass aux heures chargées
     if(!res.ok) throw new Error("HTTP " + res.status + " (" + endpoint + ")");
     return res.json();
   }
@@ -5696,8 +5706,13 @@
   const DIAG_OVERPASS_ENDPOINTS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
-    "https://overpass.openstreetmap.ru/api/interpreter"
+    "https://api.openstreetmap.fr/oapi/interpreter"
   ];
+  // Même délai que l'application, pour que le diagnostic reflète ce qu'elle vit réellement.
+  const DIAG_TIMEOUT_MS = 12000;
+  // En deçà, un échec n'a pas eu le temps d'atteindre le réseau : c'est la signature d'un refus
+  // local (filtre DNS, bloqueur, pare-feu), et non celle d'un serveur qui ne répond pas.
+  const DIAG_SEUIL_INSTANTANE_MS = 400;
   // Coordonnées neutres (Paris) : seule la connectivité nous intéresse ici, pas le résultat.
   const DIAG_LAT = 48.8566, DIAG_LON = 2.3522;
   const DIAG_NOMINATIM_URL = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${DIAG_LAT}&lon=${DIAG_LON}&zoom=18`;
@@ -5880,34 +5895,54 @@
       const rNormal = await diagFetchNormal(endpoint, {
         method: "POST",
         body: "data=" + encodeURIComponent(requeteTest)
-      }, 8000);
+      }, DIAG_TIMEOUT_MS);
       R.push("  a) Requête normale (comme l'appli)      : " +
         (rNormal.ok ? diagLigne(true, "OK — HTTP " + rNormal.status + " en " + fmtMs(rNormal.duree))
                     : diagLigne(false, "ÉCHEC en " + fmtMs(rNormal.duree) + " — " + rNormal.erreur)));
       maj();
 
-      const rNoCors = await diagFetchNoCors(endpoint, 8000);
+      const rNoCors = await diagFetchNoCors(endpoint, DIAG_TIMEOUT_MS);
       R.push("  b) Requête sans lecture réponse (no-cors) : " +
         (rNoCors.ok ? diagLigne(true, "la requête atteint le serveur (" + fmtMs(rNoCors.duree) + ")")
                     : diagLigne(false, "n'atteint même pas le serveur (" + fmtMs(rNoCors.duree) + ") — " + rNoCors.erreur)));
       maj();
 
-      if(!rNormal.ok && rNormal.duree < 200){
-        R.push("  ⚠️ Échec quasi instantané (<200 ms) : typique d'un blocage LOCAL avant même l'envoi réseau (extension anti-pub/traqueurs, filtre DNS de la box/routeur, pare-feu). Un vrai souci serveur/réseau met généralement plus longtemps à échouer.");
+      // V70 : c'est la DURÉE de l'échec qui distingue les deux causes, pas le simple fait
+      // d'échouer. Un blocage local (filtre DNS, bloqueur de contenu, pare-feu) refuse la
+      // connexion avant même de sortir de l'appareil : l'échec tombe en quelques dizaines de
+      // millisecondes. Un serveur injoignable ou saturé, lui, laisse le délai s'écouler
+      // jusqu'au bout. Les versions précédentes concluaient au blocage local dans les deux
+      // cas — et se contredisaient donc d'une ligne à l'autre du rapport.
+      const instantane = (r)=> !r.ok && r.duree < DIAG_SEUIL_INSTANTANE_MS;
+      const expire = (r)=> !r.ok && r.duree >= DIAG_TIMEOUT_MS - 500;
+
+      if(!rNormal.ok && instantane(rNormal)){
+        R.push("  ⚠️ Échec quasi instantané (< " + DIAG_SEUIL_INSTANTANE_MS + " ms) : la connexion est refusée avant même de sortir de l'appareil — signature d'un blocage LOCAL (bloqueur de pub/traqueurs, filtre DNS de la box, pare-feu, VPN).");
+      }else if(expire(rNormal)){
+        R.push("  ℹ️ Délai entièrement écoulé sans réponse : la requête est bien partie, c'est le serveur qui ne répond pas (panne ou surcharge). Ce n'est pas un blocage de cet appareil.");
       }else if(!rNormal.ok){
-        R.push("  ℹ️ Échec après un délai notable : compatible avec un vrai souci réseau/serveur plutôt qu'un blocage local instantané.");
+        R.push("  ℹ️ Échec après un délai intermédiaire : connexion établie puis interrompue — serveur en difficulté ou réseau instable.");
       }
 
-      let verdict;
+      let verdict, categorie;
       if(rNormal.ok){
         verdict = "OK";
+        categorie = "ok";
       }else if(rNoCors.ok){
-        verdict = "Probable souci CORS côté serveur Overpass (il répond mais sans en-tête Access-Control-Allow-Origin correct) — pas un blocage de cet appareil";
+        verdict = "Souci CORS côté serveur (il répond, mais sans l'en-tête Access-Control-Allow-Origin attendu) — pas un blocage de cet appareil";
+        categorie = "cors";
+      }else if(instantane(rNormal) && instantane(rNoCors)){
+        verdict = "Probable blocage LOCAL (bloqueur, filtre DNS, pare-feu ou VPN) — la requête ne sort pas de l'appareil";
+        categorie = "local";
+      }else if(expire(rNormal)){
+        verdict = "Serveur injoignable ou saturé — aucune réponse dans les " + Math.round(DIAG_TIMEOUT_MS/1000) + " s imparties";
+        categorie = "serveur";
       }else{
-        verdict = "Probable blocage LOCAL (extension navigateur, filtre DNS réseau, pare-feu ou VPN) — la requête ne semble pas sortir";
+        verdict = "Serveur en panne ou réseau instable — connexion interrompue en cours de route";
+        categorie = "serveur";
       }
       R.push("  ➜ Verdict : " + verdict);
-      synthese.push({endpoint, ok: rNormal.ok, verdict});
+      synthese.push({endpoint, ok: rNormal.ok, verdict, categorie});
       maj();
     }
 
@@ -5915,15 +5950,23 @@
     R.push("");
     R.push("── 6. Synthèse et pistes ─────────────────");
     const nbOk = synthese.filter(s=>s.ok).length;
-    const nbBloqueLocal = synthese.filter(s=>s.verdict.startsWith("Probable blocage LOCAL")).length;
-    const nbCorsServeur = synthese.filter(s=>s.verdict.startsWith("Probable souci CORS")).length;
+    const nbBloqueLocal = synthese.filter(s=>s.categorie === "local").length;
+    const nbCorsServeur = synthese.filter(s=>s.categorie === "cors").length;
+    const nbServeur = synthese.filter(s=>s.categorie === "serveur").length;
+    const principalOk = synthese.length && synthese[0].ok;
 
     R.push(nbOk + " / " + DIAG_OVERPASS_ENDPOINTS.length + " serveurs Overpass joignables normalement sur cet appareil, à cet instant.");
-    if(nomTest.ok && nbOk < DIAG_OVERPASS_ENDPOINTS.length){
-      R.push("Nominatim fonctionne mais pas (tous) les serveurs Overpass : la connectivité générale de cet appareil est bonne — le blocage cible spécifiquement les domaines Overpass.");
+    // V70 : le premier miroir est celui que l'application interroge en premier. S'il répond, la
+    // recherche des restaurants fonctionne, et l'état des suivants n'a aucune conséquence
+    // pratique — il ne faut donc pas présenter leur échec comme un problème à résoudre.
+    if(principalOk && nbOk < DIAG_OVERPASS_ENDPOINTS.length){
+      R.push("→ L'essentiel fonctionne : le serveur principal (" + DIAG_OVERPASS_ENDPOINTS[0] + ") répond, et c'est lui que l'application interroge en premier. Les autres ne sont que des secours, sollicités uniquement s'il venait à ne plus répondre ; leur indisponibilité momentanée n'a aucune conséquence sur l'usage.");
+    }
+    if(nomTest.ok && nbOk < DIAG_OVERPASS_ENDPOINTS.length && nbBloqueLocal > 0){
+      R.push("Nominatim fonctionne mais pas (tous) les serveurs Overpass, et les échecs sont instantanés : un filtrage vise spécifiquement ces domaines depuis cet appareil ou ce réseau.");
     }
     if(nbBloqueLocal === DIAG_OVERPASS_ENDPOINTS.length){
-      R.push("→ Les 3 serveurs échouent y compris en no-cors : tout pointe vers un blocage LOCAL (cet appareil ou ce réseau), pas un souci des serveurs Overpass eux-mêmes.");
+      R.push("→ Les 3 serveurs échouent instantanément, y compris en no-cors : tout pointe vers un blocage LOCAL (cet appareil ou ce réseau), pas un souci des serveurs Overpass eux-mêmes.");
       R.push("  Pistes à tester dans l'ordre :");
       R.push("  1. Désactiver temporairement les extensions de blocage de pub/traqueurs (uBlock Origin, AdGuard, Privacy Badger, 1Blocker…), puis relancer ce test.");
       R.push("  2. Tester en navigation privée (désactive la plupart des extensions).");
@@ -5934,6 +5977,15 @@
       R.push("→ Au moins un serveur répond en no-cors mais pas en requête normale : problème d'en-têtes CORS côté serveur Overpass (les miroirs publics sont connus pour être instables), pas un blocage de votre appareil.");
     }else if(nbOk === DIAG_OVERPASS_ENDPOINTS.length){
       R.push("→ Tout fonctionne correctement sur cet appareil au moment du test.");
+    }
+    if(nbServeur > 0 && nbBloqueLocal === 0){
+      R.push("→ Les échecs constatés sont du côté des serveurs, pas du vôtre : rien à corriger sur cet appareil. Les miroirs publics d'Overpass sont tenus par des bénévoles et connaissent des indisponibilités fréquentes ; refaire le test plus tard donnera souvent un autre résultat.");
+    }
+    if(!principalOk && nbOk > 0){
+      R.push("→ Le serveur principal ne répond pas, mais un miroir de secours oui : la recherche des restaurants fonctionne, simplement plus lentement, le temps que l'application bascule.");
+    }
+    if(nbOk === 0){
+      R.push("→ Aucun serveur ne répond : la recherche des restaurants à proximité est indisponible pour le moment. La création d'un restaurant reste possible, mais sans la liste des établissements connus alentour.");
     }
     R.push("");
     R.push("Pour comparer avec un autre appareil : lancez ce même diagnostic dessus (bouton 🔧 Test), puis comparez les lignes ✅/❌ des deux rapports (utilisez Copier ou Télécharger pour les mettre côte à côte).");
