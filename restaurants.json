@@ -25,7 +25,14 @@
       "name": "Senso",
       "address": "58 Rue Olivier de Serres, 75015 Paris",
       "maj": "2026-08-04T16:30:01.087Z",
-      "liste": "Paris"
+      "liste": "Paris",
+      "gemini": {
+        "texte": "Voici mon avis sur le restaurant Senso, basé sur les informations disponibles :\n\n**Type de cuisine :** Italienne classique et authentique.\n\n**Fourchette de prix :** Milieu de gamme (€€). Comptez généralement entre 25 et 40€ par personne pour un plat et une boisson/dessert.\n\n**Points forts (selon les avis récents) :**\n*   Qualité et saveur des plats, notamment les pizzas et les pâtes fraîches, souvent préparées avec des produits frais.\n*   Service généralement décrit comme accueillant, efficace et sympathique.\n*   Ambiance agréable, conviviale et chaleureuse.\n*   Bon rapport qualité-prix.\n\n**Points faibles (selon les avis récents) :**\n*   Peut être un peu bruyant lorsqu'il est bondé.\n*   La décoration est fonctionnelle et simple, sans être particulièrement remarquable.\n\n**Occasion conseillée :** Je le conseillerais pour un repas décontracté entre amis ou en famille, une soirée simple et conviviale où l'on souhaite savourer de bons classiques italiens sans se ruiner. Idéal pour un dîner de semaine ou un déjeuner sans prétention.",
+        "sources": [],
+        "quand": "2026-09-14T07:08:51.089Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     },
     {
       "id": "r_msd0ybgh_23mpkv",
@@ -454,5 +461,5 @@
   ],
   "listeActuelle": "Paris",
   "listeActuelleMaj": "2026-09-05T07:27:19.845Z",
-  "maj": "2026-09-14T07:08:06.401Z"
+  "maj": "2026-09-14T07:08:53.353Z"
 }
