@@ -293,7 +293,14 @@
       "name": "La Table Alziari",
       "address": "4 Rue François Zanin, 06300 Nice",
       "liste": "Province",
-      "maj": "2026-09-14T17:52:06.778Z"
+      "maj": "2026-09-14T17:52:06.778Z",
+      "gemini": {
+        "texte": "Oui, je connais La Table Alziari.\n\n**Type de cuisine :** Méditerranéenne et niçoise authentique, mettant à l'honneur les produits frais et de saison, avec une emphase particulière sur l'huile d'olive Alziari, dont la boutique est attenante.\n\n**Fourchette de prix :** Moyenne à moyenne-haute. Comptez environ 30-50€ par personne pour un plat et un dessert, hors boissons.\n\n**Points forts (selon avis récents) :**\n*   **Qualité des produits :** Fraîcheur et saveur des ingrédients, notamment l'huile d'olive.\n*   **Authenticité :** Plats traditionnels niçois bien exécutés et fidèles aux recettes locales.\n*   **Service :** Souvent décrit comme chaleureux, accueillant et attentionné.\n*   **Ambiance :** Conviviale, typique et charmante.\n*   **Rapport qualité-prix :** Jugé excellent pour la qualité des mets proposés.\n\n**Points faibles (selon avis récents) :**\n*   **Menu :** Peut être relativement court, reflétant une cuisine du marché et de saison.\n*   **Espace :** Le restaurant est de taille modeste, pouvant être un peu exigu aux heures de pointe.\n*   **Options spécifiques :** Moins d'options pour les régimes très spécifiques (végétalien strict, sans gluten complexe).\n\n**Occasion conseillée :** Je le conseillerais pour un déjeuner ou dîner décontracté mais de qualité, entre amis ou en couple, pour découvrir ou redécouvrir les saveurs authentiques de Nice dans une atmosphère locale et chaleureuse. Idéal pour ceux qui apprécient une cuisine simple, goûteuse et ancrée dans le terroir.",
+        "sources": [],
+        "quand": "2026-09-14T17:57:12.586Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     }
   ],
   "suppressions": [
@@ -533,5 +540,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-14T17:56:57.377Z",
-  "maj": "2026-09-14T17:56:58.603Z"
+  "maj": "2026-09-14T17:57:13.797Z"
 }
