@@ -322,10 +322,10 @@
       "id": "r_mu4f9k30_ak0vlo",
       "lat": 43.6732038,
       "lon": 7.0051552,
-      "name": "Nouveau restaurant",
-      "address": "",
+      "name": "Bistro du Clos",
+      "address": "111 Avenue de Provence, 06650 Le Rouret",
       "liste": "Province",
-      "maj": "2026-09-16T18:16:25.068Z"
+      "maj": "2026-09-16T18:16:35.219Z"
     }
   ],
   "suppressions": [
@@ -573,5 +573,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-16T18:14:14.030Z",
-  "maj": "2026-09-16T18:16:26.308Z"
+  "maj": "2026-09-16T18:16:36.436Z"
 }
