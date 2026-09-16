@@ -325,7 +325,14 @@
       "name": "Bistro du Clos",
       "address": "111 Avenue de Provence, 06650 Le Rouret",
       "liste": "Province",
-      "maj": "2026-09-16T18:16:35.219Z"
+      "maj": "2026-09-16T18:16:35.219Z",
+      "gemini": {
+        "texte": "Oui, j'ai trouvé des informations fiables concernant le Bistro du Clos.\n\n**Type de cuisine :** Cuisine française traditionnelle, souvent décrite comme semi-gastronomique, mettant en avant les produits frais et les saveurs provençales.\n\n**Fourchette de prix :** Moyenne à supérieure. Comptez généralement entre 40€ et 70€ par personne pour un repas complet (entrée, plat, dessert, hors boissons).\n\n**Points forts :**\n*   **Qualité de la cuisine :** Plats raffinés, savoureux et bien présentés, avec des produits de saison.\n*   **Service :** Attentif, professionnel et chaleureux.\n*   **Cadre :** Ambiance élégante mais décontractée, souvent avec une belle terrasse ombragée et un jardin agréable.\n*   **Rapport qualité-prix :** Souvent jugé excellent compte tenu de la qualité des prestations.\n\n**Points faibles :**\n*   **Prix :** Peut être considéré comme un peu élevé pour certains budgets, bien que la qualité justifie souvent le coût.\n\n**Occasion conseillée :** Idéal pour un dîner romantique, un repas de famille (pour une occasion spéciale), un déjeuner d'affaires ou une soirée agréable entre amis recherchant une cuisine de qualité dans un cadre charmant.",
+        "sources": [],
+        "quand": "2026-09-16T18:17:00.613Z",
+        "modele": "gemini-2.5-flash",
+        "recherche": false
+      }
     }
   ],
   "suppressions": [
@@ -573,5 +580,5 @@
   ],
   "listeActuelle": "Province",
   "listeActuelleMaj": "2026-09-16T18:14:14.030Z",
-  "maj": "2026-09-16T18:16:36.436Z"
+  "maj": "2026-09-16T18:17:01.823Z"
 }
